@@ -1,0 +1,8 @@
+{
+  "name": "entry",
+  "modelVersion": "5.0.0",
+  "version": "1.0.0",
+  "description": "CampusBazaar entry module",
+  "main": "",
+  "dependencies": {}
+}

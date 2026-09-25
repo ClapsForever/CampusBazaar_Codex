@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "CampusBazaar entry module" },
+    { "name": "EntryAbility_desc", "value": "CampusBazaar main ability" },
+    { "name": "EntryAbility_label", "value": "CampusBazaar" }
+  ]
+}

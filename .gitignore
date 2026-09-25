@@ -1,0 +1,32 @@
+# IDE and Hvigor workspace/cache state
+.idea/
+.hvigor/
+**/.hvigor/
+
+# Build output and generated packages
+**/build/
+*.hap
+*.hsp
+*.har
+*.log
+
+# Dependencies and local environment files
+**/node_modules/
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Signing material and private keys
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.pem
+*.key
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
