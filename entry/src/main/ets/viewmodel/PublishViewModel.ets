@@ -11,6 +11,9 @@ export class PublishViewModel {
   @Trace title: string = '';
   @Trace description: string = '';
   @Trace priceText: string = '';
+  @Trace category: string = '';
+  @Trace campus: string = '';
+  @Trace condition: string = 'good';
   @Trace images: string[] = [];
   @Trace titleError: string = '';
   @Trace descriptionError: string = '';
@@ -98,7 +101,10 @@ export class PublishViewModel {
         title: this.title,
         description: this.description,
         price: parsePrice(this.priceText),
-        images: [...this.images]
+        images: [...this.images],
+        category: this.category.trim() || '其他',
+        campus: this.campus.trim() || '未填写校区',
+        condition: this.condition
       };
       await productService.publishProduct(draft);
       return true;

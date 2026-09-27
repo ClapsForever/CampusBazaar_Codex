@@ -1,6 +1,5 @@
 import { ProductDetailViewModel } from '../viewmodel/ProductDetailViewModel';
 import { StateView } from '../components/StateView';
-import { resolveMockImage } from '../data/MockDataStore';
 import { formatPrice } from '../common/Utils';
 import {
   COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
@@ -22,7 +21,7 @@ export struct ProductDetailView {
               if (this.vm.detail.product.images.length > 0) {
                 Swiper() {
                   ForEach(this.vm.detail.product.images, (source: string) => {
-                    Image(resolveMockImage(source)).width('100%').aspectRatio(1).objectFit(ImageFit.Cover);
+                    Image(source).width('100%').aspectRatio(1).objectFit(ImageFit.Cover);
                   }, (source: string): string => source);
                 }
                 .indicator(true).width('100%').backgroundColor(Color.White);
@@ -48,7 +47,7 @@ export struct ProductDetailView {
               .width('100%').padding(14).backgroundColor(Color.White).borderRadius(12)
                 .margin({ left: 12, right: 12, top: 10 });
               Row({ space: 10 }) {
-                Image(resolveMockImage(this.vm.detail.seller.avatar)).width(42).height(42).borderRadius(21);
+                Image(this.vm.detail.seller.avatar).width(42).height(42).borderRadius(21);
                 Column({ space: 2 }) {
                   Text(this.vm.detail.seller.nickname).fontSize(15).fontWeight(FontWeight.Medium)
                     .fontColor(COLOR_TEXT_PRIMARY);

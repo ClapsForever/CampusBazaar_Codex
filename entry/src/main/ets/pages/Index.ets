@@ -1,7 +1,7 @@
-import { AuthViewModel, LoginMode } from '../viewmodel/AuthViewModel';
+import { AuthViewModel } from '../viewmodel/AuthViewModel';
 import {
   COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY,
-  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, PAGE_MAIN, SMS_SENT_TOAST
+  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, PAGE_MAIN
 } from '../common/Constants';
 
 @Entry
@@ -22,23 +22,17 @@ struct Index {
 
           Row({ space: 6 }) {
             Text('ℹ️').fontSize(14);
-            Text('演示模式：验证码任意 6 位数字；CAS 任意非空学号与密码')
+            Text('本机联调：填写后端 .env 的开发验证码；暂不支持学校统一认证')
               .fontSize(12).fontColor(COLOR_TEXT_SECONDARY).lineHeight(18);
           }
           .width('100%').padding(10).backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(8);
 
-          Row({ space: 8 }) {
-            this.modeButton('手机号登录', LoginMode.PHONE);
-            this.modeButton('校园 CAS 登录', LoginMode.CAS);
-          }
-          .width('100%');
+          Text('手机号登录').fontSize(14).fontWeight(FontWeight.Bold).fontColor(COLOR_PRIMARY)
+            .backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(18)
+            .height(48).padding({ left: 16, right: 16, top: 9, bottom: 9 });
 
           Column({ space: 12 }) {
-            if (this.vm.mode === LoginMode.PHONE) {
-              this.phoneForm();
-            } else {
-              this.casForm();
-            }
+            this.phoneForm();
             if (this.vm.formError !== '') {
               Text(this.vm.formError).fontSize(12).fontColor(COLOR_ERROR).width('100%');
             }
@@ -67,17 +61,6 @@ struct Index {
   }
 
   @Builder
-  modeButton(label: string, mode: LoginMode): void {
-    Text(label)
-      .fontSize(14)
-      .fontWeight(this.vm.mode === mode ? FontWeight.Bold : FontWeight.Normal)
-      .fontColor(this.vm.mode === mode ? COLOR_PRIMARY : COLOR_TEXT_SECONDARY)
-      .backgroundColor(this.vm.mode === mode ? COLOR_PRIMARY_SOFT : Color.Transparent)
-      .height(48).borderRadius(18).padding({ left: 16, right: 16, top: 9, bottom: 9 })
-      .onClick(() => this.vm.switchMode(mode));
-  }
-
-  @Builder
   phoneForm(): void {
     Column({ space: 8 }) {
       TextInput({ placeholder: '请输入 11 位手机号', text: this.vm.phone })
@@ -86,7 +69,6 @@ struct Index {
         .onChange((value: string) => {
           this.vm.phone = value;
           this.vm.phoneError = '';
-          this.vm.smsCodeSent = false;
         });
       if (this.vm.phoneError !== '') {
         Text(this.vm.phoneError).fontSize(12).fontColor(COLOR_ERROR);
@@ -99,14 +81,6 @@ struct Index {
             this.vm.smsCode = value;
             this.vm.smsCodeError = '';
           });
-        Button(this.vm.sendingCode ? '发送中…' : '获取验证码')
-          .enabled(this.vm.canSendCode).height(48).fontSize(14).fontColor(Color.White)
-          .backgroundColor(COLOR_PRIMARY).borderRadius(10).padding({ left: 12, right: 12 })
-          .onClick(async () => {
-            if (await this.vm.sendCode()) {
-              this.getUIContext().getPromptAction().showToast({ message: SMS_SENT_TOAST, duration: 1500 });
-            }
-          });
       }
       .width('100%');
       if (this.vm.smsCodeError !== '') {
@@ -116,30 +90,4 @@ struct Index {
     .width('100%');
   }
 
-  @Builder
-  casForm(): void {
-    Column({ space: 8 }) {
-      TextInput({ placeholder: '请输入学号', text: this.vm.studentId })
-        .height(48).fontSize(15).backgroundColor(Color.White).borderRadius(10)
-        .padding({ left: 14, right: 14 })
-        .onChange((value: string) => {
-          this.vm.studentId = value;
-          this.vm.studentIdError = '';
-        });
-      if (this.vm.studentIdError !== '') {
-        Text(this.vm.studentIdError).fontSize(12).fontColor(COLOR_ERROR);
-      }
-      TextInput({ placeholder: '请输入密码', text: this.vm.password })
-        .type(InputType.Password).height(48).fontSize(15).backgroundColor(Color.White).borderRadius(10)
-        .padding({ left: 14, right: 14 })
-        .onChange((value: string) => {
-          this.vm.password = value;
-          this.vm.passwordError = '';
-        });
-      if (this.vm.passwordError !== '') {
-        Text(this.vm.passwordError).fontSize(12).fontColor(COLOR_ERROR);
-      }
-    }
-    .width('100%');
-  }
 }

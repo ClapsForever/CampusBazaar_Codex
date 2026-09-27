@@ -1,7 +1,6 @@
-import { Product, Transaction, TransactionDetail, TransactionListItem, TransactionStatus, User } from '../model/Models';
-import { mockDataStore } from '../data/MockDataStore';
-import { DUPLICATE_TRADE_ERROR, MOCK_DELAY_MS, OWN_PRODUCT_HINT } from '../common/Constants';
-import { mockDelayVoid } from '../common/Utils';
+import { Transaction, TransactionDetail, TransactionListItem } from '../model/Models';
+import { http } from '@kit.NetworkKit';
+import { businessApiClient, BusinessApiError } from './BusinessApiClient';
 
 export interface TransactionService {
   getTransactionsForUser(userId: string): Promise<TransactionListItem[]>;
@@ -12,94 +11,66 @@ export interface TransactionService {
   completeTransaction(transactionId: string, operatorId: string): Promise<Transaction>;
 }
 
-export class MockTransactionService implements TransactionService {
-  async getTransactionsForUser(userId: string): Promise<TransactionListItem[]> {
-    const result: TransactionListItem[] = [];
-    for (const item of mockDataStore.transactionsForUser(userId)) {
-      const product: Product | undefined = mockDataStore.findProductById(item.productId);
-      const otherId: string = item.buyerId === userId ? item.sellerId : item.buyerId;
-      const counterparty: User | undefined = mockDataStore.findUserById(otherId);
-      if (product === undefined || counterparty === undefined) {
-        continue;
+interface TransactionListResponse {
+  items: TransactionListItem[];
+  nextCursor: string | null;
+}
+
+let transactionRequestSequence: number = 0;
+
+export class HttpTransactionService implements TransactionService {
+  async getTransactionsForUser(_userId: string): Promise<TransactionListItem[]> {
+    const items: TransactionListItem[] = [];
+    let cursor: string | null = null;
+    for (let page: number = 0; page < 20; page += 1) {
+      const result: TransactionListResponse = await businessApiClient.request<TransactionListResponse>(http.RequestMethod.GET,
+        `/api/v1/transactions?limit=100${cursor === null ? '' : `&cursor=${encodeURIComponent(cursor)}`}`);
+      for (const item of result.items) {
+        items.push(item);
       }
-      const messages = mockDataStore.getMessagesByTransaction(item.id);
-      const listItem: TransactionListItem = {
-        transaction: item,
-        product: product,
-        counterparty: counterparty
-      };
-      if (messages.length > 0) {
-        listItem.latestMessage = messages[messages.length - 1];
+      cursor = result.nextCursor;
+      if (cursor === null) {
+        break;
       }
-      result.push(listItem);
     }
-    await mockDelayVoid();
-    return result;
+    return items;
   }
 
   async getTransactionDetail(transactionId: string): Promise<TransactionDetail | null> {
-    const item: Transaction | undefined = mockDataStore.findTransactionById(transactionId);
-    if (item === undefined) {
-      await mockDelayVoid();
-      return null;
+    try {
+      return await businessApiClient.request<TransactionDetail>(http.RequestMethod.GET,
+        `/api/v1/transactions/${encodeURIComponent(transactionId)}`);
+    } catch (error) {
+      if (error instanceof BusinessApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw new Error((error as Error).message);
     }
-    const product: Product | undefined = mockDataStore.findProductById(item.productId);
-    const buyer: User | undefined = mockDataStore.findUserById(item.buyerId);
-    const seller: User | undefined = mockDataStore.findUserById(item.sellerId);
-    await mockDelayVoid();
-    if (product === undefined || buyer === undefined || seller === undefined) {
-      return null;
-    }
-    return { transaction: item, product: product, buyer: buyer, seller: seller };
   }
 
-  async createTransaction(productId: string, buyerId: string): Promise<Transaction> {
-    const product: Product | undefined = mockDataStore.findProductById(productId);
-    if (product === undefined) {
-      throw new Error('商品不存在或已下架');
-    }
-    if (product.sellerId === buyerId) {
-      throw new Error(OWN_PRODUCT_HINT);
-    }
-    if (mockDataStore.findInProgressTransaction(productId, buyerId) !== undefined) {
-      throw new Error(DUPLICATE_TRADE_ERROR);
-    }
-    const created: Transaction = mockDataStore.addTransaction(productId, buyerId, product.sellerId);
-    await mockDelayVoid(MOCK_DELAY_MS);
-    return created;
+  async createTransaction(productId: string, _buyerId: string): Promise<Transaction> {
+    transactionRequestSequence += 1;
+    return await businessApiClient.request<Transaction>(http.RequestMethod.POST, '/api/v1/transactions',
+      JSON.stringify({ productId: productId }), true, 15000,
+      { 'Idempotency-Key': `buy_${Date.now()}_${transactionRequestSequence}` });
   }
 
-  async acceptTransaction(transactionId: string, operatorId: string): Promise<Transaction> {
-    return this.changeStatus(transactionId, operatorId, TransactionStatus.PENDING, TransactionStatus.ACCEPTED,
-      '仅待处理的交易可以接受');
+  async acceptTransaction(transactionId: string, _operatorId: string): Promise<Transaction> {
+    return this.transition(transactionId, 'accept');
   }
 
-  async rejectTransaction(transactionId: string, operatorId: string): Promise<Transaction> {
-    return this.changeStatus(transactionId, operatorId, TransactionStatus.PENDING, TransactionStatus.REJECTED,
-      '仅待处理的交易可以拒绝');
+  async rejectTransaction(transactionId: string, _operatorId: string): Promise<Transaction> {
+    return this.transition(transactionId, 'reject');
   }
 
-  async completeTransaction(transactionId: string, operatorId: string): Promise<Transaction> {
-    return this.changeStatus(transactionId, operatorId, TransactionStatus.ACCEPTED, TransactionStatus.COMPLETED,
-      '仅已接受的交易可以标记完成');
+  async completeTransaction(transactionId: string, _operatorId: string): Promise<Transaction> {
+    return this.transition(transactionId, 'complete');
   }
 
-  private async changeStatus(transactionId: string, operatorId: string, expected: TransactionStatus,
-    next: TransactionStatus, invalidMessage: string): Promise<Transaction> {
-    const item: Transaction | undefined = mockDataStore.findTransactionById(transactionId);
-    if (item === undefined) {
-      throw new Error('交易不存在');
-    }
-    if (item.sellerId !== operatorId) {
-      throw new Error('只有卖家可以执行此操作');
-    }
-    if (item.status !== expected) {
-      throw new Error(invalidMessage);
-    }
-    item.status = next;
-    await mockDelayVoid(MOCK_DELAY_MS);
-    return item;
+  private async transition(transactionId: string, action: string): Promise<Transaction> {
+    return await businessApiClient.request<Transaction>(http.RequestMethod.POST,
+      `/api/v1/transactions/${encodeURIComponent(transactionId)}/${action}`);
   }
 }
 
-export const transactionService: TransactionService = new MockTransactionService();
+export const transactionService: TransactionService = new HttpTransactionService();

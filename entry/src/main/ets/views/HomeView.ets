@@ -1,6 +1,5 @@
 import { User } from '../model/Models';
 import { authService } from '../service/AuthenticationService';
-import { resolveMockImage } from '../data/MockDataStore';
 import {
   COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
   ROUTE_BUYER_HOME, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
@@ -22,7 +21,7 @@ export struct HomeView {
       Column({ space: 16 }) {
         Row({ space: 12 }) {
           if (this.user !== null) {
-            Image(resolveMockImage(this.user.avatar)).width(48).height(48).borderRadius(24);
+            Image(this.user.avatar).width(48).height(48).borderRadius(24);
           } else {
             Text('👤').fontSize(30);
           }
@@ -32,6 +31,17 @@ export struct HomeView {
             Text('欢迎来到校园二手集市').fontSize(12).fontColor(COLOR_TEXT_TERTIARY);
           }
           .layoutWeight(1).alignItems(HorizontalAlign.Start);
+          if (this.user !== null) {
+            Button('退出').fontSize(12).fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
+              .onClick(async () => {
+                try {
+                  await authService.logout();
+                } catch (_error) {
+                }
+                this.user = null;
+                this.getUIContext().getRouter().replaceUrl({ url: 'pages/Index' });
+              });
+          }
         }
         .width('100%').padding({ left: 20, right: 20, top: 24, bottom: 12 });
 

@@ -4,10 +4,12 @@ import { ProductCard } from '../components/ProductCard';
 import { StateView } from '../components/StateView';
 import { SearchSheetView } from './SearchSheetView';
 import { AgentSheetView } from './AgentSheetView';
+import { AgentViewModel } from '../viewmodel/AgentViewModel';
 import { COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, LoadState, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
 
 @ComponentV2
 export struct BuyerHomeView {
+  @Require @Param agentVm: AgentViewModel;
   @Local vm: BuyerHomeViewModel = new BuyerHomeViewModel();
   @Local pathStack: NavPathStack = new NavPathStack();
   @Local searchSheetVisible: boolean = false;
@@ -28,7 +30,7 @@ export struct BuyerHomeView {
             .backgroundColor(COLOR_PRIMARY).fontColor(Color.White).borderRadius(21)
             .onClick(() => this.agentSheetVisible = true)
             .bindSheet($$this.agentSheetVisible, this.agentSheetContent(), {
-              detents: [SheetSize.MEDIUM, SheetSize.LARGE]
+              detents: [SheetSize.LARGE]
             });
         }
         .width('100%').padding({ left: 12, right: 12, top: 8, bottom: 8 });
@@ -91,6 +93,7 @@ export struct BuyerHomeView {
   agentSheetContent(): void {
     AgentSheetView({
       pathStack: this.pathStack,
+      vm: this.agentVm,
       onClose: (): void => {
         this.agentSheetVisible = false;
       }

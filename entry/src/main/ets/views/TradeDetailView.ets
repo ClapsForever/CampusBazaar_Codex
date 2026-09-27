@@ -1,7 +1,6 @@
 import { Message, TransactionDetail, TransactionStatus, User } from '../model/Models';
 import { TradeViewModel } from '../viewmodel/TradeViewModel';
 import { StateView } from '../components/StateView';
-import { resolveMockImage } from '../data/MockDataStore';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
   COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
@@ -50,6 +49,7 @@ export struct TradeDetailView {
       this.pathStack = context.pathStack;
       this.transactionId = context.pathInfo.param as string;
       this.vm.loadDetail(this.transactionId);
+      this.vm.startPolling(this.transactionId);
     });
   }
 
@@ -58,7 +58,7 @@ export struct TradeDetailView {
     if (this.vm.detail !== null) {
       Row({ space: 12 }) {
         if (this.vm.detail.product.images.length > 0) {
-          Image(resolveMockImage(this.vm.detail.product.images[0])).width(76).height(76).borderRadius(10)
+          Image(this.vm.detail.product.images[0]).width(76).height(76).borderRadius(10)
             .objectFit(ImageFit.Cover);
         } else {
           Text('📷').fontSize(26).width(76).height(76).textAlign(TextAlign.Center)

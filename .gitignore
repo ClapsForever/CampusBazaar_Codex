@@ -12,6 +12,9 @@
 
 # Dependencies and local environment files
 **/node_modules/
+**/dist/
+**/coverage/
+backend/api/.local-data/
 .env
 .env.*
 !.env.example

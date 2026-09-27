@@ -1,5 +1,3 @@
-import { MOCK_DELAY_MS } from './Constants';
-
 function pad2(value: number): string {
   return value < 10 ? `0${value}` : `${value}`;
 }
@@ -32,16 +30,4 @@ export function isValidPrice(text: string): boolean {
 
 export function parsePrice(text: string): number {
   return Number(text.trim());
-}
-
-export function mockDelay<T>(value: T, delayMs: number = MOCK_DELAY_MS): Promise<T> {
-  return new Promise<T>((resolve: (result: T) => void) => {
-    setTimeout(() => resolve(value), delayMs);
-  });
-}
-
-export function mockDelayVoid(delayMs: number = MOCK_DELAY_MS): Promise<void> {
-  return new Promise<void>((resolve: () => void) => {
-    setTimeout(() => resolve(), delayMs);
-  });
 }

@@ -1,7 +1,6 @@
 import { TransactionListItem, User } from '../model/Models';
 import { TradeViewModel } from '../viewmodel/TradeViewModel';
 import { StateView } from '../components/StateView';
-import { resolveMockImage } from '../data/MockDataStore';
 import { formatPrice, formatTime } from '../common/Utils';
 import { authService } from '../service/AuthenticationService';
 import {
@@ -63,7 +62,7 @@ export struct TradeListView {
   tradeRow(item: TransactionListItem): void {
     Row({ space: 12 }) {
       if (item.product.images.length > 0) {
-        Image(resolveMockImage(item.product.images[0])).width(70).height(70).borderRadius(10)
+        Image(item.product.images[0]).width(70).height(70).borderRadius(10)
           .objectFit(ImageFit.Cover);
       } else {
         Text('📷').fontSize(24).width(70).height(70).textAlign(TextAlign.Center)

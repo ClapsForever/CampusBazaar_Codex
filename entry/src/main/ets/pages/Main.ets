@@ -5,6 +5,7 @@ import { SellerHomeView } from '../views/SellerHomeView';
 import { PublishProductView } from '../views/PublishProductView';
 import { TradeListView } from '../views/TradeListView';
 import { TradeDetailView } from '../views/TradeDetailView';
+import { AgentViewModel } from '../viewmodel/AgentViewModel';
 import {
   ROUTE_BUYER_HOME, ROUTE_PRODUCT_DETAIL, ROUTE_SELLER_HOME, ROUTE_PUBLISH_PAGE,
   ROUTE_TRADE_LIST, ROUTE_TRADE_DETAIL
@@ -14,11 +15,12 @@ import {
 @ComponentV2
 struct Main {
   @Local pathStack: NavPathStack = new NavPathStack();
+  @Local agentVm: AgentViewModel = new AgentViewModel();
 
   @Builder
   pageMap(name: string): void {
     if (name === ROUTE_BUYER_HOME) {
-      BuyerHomeView();
+      BuyerHomeView({ agentVm: this.agentVm });
     } else if (name === ROUTE_SELLER_HOME) {
       SellerHomeView();
     } else if (name === ROUTE_PRODUCT_DETAIL) {

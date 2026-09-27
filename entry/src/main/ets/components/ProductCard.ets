@@ -1,5 +1,4 @@
 import { Product } from '../model/Models';
-import { resolveMockImage } from '../data/MockDataStore';
 import { formatPrice } from '../common/Utils';
 import { COLOR_PRICE, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY } from '../common/Constants';
 
@@ -12,7 +11,7 @@ export struct ProductCard {
   build() {
     Column() {
       if (this.product.images.length > 0) {
-        Image(resolveMockImage(this.product.images[0]))
+        Image(this.product.images[0])
           .width('100%')
           .aspectRatio(1)
           .objectFit(ImageFit.Cover)
@@ -31,12 +30,14 @@ export struct ProductCard {
       }
       Column({ space: 6 }) {
         Text(this.product.title)
+          .width('100%')
           .fontSize(14)
           .fontColor(COLOR_TEXT_PRIMARY)
           .fontWeight(FontWeight.Medium)
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis });
         Text(formatPrice(this.product.price))
+          .width('100%')
           .fontSize(16)
           .fontColor(COLOR_PRICE)
           .fontWeight(FontWeight.Bold);
@@ -45,6 +46,7 @@ export struct ProductCard {
       .alignItems(HorizontalAlign.Start)
       .padding(10);
     }
+    .alignItems(HorizontalAlign.Start)
     .backgroundColor(Color.White)
     .borderRadius(12)
     .clip(true)

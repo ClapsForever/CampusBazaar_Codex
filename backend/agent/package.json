@@ -1,0 +1,33 @@
+{
+  "name": "pi-campus-market-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "校园二手平台的 Pi Agent 找货服务",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "eval": "vitest run tests/evals.test.ts",
+    "format:check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "0.85.1",
+    "@earendil-works/pi-ai": "0.85.1",
+    "dotenv": "16.6.1",
+    "fastify": "5.12.5",
+    "typebox": "1.3.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
+  }
+}

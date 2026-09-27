@@ -18,6 +18,7 @@ export class TradeViewModel {
   private activeId: string = '';
   private generation: number = 0;
   private invalidated: boolean = false;
+  private pollId: number = -1;
 
   get currentUser(): User | null {
     return authService.getCurrentUser();
@@ -142,6 +143,30 @@ export class TradeViewModel {
   dispose(): void {
     this.invalidated = true;
     this.generation += 1;
+    if (this.pollId >= 0) {
+      clearInterval(this.pollId);
+      this.pollId = -1;
+    }
+  }
+
+  startPolling(transactionId: string): void {
+    if (this.pollId >= 0) {
+      clearInterval(this.pollId);
+    }
+    this.pollId = setInterval(async () => {
+      if (this.invalidated || this.activeId !== transactionId || this.detail === null) {
+        return;
+      }
+      const currentGeneration: number = this.generation;
+      try {
+        const updated: TransactionDetail | null = await transactionService.getTransactionDetail(transactionId);
+        if (updated !== null && this.isActive(transactionId, currentGeneration)) {
+          this.detail = updated;
+        }
+        await this.refreshMessages(transactionId, currentGeneration);
+      } catch (_error) {
+      }
+    }, 3000);
   }
 
   private async changeStatus(action: string): Promise<boolean> {

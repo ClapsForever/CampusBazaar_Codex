@@ -1,56 +1,53 @@
 import { User } from '../model/Models';
-import { mockDataStore } from '../data/MockDataStore';
-import { isValidPhone, isValidSmsCode, mockDelayVoid } from '../common/Utils';
+import { isValidPhone, isValidSmsCode } from '../common/Utils';
+import { http } from '@kit.NetworkKit';
+import { businessApiClient } from './BusinessApiClient';
 
 export interface AuthenticationService {
-  sendSmsCode(phone: string): Promise<void>;
   loginByPhone(phone: string, smsCode: string): Promise<User>;
-  loginByCas(studentId: string, password: string): Promise<User>;
   getCurrentUser(): User | null;
-  logout(): void;
+  logout(): Promise<void>;
 }
 
-export class MockAuthenticationService implements AuthenticationService {
-  async sendSmsCode(phone: string): Promise<void> {
-    if (!isValidPhone(phone)) {
-      throw new Error('请输入正确的 11 位手机号');
-    }
-    await mockDelayVoid();
-  }
+interface LoginResponse {
+  user: User;
+  token: string;
+  expiresAt: number;
+}
+
+interface LogoutResponse {
+  ok: boolean;
+}
+
+export class HttpAuthenticationService implements AuthenticationService {
+  private current: User | null = null;
 
   async loginByPhone(phone: string, smsCode: string): Promise<User> {
-    if (!isValidPhone(phone)) {
-      throw new Error('请输入正确的 11 位手机号');
+    if (!isValidPhone(phone) || !isValidSmsCode(smsCode)) {
+      throw new Error('请输入正确的手机号和六位验证码');
     }
-    if (!isValidSmsCode(smsCode)) {
-      throw new Error('请输入 6 位数字验证码');
+    const response = await businessApiClient.request<LoginResponse>(http.RequestMethod.POST,
+      '/api/v1/auth/local/sessions', JSON.stringify({ phone: phone, smsCode: smsCode }), false);
+    if (!response.user || !response.token) {
+      throw new Error('登录响应格式不正确');
     }
-    await mockDelayVoid();
-    const current: User = mockDataStore.getDefaultUser();
-    mockDataStore.setCurrentUser(current);
-    return current;
-  }
-
-  async loginByCas(studentId: string, password: string): Promise<User> {
-    if (studentId.trim() === '') {
-      throw new Error('请输入学号');
-    }
-    if (password.trim() === '') {
-      throw new Error('请输入密码');
-    }
-    await mockDelayVoid();
-    const current: User = mockDataStore.getDefaultUser();
-    mockDataStore.setCurrentUser(current);
-    return current;
+    businessApiClient.setToken(response.token);
+    this.current = response.user;
+    return response.user;
   }
 
   getCurrentUser(): User | null {
-    return mockDataStore.currentUser;
+    return this.current;
   }
 
-  logout(): void {
-    mockDataStore.setCurrentUser(null);
+  async logout(): Promise<void> {
+    try {
+      await businessApiClient.request<LogoutResponse>(http.RequestMethod.POST, '/api/v1/auth/logout');
+    } finally {
+      businessApiClient.clearToken();
+      this.current = null;
+    }
   }
 }
 
-export const authService: AuthenticationService = new MockAuthenticationService();
+export const authService: AuthenticationService = new HttpAuthenticationService();

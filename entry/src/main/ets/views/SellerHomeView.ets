@@ -1,7 +1,6 @@
 import { Product } from '../model/Models';
 import { SellerHomeViewModel } from '../viewmodel/SellerHomeViewModel';
 import { StateView } from '../components/StateView';
-import { resolveMockImage } from '../data/MockDataStore';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
   COLOR_PAGE_BG, COLOR_PRICE, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY,
@@ -26,7 +25,7 @@ export struct SellerHomeView {
               ListItem() {
                 Row({ space: 12 }) {
                   if (item.images.length > 0) {
-                    Image(resolveMockImage(item.images[0])).width(64).height(64).borderRadius(10)
+                    Image(item.images[0]).width(64).height(64).borderRadius(10)
                       .objectFit(ImageFit.Cover);
                   } else {
                     Text('📷').fontSize(26).width(64).height(64).textAlign(TextAlign.Center)

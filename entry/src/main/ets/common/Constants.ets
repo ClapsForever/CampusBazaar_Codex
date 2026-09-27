@@ -9,13 +9,8 @@ export const ROUTE_TRADE_DETAIL: string = 'TradeDetail';
 export const PAGE_MAIN: string = 'pages/Main';
 
 export const MAX_PRODUCT_PHOTOS: number = 3;
-export const MOCK_DELAY_MS: number = 250;
-export const MOCK_DELAY_SLOW_MS: number = 600;
-export const AUTO_REPLY_DELAY_MS: number = 800;
 export const CHAT_REFRESH_DELAY_MS: number = 1000;
 
-export const SMS_SENT_TOAST: string = 'Mock 验证码已发送';
-export const DUPLICATE_TRADE_ERROR: string = '该商品已有进行中的交易';
 export const OWN_PRODUCT_HINT: string = '不能购买自己发布的商品';
 export const TRADE_EMPTY_CHAT_HINT: string = '发送第一条消息开始沟通';
 export const BUYER_PENDING_HINT: string = '等待卖家确认';
