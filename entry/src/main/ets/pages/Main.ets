@@ -41,7 +41,7 @@ struct Main {
 
   build() {
     Navigation(this.pathStack) {
-      HomeView({ pathStack: this.pathStack });
+      HomeView({ pathStack: this.pathStack, agentVm: this.agentVm });
     }
     .mode(NavigationMode.Stack)
     .hideTitleBar(true)

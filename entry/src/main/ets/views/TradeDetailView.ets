@@ -3,7 +3,7 @@ import { TradeViewModel } from '../viewmodel/TradeViewModel';
 import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
-  COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
+  COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
   LoadState, TradeStatusUI, STATUS_ACCEPTED_TEXT_COLOR, STATUS_REJECTED_TEXT_COLOR
 } from '../common/Constants';
 
@@ -58,15 +58,16 @@ export struct TradeDetailView {
     if (this.vm.detail !== null) {
       Row({ space: 12 }) {
         if (this.vm.detail.product.images.length > 0) {
-          Image(this.vm.detail.product.images[0]).width(76).height(76).borderRadius(10)
+          Image(this.vm.detail.product.images[0]).width(76).height(76).borderRadius(12)
             .objectFit(ImageFit.Cover);
         } else {
           Text('📷').fontSize(26).width(76).height(76).textAlign(TextAlign.Center)
-            .backgroundColor('#F2F3F5').borderRadius(10);
+            .backgroundColor(COLOR_PAGE_BG).borderRadius(12);
         }
         Column({ space: 6 }) {
           Text(this.vm.detail.product.title).fontSize(16).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
-          Text(formatPrice(this.vm.detail.product.price)).fontSize(15).fontColor('#E8622D');
+          Text(formatPrice(this.vm.detail.product.price)).fontSize(17).fontWeight(FontWeight.Bold)
+            .fontColor(COLOR_PRICE);
           Text(`${this.vm.detail.buyer.nickname} ↔ ${this.vm.detail.seller.nickname}`)
             .fontSize(12).fontColor(COLOR_TEXT_SECONDARY);
           Text(TradeStatusUI.text(this.vm.detail.transaction.status)).fontSize(12)
@@ -76,8 +77,8 @@ export struct TradeDetailView {
         }
         .alignItems(HorizontalAlign.Start).layoutWeight(1);
       }
-      .width('100%').padding(14).backgroundColor(Color.White).borderRadius(12)
-      .margin({ left: 12, right: 12, top: 12 });
+      .width('100%').padding(14).backgroundColor(Color.White).borderRadius(16)
+      .margin({ left: 16, right: 16, top: 12 });
     }
   }
 
@@ -104,14 +105,14 @@ export struct TradeDetailView {
             });
         }
       }
-      .width('100%').padding({ left: 12, right: 12, top: 8 });
+      .width('100%').padding({ left: 16, right: 16, top: 8 });
     }
   }
 
   @Builder
   messageList(): void {
     Column({ space: 8 }) {
-      Text('聊天记录').fontSize(14).fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY).width('100%');
+      Text('交易沟通').fontSize(15).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY).width('100%');
       if (this.vm.messages.length === 0) {
         Text('发送第一条消息开始沟通').fontSize(13).fontColor(COLOR_TEXT_TERTIARY)
           .width('100%').textAlign(TextAlign.Center).margin({ top: 24 });
@@ -126,7 +127,7 @@ export struct TradeDetailView {
         .layoutWeight(1).width('100%').scrollBar(BarState.Off);
       }
     }
-    .layoutWeight(1).width('100%').padding({ left: 14, right: 14, top: 12 });
+    .layoutWeight(1).width('100%').padding({ left: 16, right: 16, top: 14 });
   }
 
   @Builder
@@ -135,7 +136,7 @@ export struct TradeDetailView {
       Text(message.content).fontSize(14).fontColor(this.isCurrentUserMessage(message)
         ? Color.White : COLOR_TEXT_PRIMARY)
         .backgroundColor(this.isCurrentUserMessage(message) ? COLOR_PRIMARY : Color.White)
-        .borderRadius(12).padding({ left: 12, right: 12, top: 8, bottom: 8 }).maxLines(5);
+        .borderRadius(16).padding({ left: 12, right: 12, top: 8, bottom: 8 }).maxLines(5);
     }
     .width('100%').justifyContent(this.isCurrentUserMessage(message)
       ? FlexAlign.End : FlexAlign.Start);
@@ -149,7 +150,7 @@ export struct TradeDetailView {
         text: this.vm.chatText
       })
         .enabled(this.vm.canChat).height(44).layoutWeight(1).fontSize(14)
-        .backgroundColor(this.vm.canChat && !this.vm.sending ? Color.White : '#E5E8EC').borderRadius(22)
+        .backgroundColor(this.vm.canChat && !this.vm.sending ? COLOR_PAGE_BG : COLOR_DIVIDER).borderRadius(22)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => this.vm.chatText = value);
       Button(this.vm.sending ? '…' : '发送').enabled(this.vm.canChat && !this.vm.sending).height(44).width(64)
@@ -161,7 +162,7 @@ export struct TradeDetailView {
           }
         });
     }
-    .width('100%').padding({ left: 12, right: 12, top: 8, bottom: 12 }).backgroundColor(Color.White);
+      .width('100%').padding({ left: 16, right: 16, top: 8, bottom: 14 }).backgroundColor(Color.White);
   }
 
   private isCurrentUserMessage(message: Message): boolean {

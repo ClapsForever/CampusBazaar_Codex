@@ -15,16 +15,17 @@ export const OWN_PRODUCT_HINT: string = '不能购买自己发布的商品';
 export const TRADE_EMPTY_CHAT_HINT: string = '发送第一条消息开始沟通';
 export const BUYER_PENDING_HINT: string = '等待卖家确认';
 
-export const COLOR_PRIMARY: string = '#0A59F7';
-export const COLOR_PRIMARY_SOFT: string = '#0A59F71A';
-export const COLOR_PRICE: string = '#E8622D';
-export const COLOR_TEXT_PRIMARY: string = '#182431';
-export const COLOR_TEXT_SECONDARY: string = '#4E5969';
-export const COLOR_TEXT_TERTIARY: string = '#86909C';
-export const COLOR_ERROR: string = '#E5484D';
-export const COLOR_PAGE_BG: string = '#F1F3F5';
+// Palette from the sibling arkui design project.
+export const COLOR_PRIMARY: string = '#E06620';
+export const COLOR_PRIMARY_SOFT: string = '#FFF0E5';
+export const COLOR_PRICE: string = '#E06620';
+export const COLOR_TEXT_PRIMARY: string = '#1A1918';
+export const COLOR_TEXT_SECONDARY: string = '#6D6C6A';
+export const COLOR_TEXT_TERTIARY: string = '#9C9B99';
+export const COLOR_ERROR: string = '#C85A1A';
+export const COLOR_PAGE_BG: string = '#F5F4F1';
 export const COLOR_CARD_BG: string = '#FFFFFF';
-export const COLOR_DIVIDER: string = '#E5E8EC';
+export const COLOR_DIVIDER: string = '#E5E4E1';
 
 export const STATUS_PENDING_TEXT_COLOR: string = '#E8830C';
 export const STATUS_PENDING_BG_COLOR: string = '#E8830C1F';

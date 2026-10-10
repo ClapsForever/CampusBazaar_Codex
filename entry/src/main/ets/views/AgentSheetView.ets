@@ -1,7 +1,7 @@
 import { AgentRecommendation, Product } from '../model/Models';
 import { AgentConversationTurn, AgentViewModel } from '../viewmodel/AgentViewModel';
 import { ProductCard } from '../components/ProductCard';
-import { COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
+import { COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
 
 @ComponentV2
 export struct AgentSheetView {
@@ -15,24 +15,25 @@ export struct AgentSheetView {
   build() {
     Column({ space: 10 }) {
       Row() {
-        Text('智能助手').fontSize(20).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
+        Text('AI 找物').fontSize(20).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
           .layoutWeight(1);
         if (this.vm.turns.length > 0) {
-          Button('新对话').fontSize(12).fontColor(COLOR_PRIMARY).backgroundColor('#EAF2FF')
+          Button('新对话').fontSize(12).fontColor(COLOR_PRIMARY).backgroundColor(COLOR_PRIMARY_SOFT)
             .borderRadius(16).height(32).enabled(!this.vm.loading)
             .onClick(() => this.vm.resetConversation());
         }
       }
       .width('100%').padding({ right: 50 }).margin({ top: 8 });
-      Text('可以继续补充条件，或问“第二个怎么样”').fontSize(12)
+      Text('只推荐同校在售商品，支持继续补充条件').fontSize(12)
         .fontColor(COLOR_TEXT_SECONDARY).width('100%');
 
       if (this.vm.turns.length === 0 && !this.vm.loading) {
         Column({ space: 8 }) {
-          Text('告诉我你想找什么').fontSize(16).fontWeight(FontWeight.Medium)
+          Text('试试这样问').fontSize(16).fontWeight(FontWeight.Medium)
             .fontColor(COLOR_TEXT_PRIMARY);
-          Text('例如：找一本 20 元以内的英语教材').fontSize(13)
-            .fontColor(COLOR_TEXT_TERTIARY);
+          this.suggestion('帮我找 80 元以内的高等数学教材');
+          this.suggestion('想买可以当面交易的二手台灯');
+          this.suggestion('预算 200 元，有什么成色较好的耳机？');
         }
         .layoutWeight(1).width('100%').justifyContent(FlexAlign.Center);
       } else {
@@ -65,23 +66,33 @@ export struct AgentSheetView {
       }
 
       if (this.vm.error !== '') {
-        Text(this.vm.error).fontSize(12).fontColor('#E5484D').width('100%');
+        Text(this.vm.error).fontSize(12).fontColor(COLOR_ERROR).width('100%');
       }
       Row({ space: 8 }) {
         TextInput({ placeholder: '继续提问或补充条件', text: this.vm.query, controller: this.inputController })
-          .height(48).layoutWeight(1).fontSize(14).backgroundColor('#F1F3F5').borderRadius(10)
+          .height(48).layoutWeight(1).fontSize(14).backgroundColor(COLOR_PAGE_BG).borderRadius(24)
           .padding({ left: 12, right: 12 })
           .onChange((value: string) => {
             this.vm.query = value;
             this.vm.error = '';
           });
         Button(this.vm.loading ? '…' : '发送').enabled(!this.vm.loading).height(48).fontColor(Color.White)
-          .backgroundColor(COLOR_PRIMARY).borderRadius(10)
+          .backgroundColor(COLOR_PRIMARY).borderRadius(24)
           .onClick(() => this.sendMessage());
       }
       .width('100%');
     }
     .width('100%').height('100%').padding({ left: 16, right: 16, bottom: 20 });
+  }
+
+  @Builder
+  suggestion(prompt: string): void {
+    Text(prompt).fontSize(13).fontColor(COLOR_TEXT_SECONDARY)
+      .width('100%').padding(12).backgroundColor(Color.White).borderRadius(12)
+      .onClick(() => {
+        this.vm.query = prompt;
+        this.sendMessage();
+      });
   }
 
   @Builder

@@ -3,7 +3,7 @@ import { SellerHomeViewModel } from '../viewmodel/SellerHomeViewModel';
 import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
-  COLOR_PAGE_BG, COLOR_PRICE, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY,
+  COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY,
   LoadState, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE
 } from '../common/Constants';
 
@@ -16,8 +16,18 @@ export struct SellerHomeView {
   build() {
     NavDestination() {
       Column() {
-        Button('＋ 新增商品').width('100%').height(48).margin({ left: 12, right: 12, top: 10 })
-          .fontSize(15).fontColor(Color.White).backgroundColor('#00B8A9').borderRadius(22)
+        Row() {
+          Column({ space: 4 }) {
+            Text('我发布的').fontSize(20).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
+            Text('管理你的校园闲置好物').fontSize(12).fontColor(COLOR_TEXT_TERTIARY);
+          }
+          .layoutWeight(1).alignItems(HorizontalAlign.Start);
+          Text(`${this.vm.products.length} 件`).fontSize(13).fontColor(COLOR_PRIMARY);
+        }
+        .width('100%').padding(16).backgroundColor(Color.White);
+        Button('＋ 发布一件闲置').width('90%').height(48)
+          .margin({ top: 14, bottom: 6 })
+          .fontSize(15).fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(24)
           .onClick(() => this.pathStack.pushPathByName(ROUTE_PUBLISH_PAGE, ''));
         if (this.vm.state === LoadState.CONTENT) {
           List({ space: 10 }) {
@@ -25,28 +35,29 @@ export struct SellerHomeView {
               ListItem() {
                 Row({ space: 12 }) {
                   if (item.images.length > 0) {
-                    Image(item.images[0]).width(64).height(64).borderRadius(10)
+                    Image(item.images[0]).width(72).height(72).borderRadius(12)
                       .objectFit(ImageFit.Cover);
                   } else {
-                    Text('📷').fontSize(26).width(64).height(64).textAlign(TextAlign.Center)
-                      .backgroundColor('#F2F3F5').borderRadius(10);
+                    Text('📷').fontSize(26).width(72).height(72).textAlign(TextAlign.Center)
+                      .backgroundColor(COLOR_PAGE_BG).borderRadius(12);
                   }
                   Column({ space: 6 }) {
-                    Text(item.title).fontSize(15).fontColor(COLOR_TEXT_PRIMARY).maxLines(1)
+                    Text(item.title).fontSize(15).fontWeight(FontWeight.Medium)
+                      .fontColor(COLOR_TEXT_PRIMARY).maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis });
                     Row({ space: 8 }) {
-                      Text(formatPrice(item.price)).fontSize(14).fontWeight(FontWeight.Bold).fontColor(COLOR_PRICE);
+                      Text(formatPrice(item.price)).fontSize(17).fontWeight(FontWeight.Bold).fontColor(COLOR_PRICE);
                       Text(formatTime(item.publishTime)).fontSize(12).fontColor(COLOR_TEXT_TERTIARY);
                     }
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start);
                 }
-                .width('100%').padding(12).backgroundColor(Color.White).borderRadius(12)
+                .width('100%').padding(12).backgroundColor(Color.White).borderRadius(16)
                 .onClick(() => this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, item.id));
               }
             }, (item: Product): string => item.id);
           }
-          .layoutWeight(1).width('100%').padding({ left: 12, right: 12, top: 10, bottom: 12 })
+          .layoutWeight(1).width('100%').padding({ left: 16, right: 16, top: 10, bottom: 12 })
           .scrollBar(BarState.Off);
         } else {
           Column() {
@@ -64,7 +75,7 @@ export struct SellerHomeView {
       }
       .width('100%').height('100%').backgroundColor(COLOR_PAGE_BG);
     }
-    .title('我是卖家')
+    .title('我发布的')
     .onReady((context: NavDestinationContext) => {
       this.pathStack = context.pathStack;
       this.vm.loadMyProducts(false);

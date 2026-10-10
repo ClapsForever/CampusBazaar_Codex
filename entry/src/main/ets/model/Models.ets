@@ -22,6 +22,11 @@ export interface Product {
   images: string[];
   publishTime: number;
   sellerId: string;
+  category?: string;
+  condition?: string;
+  campus?: string;
+  status?: string;
+  version?: string | null;
 }
 
 export interface Transaction {

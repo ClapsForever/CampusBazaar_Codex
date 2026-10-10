@@ -12,6 +12,19 @@ export function formatPrice(price: number): string {
   return `¥${price}`;
 }
 
+export function formatCondition(condition: string | undefined): string {
+  if (condition === 'new') {
+    return '全新';
+  }
+  if (condition === 'good') {
+    return '成色良好';
+  }
+  if (condition === 'fair') {
+    return '有使用痕迹';
+  }
+  return '';
+}
+
 export function isValidPhone(phone: string): boolean {
   return new RegExp('^\\d{11}$').test(phone.trim());
 }

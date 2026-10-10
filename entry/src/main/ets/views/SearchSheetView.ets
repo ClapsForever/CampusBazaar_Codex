@@ -1,7 +1,7 @@
 import { Product } from '../model/Models';
 import { productService } from '../service/ProductService';
 import { ProductCard } from '../components/ProductCard';
-import { COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
+import { COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
 
 @ComponentV2
 export struct SearchSheetView {
@@ -20,8 +20,8 @@ export struct SearchSheetView {
     Column({ space: 12 }) {
       Text('搜索商品').fontSize(20).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
         .width('100%').margin({ top: 8 });
-      TextInput({ placeholder: '按商品名称搜索', text: this.keyword })
-        .height(48).fontSize(15).backgroundColor('#F1F3F5').borderRadius(10)
+      TextInput({ placeholder: '搜索教材、数码、生活用品', text: this.keyword })
+        .height(50).fontSize(14).backgroundColor(COLOR_PAGE_BG).borderRadius(25)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {
           this.keyword = value;
