@@ -1,12 +1,14 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { AgentResponse, UserContext } from "../contracts/index.js";
+import type { AgentResponse, SearchFilters, UserContext } from "../contracts/index.js";
 import { AppError } from "../errors/index.js";
 
 export interface SessionRecord {
   sessionId: string;
   owner: UserContext;
   messages: AgentMessage[];
-  lastListingIds: string[];
+  filters: SearchFilters;
+  displayedListingIds: string[];
+  searchPage: number;
   createdAt: number;
   updatedAt: number;
   busy: boolean;
@@ -38,7 +40,9 @@ export class MemorySessionStore implements SessionStore {
       sessionId: this.idFactory(),
       owner: { ...user },
       messages: [],
-      lastListingIds: [],
+      filters: {},
+      displayedListingIds: [],
+      searchPage: 1,
       createdAt: now,
       updatedAt: now,
       busy: false,

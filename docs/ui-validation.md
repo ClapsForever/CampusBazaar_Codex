@@ -47,3 +47,13 @@ API 回归在本机随机端口运行隔离服务；原有测试的递归清理�
 - DevEco 界面捕获返回 ScreenCaptureKit -3811，未取得 UI 截图。320/360/390 宽度、大字号、三张照片、返回浏览位置、AI 推荐布局及软键盘搜索/发布/聊天尚未在设备验证。此记录不把代码检查当作截图验收。
 - 未调用真实 DeepSeek；耳机找货的 Agent 完整模型场景待联调。已验证 Agent 使用的业务后端精确 category/campus 查询接口。
 - 历史宽泛类别、未知自由填写类别与混合校区地点数据没有回写。显示映射不会修复旧数据的 AI 精确检索兼容性，需要单独评估。
+
+## 本地主项目整合验证（2026-10-11）
+
+UI 的两个提交已快进合并到 `CampusBazaar_Codex/main`。合并前对主项目中已有的 20 个修改文件记录 SHA-256；合并后逐一核对，内容全部保留。此次一并提交本地 Agent 的策略、模型工作流、会话状态及相应测试与文档。
+
+- 在主项目目录重新执行 assembleHap：通过，生成未签名 HAP。仍使用本机 API 24 SDK，项目目标保持 API 23，设备验收边界同上。
+- 前端 ViewModel 回归：9 项通过。
+- Agent `npm test`：10 个测试文件、110 项测试全部通过，使用 Mock 或受控模型响应。
+- Agent `npm run typecheck` 与 `npm run build`：通过。
+- Agent 依赖按现有锁文件安装，package.json 和 package-lock.json 未改变。

@@ -1,60 +1,23 @@
-import { Agent, type AgentEvent, type AgentMessage } from "@earendil-works/pi-agent-core";
+import { fauxAssistantMessage } from "@earendil-works/pi-ai";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import { Check } from "typebox/value";
 import type { AppConfig } from "../config/index.js";
 import type { BusinessReadClient } from "../clients/types.js";
-import { AppError, asAppError } from "../errors/index.js";
-import type { AgentResponse, ListingSummary, Recommendation, UserContext } from "../contracts/index.js";
-import { priceText } from "../contracts/index.js";
+import { AppError } from "../errors/index.js";
+import { priceText, type AgentResponse, type ListingSummary, type Recommendation, type SearchFilters, type UserContext } from "../contracts/index.js";
 import type { SessionRecord } from "../sessions/store.js";
-import { createAgentModelRuntime } from "./model.js";
-import { SYSTEM_PROMPT } from "./prompts.js";
+import { requestModelText } from "./model.js";
+import { withTurnSignal } from "./deadline.js";
+import { PLAN_PROMPT, SYSTEM_PROMPT } from "./prompts.js";
 import { normalizeReply } from "./reply.js";
 import { createAgentTools } from "../tools/index.js";
-import { parseIntent } from "../intent/parser.js";
+import { CLARIFICATION_REPLY, HELP_REPLY, REFUSAL_REPLY, UNSUPPORTED_REPLY, TurnPlanSchema, decodeTurnPlan, emptyPlan, mergeSearchFilters, mockTurnPlan, scopeDecision, type TurnPlan } from "./policy.js";
 
 interface SearchDetails {
   kind: "searchListings";
-  result: {
-    listings: ListingSummary[];
-    appliedConditions: { hard: Record<string, unknown>; soft: Record<string, unknown> };
-  };
+  result: { listings: ListingSummary[]; appliedConditions: { hard: Record<string, unknown>; soft: Record<string, unknown> } };
 }
-
-interface DetailDetails {
-  kind: "getListingDetail";
-  listing: ListingSummary & { version?: string };
-}
-
-function isSearchDetails(value: unknown): value is SearchDetails {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Partial<SearchDetails>;
-  return item.kind === "searchListings" && Boolean(item.result && Array.isArray(item.result.listings));
-}
-
-function isDetailDetails(value: unknown): value is DetailDetails {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Partial<DetailDetails>;
-  return item.kind === "getListingDetail" && Boolean(item.listing && typeof item.listing.listingId === "string");
-}
-
-function assistantText(messages: AgentMessage[]): string {
-  const assistant = [...messages].reverse().find((message) => message.role === "assistant");
-  if (!assistant || assistant.role !== "assistant") return "";
-  return assistant.content.filter((item) => item.type === "text").map((item) => item.text).join("").trim();
-}
-
-function searchResults(messages: AgentMessage[]): SearchDetails[] {
-  return messages.flatMap((message) => {
-    if (message.role !== "toolResult" || !isSearchDetails(message.details)) return [];
-    return [message.details];
-  });
-}
-
-function detailResults(messages: AgentMessage[]): DetailDetails[] {
-  return messages.flatMap((message) => {
-    if (message.role !== "toolResult" || !isDetailDetails(message.details)) return [];
-    return [message.details];
-  });
-}
+interface DetailDetails { kind: "getListingDetail"; listing: ListingSummary & { version?: string } }
 
 function reasonFor(listing: ListingSummary, search: SearchDetails): string[] {
   const reasons: string[] = [];
@@ -65,16 +28,8 @@ function reasonFor(listing: ListingSummary, search: SearchDetails): string[] {
   else reasons.push(`售价 ${priceText(listing.priceCents)}`);
   if (hard.category) reasons.push(`类别为 ${String(hard.category)}`);
   if (hard.condition) reasons.push(`成色达到 ${String(hard.condition)}`);
-  if (typeof soft.preferredCampus === "string") {
-    reasons.push(listing.campus === soft.preferredCampus ? `取货地点为偏好的${soft.preferredCampus}` : `取货地点为${listing.campus}，未完全匹配偏好的${soft.preferredCampus}`);
-  }
+  if (typeof soft.preferredCampus === "string") reasons.push(listing.campus === soft.preferredCampus ? `取货地点为偏好的${soft.preferredCampus}` : `取货地点为${listing.campus}，未完全匹配偏好的${soft.preferredCampus}`);
   return reasons;
-}
-
-function recommendationsFrom(messages: AgentMessage[]): Recommendation[] {
-  const latestSearch = searchResults(messages).at(-1);
-  if (latestSearch) return latestSearch.result.listings.map((listing) => ({ listingId: listing.listingId, reasons: reasonFor(listing, latestSearch) }));
-  return detailResults(messages).map((detail) => ({ listingId: detail.listing.listingId, reasons: [`已通过只读详情接口重新验证，售价 ${priceText(detail.listing.priceCents)}`] }));
 }
 
 export interface ChatServiceOptions {
@@ -85,93 +40,114 @@ export interface ChatServiceOptions {
   requestId: string;
   log: (event: string, payload: Record<string, unknown>) => void;
 }
+interface TurnResult {
+  response: AgentResponse;
+  messages: AgentMessage[];
+  filters: SearchFilters;
+  displayedListingIds: string[];
+  searchPage: number;
+}
 
-export async function runAgentTurn(message: string, options: ChatServiceOptions): Promise<{ response: AgentResponse; messages: AgentMessage[]; lastListingIds: string[] }> {
-  let runtime;
-  try {
-    runtime = createAgentModelRuntime(options.config);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("MODEL_API_KEY")) {
-      throw new AppError("MODEL_API_KEY_MISSING", "未配置真实模型密钥，请设置 MODEL_API_KEY，或在 development 使用 MODEL_MODE=mock");
+/** The model proposes a typed intent; only this service can execute the approved read workflow. */
+export async function runAgentTurn(message: string, options: ChatServiceOptions): Promise<TurnResult> {
+  const { session, config } = options;
+  const signal = AbortSignal.timeout(config.turnTimeoutMs);
+  let filters = { ...session.filters };
+  let displayedListingIds = [...session.displayedListingIds];
+  let searchPage = session.searchPage;
+  const finish = (reply: string, status: AgentResponse["status"] = "completed", recommendations: Recommendation[] = []): TurnResult => ({
+    response: { requestId: options.requestId, sessionId: session.sessionId, status, reply: normalizeReply(reply), recommendations, relaxedConditions: [] },
+    messages: [...session.messages, { role: "user", content: message, timestamp: Date.now() }, fauxAssistantMessage(normalizeReply(reply), { stopReason: "stop" })],
+    filters, displayedListingIds, searchPage,
+  });
+  const earlyScope = scopeDecision(message);
+  let plan: TurnPlan;
+  if (earlyScope) plan = emptyPlan(earlyScope);
+  else {
+    const mockPlan = mockTurnPlan(message, filters, displayedListingIds.length, searchPage);
+    const text = await requestModelText(config, PLAN_PROMPT.replace("SCHEMA_PLACEHOLDER", JSON.stringify(TurnPlanSchema)), JSON.stringify({
+      message, previousFilters: filters, displayedListingCount: displayedListingIds.length, previousPage: searchPage,
+    }), signal, JSON.stringify(mockPlan));
+    plan = decodeTurnPlan(text);
+  }
+  options.log("business_intent", { requestId: options.requestId, action: plan.action });
+  switch (plan.action) {
+    case "unsupported": return finish(UNSUPPORTED_REPLY);
+    case "out_of_scope": return finish(REFUSAL_REPLY);
+    case "help": return finish(HELP_REPLY);
+    case "clarification": return finish(CLARIFICATION_REPLY, "clarification");
+  }
+
+  if (plan.action === "search" || plan.action === "refine") {
+    const next = mergeSearchFilters(filters, plan, message);
+    // Preserve an incomplete, explicitly stated need, but never query without a topic.
+    if (!next.keyword && (!next.category || next.category === "教材")) {
+      filters = next;
+      return finish("你想找哪一类商品或哪门课的教材？有预算、成色或取货校区偏好也可以一起告诉我。", "clarification");
     }
-    throw new AppError("MODEL_UNAVAILABLE", "模型初始化失败", { retryable: true, cause: error });
+    if (!Check(TurnPlanSchema.properties.changes, next)) return finish("筛选条件超出支持范围，请重新说明商品和预算。", "clarification");
+    if (next.minPriceCents !== undefined && next.maxPriceCents !== undefined && next.minPriceCents > next.maxPriceCents) return finish("最低预算不能高于最高预算，请明确新的价格范围。", "clarification");
+    if (plan.action === "refine" && JSON.stringify(next) === JSON.stringify(filters) && !/继续|下一页|换一批|再来/u.test(message)) return finish("请明确要调整的条件，例如新的预算金额、成色或取货校区。", "clarification");
+    const explicitPage = message.match(/第\s*(\d+)\s*页/u)?.[1];
+    const nextPage = explicitPage ? Number(explicitPage) : /换一批|下一页|再来/u.test(message) ? session.searchPage + 1 : 1;
+    if (!Number.isSafeInteger(nextPage) || nextPage < 1 || nextPage > 1000) return finish("页码应在1到1000之间，请重新说明。", "clarification");
+    filters = next;
+    searchPage = nextPage;
   }
 
-  const allowedListingIds = new Set(options.session.lastListingIds);
-  const tools = createAgentTools({
-    client: options.client,
-    user: options.user,
-    maxResults: options.config.maxResults,
-    allowedListingIds,
+  const targetIds = (plan.action === "detail" || plan.action === "compare")
+    ? plan.positions.map((position) => session.displayedListingIds[position - 1]) : [];
+  if (plan.action === "detail" || plan.action === "compare") {
+    if (targetIds.length === 0 || targetIds.some((id) => !id) || (plan.action === "compare" && targetIds.length < 2)) return finish("请指出上一次展示中的有效商品顺序；比较时至少选择两件商品。", "clarification");
+    if (targetIds.length > config.maxToolCalls) return finish(`一次最多读取 ${config.maxToolCalls} 件商品，请缩小比较范围。`, "clarification");
+  }
+  const tools = createAgentTools({ client: options.client, user: options.user, maxResults: config.maxResults,
+    action: plan.action, filters, allowedListingIds: new Set(targetIds.filter((id): id is string => Boolean(id))),
   });
-  let toolCalls = 0;
-  let latestToolName: string | undefined;
-  const agent = new Agent({
-    initialState: {
-      systemPrompt: SYSTEM_PROMPT,
-      model: runtime.model,
-      tools,
-      messages: options.session.messages,
-      thinkingLevel: "off",
-    },
-    streamFn: runtime.streamFn,
-    toolExecution: "sequential",
-    convertToLlm: (messages) => messages.filter((item) => item.role === "user" || item.role === "assistant" || item.role === "toolResult"),
-    beforeToolCall: async ({ toolCall }) => {
-      toolCalls += 1;
-      latestToolName = toolCall.name;
-      options.log("tool_start", { requestId: options.requestId, toolName: toolCall.name, toolCallCount: toolCalls });
-      if (toolCalls > options.config.maxToolCalls) {
-        return { block: true, reason: "已达到本轮工具调用上限，请缩小查询范围后重试", terminate: true };
-      }
-      return undefined;
-    },
-  });
-
-  const startedAt = Date.now();
-  const unsubscribe = agent.subscribe(async (event: AgentEvent) => {
-    if (event.type === "tool_execution_end") {
-      options.log("tool_end", { requestId: options.requestId, toolName: event.toolName, elapsedMs: Date.now() - startedAt, isError: event.isError });
+  // Results are local to this call. Historical messages are never scanned for recommendations.
+  let search: SearchDetails | undefined;
+  const details: DetailDetails[] = [];
+  const modelResults: unknown[] = [];
+  let calls = 0;
+  const execute = async (name: string, args: Record<string, unknown>) => {
+    const tool = tools.find((item) => item.name === name);
+    if (!tool) throw new AppError("TOOL_INPUT_INVALID", "当前意图不允许此工具");
+    if (++calls > config.maxToolCalls) throw new AppError("TOOL_LIMIT_EXCEEDED", "已达到本轮工具调用上限");
+    signal.throwIfAborted();
+    const startedAt = Date.now();
+    options.log("tool_start", { requestId: options.requestId, toolName: name, toolCallCount: calls });
+    try {
+      const result = await withTurnSignal(tool.execute(`call_${calls}`, args, signal), signal);
+      signal.throwIfAborted();
+      modelResults.push({ toolName: name, content: result.content });
+      if (result.details?.kind === "searchListings") search = result.details as SearchDetails;
+      if (result.details?.kind === "getListingDetail") details.push(result.details as DetailDetails);
+      options.log("tool_end", { requestId: options.requestId, toolName: name, elapsedMs: Date.now() - startedAt, isError: false });
+    } catch (error) {
+      options.log("tool_end", { requestId: options.requestId, toolName: name, elapsedMs: Date.now() - startedAt, isError: true });
+      if (signal.aborted) throw new AppError("AGENT_TIMEOUT", "本轮查询超过时间限制", { retryable: true });
+      throw error;
     }
-  });
-
-  let didTimeout = false;
-  const timer = setTimeout(() => {
-    didTimeout = true;
-    agent.abort();
-  }, options.config.turnTimeoutMs);
-  try {
-    await agent.prompt(message);
-  } catch (error) {
-    const mapped = asAppError(error);
-    if (didTimeout || agent.state.errorMessage?.toLowerCase().includes("abort")) throw new AppError("AGENT_TIMEOUT", "本轮查询超过时间限制", { retryable: true, cause: error });
-    throw mapped.code === "INTERNAL_ERROR" ? new AppError("MODEL_UNAVAILABLE", "模型请求失败", { retryable: true, cause: error }) : mapped;
-  } finally {
-    clearTimeout(timer);
-    unsubscribe();
-  }
-
-  if (didTimeout) throw new AppError("AGENT_TIMEOUT", "本轮查询超过时间限制", { retryable: true });
-
-  const messages = agent.state.messages;
-  const lastAssistant = [...messages].reverse().find((item) => item.role === "assistant");
-  if (lastAssistant?.role === "assistant" && (lastAssistant.stopReason === "error" || lastAssistant.stopReason === "aborted")) {
-    throw new AppError("MODEL_UNAVAILABLE", lastAssistant.errorMessage ?? "模型没有返回可用结果", { retryable: true });
-  }
-
-  const searches = searchResults(messages);
-  const details = detailResults(messages);
-  const latestSearch = searches.at(-1);
-  const reply = normalizeReply(assistantText(messages) || "我暂时没有生成可展示的结果，请换一种说法再试。");
-  const intent = parseIntent(messages);
-  const response: AgentResponse = {
-    requestId: options.requestId,
-    sessionId: options.session.sessionId,
-    status: latestSearch ? latestSearch.result.listings.length > 0 ? "completed" : "no_results" : latestToolName === "getListingDetail" || details.length > 0 ? "completed" : intent.needsClarification ? "clarification" : "completed",
-    reply,
-    recommendations: recommendationsFrom(messages),
-    relaxedConditions: [],
   };
-  const latestIds = latestSearch?.result.listings.map((listing) => listing.listingId) ?? [...allowedListingIds];
-  return { response, messages, lastListingIds: latestIds };
+  if (plan.action === "search" || plan.action === "refine") await execute("searchListings", { page: searchPage, pageSize: config.maxResults });
+  else if (plan.action === "preference") await execute("getUserPreferences", {});
+  else for (const listingId of targetIds) await execute("getListingDetail", { listingId });
+
+  const currentSearch = search as SearchDetails | undefined;
+  const recommendations: Recommendation[] = currentSearch
+    ? currentSearch.result.listings.map((listing) => ({ listingId: listing.listingId, reasons: reasonFor(listing, currentSearch) }))
+    : details.map(({ listing }) => ({ listingId: listing.listingId, reasons: [`已通过只读详情接口重新验证，售价 ${priceText(listing.priceCents)}`] }));
+  if (currentSearch) displayedListingIds = currentSearch.result.listings.map((listing) => listing.listingId);
+  // Detail/comparison cards also define the display order for the next user reference.
+  else if (details.length) displayedListingIds = details.map(({ listing }) => listing.listingId);
+  const status = currentSearch && !currentSearch.result.listings.length ? "no_results" : "completed";
+  if (status === "no_results") return finish("没有找到同时满足明确条件的商品。你可以选择调整预算、成色或取货地点，我会在你明确修改后重新查询。", status);
+  const mockReply = currentSearch ? `已查询到 ${recommendations.length} 条符合明确条件的商品，商品卡片中的信息均来自平台查询结果。`
+    : plan.action === "preference" ? "我已读取当前用户的兴趣偏好，只会把它作为辅助排序信号，不会改变学校权限范围。"
+    : plan.action === "compare" ? "我已重新读取指定商品详情，可以从价格、成色、取货校区和描述进行比较；缺失信息会标为未知。"
+    : "这是本次指定商品的详情，信息已经通过平台重新验证，未提供的版本或属性会标为未知。";
+  const reply = await requestModelText(config, SYSTEM_PROMPT, JSON.stringify({
+    action: plan.action, filters, results: modelResults,
+  }), signal, mockReply);
+  return finish(reply ?? mockReply, status, recommendations);
 }

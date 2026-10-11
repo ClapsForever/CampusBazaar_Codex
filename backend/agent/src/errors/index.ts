@@ -36,6 +36,7 @@ function statusFor(code: ErrorCode): number {
     case "UNAUTHORIZED":
       return 401;
     case "SESSION_NOT_FOUND":
+    case "LISTING_NOT_FOUND":
       return 404;
     case "SESSION_FORBIDDEN":
       return 403;

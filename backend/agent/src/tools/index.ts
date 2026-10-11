@@ -1,5 +1,7 @@
 import { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type Static } from "@earendil-works/pi-ai";
+import { Check } from "typebox/value";
+import { allowedToolNames, type BusinessAction } from "../agent/policy.js";
 import type { BusinessReadClient } from "../clients/types.js";
 import { AppError } from "../errors/index.js";
 import {
@@ -8,6 +10,7 @@ import {
   PRICE_MAX_CENTS,
   PRICE_MIN_CENTS,
   type SearchListingsInput,
+  type SearchFilters,
   type UserContext,
 } from "../contracts/index.js";
 
@@ -28,11 +31,11 @@ const SearchListingsParameters = Type.Object({
   version: Type.Optional(Type.String({ maxLength: 80 })),
   page: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
   pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
-});
+}, { additionalProperties: false });
 
 const ListingDetailParameters = Type.Object({
   listingId: Type.String({ pattern: "^listing_[a-z0-9_-]{1,64}$" }),
-});
+}, { additionalProperties: false });
 
 type SearchParams = Static<typeof SearchListingsParameters>;
 type DetailParams = Static<typeof ListingDetailParameters>;
@@ -42,15 +45,19 @@ export interface ToolRuntimeContext {
   user: UserContext;
   maxResults: number;
   allowedListingIds: Set<string>;
+  action: BusinessAction;
+  filters: SearchFilters;
   onSearchResult?: (listingIds: string[]) => void;
 }
 
-function ensureSearchInput(params: SearchParams, maxResults: number): SearchListingsInput {
-  if (params.minPriceCents !== undefined && params.maxPriceCents !== undefined && params.minPriceCents > params.maxPriceCents) {
+function ensureSearchInput(params: SearchParams, runtime: ToolRuntimeContext): SearchListingsInput {
+  if (!Check(SearchListingsParameters, params)) throw new AppError("TOOL_INPUT_INVALID", "搜索参数格式不合法");
+  const input = { ...runtime.filters, page: params.page ?? 1, pageSize: Math.min(params.pageSize ?? runtime.maxResults, runtime.maxResults) };
+  if (!Check(SearchListingsParameters, input)) throw new AppError("TOOL_INPUT_INVALID", "服务端筛选条件格式不合法");
+  if (input.minPriceCents !== undefined && input.maxPriceCents !== undefined && input.minPriceCents > input.maxPriceCents) {
     throw new AppError("TOOL_INPUT_INVALID", "最低价不能高于最高价");
   }
-  if (params.keyword?.length && params.keyword.length > 120) throw new AppError("TOOL_INPUT_INVALID", "关键词不能超过 120 个字符");
-  return { ...params, pageSize: Math.min(params.pageSize ?? maxResults, maxResults) };
+  return input;
 }
 
 function jsonContent(value: unknown): { type: "text"; text: string }[] {
@@ -58,6 +65,10 @@ function jsonContent(value: unknown): { type: "text"; text: string }[] {
 }
 
 export function createAgentTools(runtime: ToolRuntimeContext): AgentTool[] {
+  const allowed = allowedToolNames(runtime.action);
+  const authorize = (name: string) => {
+    if (!allowed.includes(name)) throw new AppError("TOOL_INPUT_INVALID", "当前业务意图不允许调用此工具");
+  };
   const searchListings: AgentTool<typeof SearchListingsParameters> = {
     name: "searchListings",
     label: "搜索校园商品",
@@ -65,7 +76,8 @@ export function createAgentTools(runtime: ToolRuntimeContext): AgentTool[] {
     parameters: SearchListingsParameters,
     executionMode: "sequential",
     execute: async (_toolCallId, params, signal) => {
-      const input = ensureSearchInput(params, runtime.maxResults);
+      authorize("searchListings");
+      const input = ensureSearchInput(params, runtime);
       const result = await runtime.client.searchListings(input, runtime.user, signal);
       const listings = result.listings.slice(0, runtime.maxResults);
       runtime.onSearchResult?.(listings.map((listing) => listing.listingId));
@@ -92,6 +104,8 @@ export function createAgentTools(runtime: ToolRuntimeContext): AgentTool[] {
     parameters: ListingDetailParameters,
     executionMode: "sequential",
     execute: async (_toolCallId, params, signal) => {
+      authorize("getListingDetail");
+      if (!Check(ListingDetailParameters, params)) throw new AppError("TOOL_INPUT_INVALID", "详情参数格式不合法");
       if (!isListingId(params.listingId)) throw new AppError("TOOL_INPUT_INVALID", "listingId 格式不合法");
       if (!runtime.allowedListingIds.has(params.listingId)) throw new AppError("LISTING_NOT_FOUND", "只能查看当前会话已展示的商品");
       const listing = await runtime.client.getListingDetail(params.listingId, runtime.user, signal);
@@ -106,15 +120,17 @@ export function createAgentTools(runtime: ToolRuntimeContext): AgentTool[] {
     name: "getUserPreferences",
     label: "读取用户偏好",
     description: "只读读取当前可信用户上下文对应的兴趣偏好，不接受身份参数。",
-    parameters: Type.Object({}),
+    parameters: Type.Object({}, { additionalProperties: false }),
     executionMode: "sequential",
     execute: async (_toolCallId, _params, signal) => {
+      authorize("getUserPreferences");
+      if (!Check(Type.Object({}, { additionalProperties: false }), _params)) throw new AppError("TOOL_INPUT_INVALID", "偏好查询不能包含身份参数");
       const preferences = await runtime.client.getUserPreferences(runtime.user, signal);
       return { content: jsonContent(preferences), details: { kind: "getUserPreferences", preferences } };
     },
   };
 
-  return [searchListings, getListingDetail, getUserPreferences];
+  return [searchListings, getListingDetail, getUserPreferences].filter((tool) => allowed.includes(tool.name));
 }
 
 export type SearchListingsToolParams = SearchParams;

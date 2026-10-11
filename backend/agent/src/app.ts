@@ -91,7 +91,9 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         log: (event, payload) => app.log.info({ event, ...payload }, "agent event"),
       });
       session.messages = result.messages;
-      session.lastListingIds = result.lastListingIds;
+      session.filters = result.filters;
+      session.displayedListingIds = result.displayedListingIds;
+      session.searchPage = result.searchPage;
       sessionStore.save(session);
       sessionStore.saveIdempotentResponse(body.requestId, user, result.response);
       return reply.code(200).send(result.response);

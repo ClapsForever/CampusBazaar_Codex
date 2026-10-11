@@ -43,6 +43,10 @@ function normalizeCampus(value: string): string {
 }
 
 function parsePrice(text: string, current: SearchFilters): SearchFilters {
+  if (/不限预算|不限制(?:价格|预算)|取消(?:价格|预算)(?:限制|上限)?|预算不限/u.test(text)) {
+    const { minPriceCents: _min, maxPriceCents: _max, ...rest } = current;
+    return rest;
+  }
   const range = text.match(/(\d+(?:\.\d+)?)\s*(?:元)?\s*(?:到|至|[-~])\s*(\d+(?:\.\d+)?)\s*元?/u);
   if (range) {
     const first = Math.round(Number(range[1]) * 100);
@@ -50,6 +54,10 @@ function parsePrice(text: string, current: SearchFilters): SearchFilters {
     return { ...current, minPriceCents: Math.min(first, second), maxPriceCents: Math.max(first, second) };
   }
 
+  const minimum = text.match(/(?:至少|不低于|最低)\s*(\d+(?:\.\d+)?)\s*元?/u);
+  if (minimum) return { ...current, minPriceCents: Math.round(Number(minimum[1]) * 100) };
+  const cheaper = text.match(/(?:再|还)?便宜\s*(\d+(?:\.\d+)?)\s*元/u);
+  if (cheaper && current.maxPriceCents !== undefined) return { ...current, maxPriceCents: Math.max(0, current.maxPriceCents - Math.round(Number(cheaper[1]) * 100)) };
   const max = text.match(/(?:预算(?:改成|调整为|是)?|不超过|最多|以内|低于|小于)\s*(\d+(?:\.\d+)?)\s*元?/u) ?? text.match(/(\d+(?:\.\d+)?)\s*元?\s*(?:以内|以下|封顶)/u);
   if (max) {
     const { minPriceCents: _minPriceCents, ...withoutMin } = current;
@@ -65,7 +73,7 @@ function parsePrice(text: string, current: SearchFilters): SearchFilters {
 }
 
 function parseCondition(text: string, current: SearchFilters): SearchFilters {
-  if (/不限制成色|不限成色|不看成色/u.test(text)) {
+  if (/不限制成色|不限成色|不看成色|取消成色限制/u.test(text)) {
     const { condition: _condition, ...rest } = current;
     return rest;
   }
@@ -86,7 +94,9 @@ function parseTopic(text: string, current: SearchFilters): SearchFilters {
       return {
         ...current,
         category,
-        ...(category === "教材" && text.includes("高数") ? { keyword: "高数" } : current.keyword ? { keyword: current.keyword } : {}),
+        ...(category === "教材" && /高数|高等数学|微积分|英语|线性代数|概率论|数据结构|物理|化学/u.test(text)
+          ? { keyword: text.match(/高数|高等数学|微积分|英语|线性代数|概率论|数据结构|物理|化学/u)![0] }
+          : current.keyword ? { keyword: current.keyword } : {}),
       };
     }
   }
@@ -94,14 +104,23 @@ function parseTopic(text: string, current: SearchFilters): SearchFilters {
 }
 
 function parseCampus(text: string, current: SearchFilters): { filters: SearchFilters; soft: boolean } {
+  if (/不限校区|不限制校区|取消校区限制/u.test(text)) {
+    const { campus: _campus, preferredCampus: _preferred, ...rest } = current;
+    return { filters: rest, soft: false };
+  }
   const found = CAMPUS_ALIASES.find((campus) => text.includes(campus));
   if (!found) return { filters: current, soft: false };
   const campus = normalizeCampus(found);
   if (/最好|优先|方便|希望/u.test(text)) return { filters: { ...current, preferredCampus: campus }, soft: true };
-  return { filters: { ...current, campus }, soft: false };
+  const { preferredCampus: _preferred, ...hard } = current;
+  return { filters: { ...hard, campus }, soft: false };
 }
 
 function parseVersion(text: string, current: SearchFilters): SearchFilters {
+  if (/不限版本|不限制版本|取消版本限制/u.test(text)) {
+    const { version: _version, ...rest } = current;
+    return rest;
+  }
   const version = text.match(/(同济第[一二三四五六七八九十]+版|第[一二三四五六七八九十]+版|20\d{2}版)/u)?.[1];
   return version ? { ...current, version } : current;
 }
@@ -119,6 +138,20 @@ function parsePositions(text: string): number[] {
 function chineseNumber(value: string): number {
   const map: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
   return map[value] ?? 0;
+}
+
+export function mentionsCategory(text: string, category: string): boolean {
+  const aliases = CATEGORY_ALIASES.find(([name]) => name === category)?.[1] ?? [category];
+  return aliases.some((alias) => text.includes(alias));
+}
+
+/** Apply only this user turn to server-owned conditions, never replay catalog text. */
+export function parseSearchUpdate(text: string, current: SearchFilters): SearchFilters {
+  let filters = parseTopic(text, { ...current });
+  filters = parsePrice(text, filters);
+  filters = parseCondition(text, filters);
+  filters = parseVersion(text, filters);
+  return parseCampus(text, filters).filters;
 }
 
 export function parseIntent(messages: AgentMessage[]): ParsedIntent {
