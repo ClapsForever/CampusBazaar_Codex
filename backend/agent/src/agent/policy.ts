@@ -112,7 +112,8 @@ export function mergeSearchFilters(previous: SearchFilters, plan: TurnPlan, mess
   if (changes.version === null && !/不限版本|不限制版本|取消版本限制/u.test(message)) delete changes.version;
   if (changes.campus === null && !/不限校区|不限制校区|取消校区限制/u.test(message)) delete changes.campus;
   if (changes.preferredCampus === null && !/不限校区|不限制校区|取消校区限制|只要|必须/u.test(message)) delete changes.preferredCampus;
-  const newUnclassifiedTopic = plan.action === "search" && typeof changes.keyword === "string" && hasSearchRequest(message) && isGroundedKeyword(message, changes.keyword);
+  const recognizedTopic = parseSearchUpdate(message, {});
+  const newUnclassifiedTopic = !recognizedTopic.category && plan.action === "search" && typeof changes.keyword === "string" && hasSearchRequest(message) && isGroundedKeyword(message, changes.keyword);
   if (changes.category === null && !/不限类别|取消类别|换成|改找|切换|改成/u.test(message) && !newUnclassifiedTopic) delete changes.category;
   if (changes.keyword === null && !/取消关键词|不限关键词|换成|改找|切换|改成/u.test(message)) delete changes.keyword;
   if (typeof changes.keyword === "string" && !isGroundedKeyword(message, changes.keyword)) delete changes.keyword;

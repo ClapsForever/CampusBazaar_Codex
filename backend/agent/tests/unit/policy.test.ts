@@ -56,6 +56,11 @@ describe("server-owned search conditions", () => {
     const plan = { ...emptyPlan("search"), changes: { keyword } };
     expect(mergeSearchFilters(previous, plan, "帮我找个英语书").keyword).toBe("高数");
   });
+  it("does not let a model misclassify a known book query as a new unrestricted category", () => {
+    const plan = { ...emptyPlan("search"), changes: { keyword: "english book", category: null, maxPriceCents: null } };
+    expect(mergeSearchFilters({ category: "教材", keyword: "高数", maxPriceCents: 8000 }, plan, "帮我找个英语书"))
+      .toEqual({ category: "教材", keyword: "english book", maxPriceCents: 8000 });
+  });
   it("preserves unmentioned hard conditions even when a model tries to remove or replace them", () => {
     const plan = { ...emptyPlan("refine"), changes: { maxPriceCents: null, version: null, campus: null, keyword: null, category: "自行车", condition: "like_new" as const } };
     expect(mergeSearchFilters(previous, plan, "最好九成新")).toEqual({ ...previous, condition: "like_new" });
