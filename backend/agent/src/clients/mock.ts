@@ -1,5 +1,6 @@
 import { AppError } from "../errors/index.js";
 import { searchKeywordGroups } from "../intent/parser.js";
+import { matchesCategory } from "../intent/categories.js";
 import type { BusinessReadClient } from "./types.js";
 import {
   type ListingDetail,
@@ -174,7 +175,7 @@ export class MockBusinessClient implements BusinessReadClient {
     const visible = MOCK_LISTINGS.filter((listing) => listing.schoolId === user.schoolId);
     const matched = visible.filter((listing) =>
       matchesText(listing, input.keyword) &&
-      (!input.category || listing.category === input.category) &&
+      matchesCategory(listing.category, input.category, `${listing.title} ${listing.description}`, searchKeywordGroups) &&
       (input.minPriceCents === undefined || listing.priceCents >= input.minPriceCents) &&
       (input.maxPriceCents === undefined || listing.priceCents <= input.maxPriceCents) &&
       (!input.campus || listing.campus === input.campus) &&

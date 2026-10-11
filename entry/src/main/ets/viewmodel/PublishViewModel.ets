@@ -34,7 +34,7 @@ export class PublishViewModel {
     this.titleError = this.title.trim() === '' ? '请输入商品名称' : '';
     this.descriptionError = this.description.trim() === '' ? '请输入商品描述' : '';
     this.priceError = isValidPrice(this.priceText) ? '' : '请输入大于 0 的合法价格';
-    this.categoryError = isPublishCategory(this.category) ? '' : '请选择具体品类';
+    this.categoryError = isPublishCategory(this.category) ? '' : '请选择商品类别';
     this.campusError = CAMPUS_OPTIONS.includes(this.campus) ? '' : '请选择所在校区';
     return this.titleError === '' && this.descriptionError === '' && this.priceError === '' &&
       this.categoryError === '' && this.campusError === '';

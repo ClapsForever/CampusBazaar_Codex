@@ -5,7 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
 import { transaction } from './db.js';
 import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalText, positiveInt, text, tokenHash } from './http.js';
-import { keywordGroups } from './search.js';
+import { categorySearchSpec, keywordGroups } from './search.js';
 
 type UserRow = { id: string; phone: string; nickname: string; avatar: string; school_id: string };
 type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD'; published_at: number };
@@ -333,8 +333,24 @@ export class Store {
     const soft: Record<string, unknown> = {};
     const where = ["p.school_id=?", "p.status='ACTIVE'", "NOT EXISTS (SELECT 1 FROM transactions t WHERE t.product_id=p.id AND t.status IN ('PENDING','ACCEPTED'))"];
     const args: (string | number)[] = [user.school_id];
+    const category = params.get('category');
+    if (category) {
+      const checked = text(category, 'category', 1, 50);
+      hard.category = checked;
+      const spec = categorySearchSpec(checked);
+      const exact = `p.category IN (${spec.exact.map(() => '?').join(',')})`;
+      args.push(...spec.exact);
+      if (spec.grouped) {
+        const terms = spec.grouped.keywords.map(() =>
+          '(instr(lower(p.title),lower(?))>0 OR instr(lower(p.description),lower(?))>0)'
+        ).join(' OR ');
+        where.push(`(${exact} OR (p.category=? AND (${terms})))`);
+        args.push(spec.grouped.category);
+        for (const term of spec.grouped.keywords) args.push(term, term);
+      } else where.push(exact);
+    }
     for (const [key, column, max] of [
-      ['category','category',50], ['campus','campus',100], ['condition','condition',30], ['version','version',100]
+      ['campus','campus',100], ['condition','condition',30], ['version','version',100]
     ] as const) {
       const value = params.get(key);
       if (value) { const checked = text(value, key, 1, max); hard[key] = checked; where.push(`p.${column}=?`); args.push(checked); }

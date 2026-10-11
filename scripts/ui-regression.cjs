@@ -32,14 +32,15 @@ function deferred() {
 }
 const product = { id: 'listing_1', title: '蓝牙耳机', category: '耳机', campus: '江湾校区', images: [], price: 20 };
 
-test('具体类别、历史大类与别名映射，未知类别不从标题推断', () => {
-  const { homeCategory, PRODUCT_CATEGORIES, CAMPUS_OPTIONS } = harness()('common/MarketOptions');
-  for (const [value, expected] of [['耳机','数码'], ['键盘','数码'], ['显示器','数码'], ['计算器','数码'],
-    ['自行车','出行'], ['单车','出行'], ['生活用品','生活'], ['教材','教材'], ['数码','数码'],
-    ['生活','生活'], ['出行','出行'], ['未知','全部'], ['', '全部'], [undefined,'全部']]) {
+test('发布与首页共用六类，兼容旧小类和大类别名', () => {
+  const { homeCategory, HOME_CATEGORIES, PRODUCT_CATEGORIES, CAMPUS_OPTIONS } = harness()('common/MarketOptions');
+  for (const [value, expected] of [['耳机','外设'], ['键盘','外设'], ['显示器','外设'], ['计算器','数码'],
+    ['自行车','运动'], ['单车','运动'], ['生活用品','日用'], ['教材','教材'], ['数码','数码'],
+    ['生活','日用'], ['出行','运动'], ['未知','其他'], ['', '其他'], [undefined,'其他']]) {
     assert.equal(homeCategory(value), expected);
   }
-  assert(!PRODUCT_CATEGORIES.some(option => ['数码','出行','生活'].includes(option.value)));
+  assert.equal(PRODUCT_CATEGORIES.map(option => option.value).join(','), '教材,数码,外设,日用,运动,其他');
+  assert.equal(HOME_CATEGORIES.join(','), '全部,教材,数码,外设,日用,运动,其他');
   assert.equal(CAMPUS_OPTIONS.join(','), '江湾校区,邯郸校区,张江校区,枫林校区');
 });
 
@@ -79,25 +80,29 @@ test('首屏初始化不重复请求，退出后旧请求不能恢复商品', as
   assert.equal(model.products.length, 0);
 });
 
-test('发布验证规范选项、保留具体类别、见面地点只追加到描述', async () => {
+test('发布保存通用类别、拒绝旧小类，见面地点只追加到描述', async () => {
   let draft;
   const load = harness({ 'service/ProductService': { productService: { publishProduct: async input => { draft = input; } } } });
   const model = new (load('viewmodel/PublishViewModel').PublishViewModel)();
   assert.equal(model.validate(), false); assert(model.categoryError && model.campusError);
-  Object.assign(model, { title: ' 蓝牙耳机 ', description: '九成新', priceText: '20.50', category: '耳机',
+  Object.assign(model, { title: ' 蓝牙耳机 ', description: '九成新', priceText: '20.50', category: '外设',
     campus: '江湾校区', meetingPlace: ' 图书馆门口 ' });
   assert.equal(await model.submit(), true);
-  assert.equal(draft.category, '耳机'); assert.equal(draft.campus, '江湾校区');
+  assert.equal(draft.category, '外设'); assert.equal(draft.campus, '江湾校区');
   assert.equal(draft.description, '九成新\n见面地点：图书馆门口'); assert.equal(draft.price, 20.5);
   model.campus = '江湾校区图书馆门口'; assert.equal(model.validate(), false);
-  model.campus = '江湾校区'; model.category = '数码'; assert.equal(model.validate(), false);
+  model.campus = '江湾校区';
+  for (const category of ['教材', '数码', '外设', '日用', '运动', '其他']) {
+    model.category = category; assert.equal(model.validate(), true);
+  }
+  model.category = '耳机'; assert.equal(model.validate(), false);
 });
 
 test('发布失败显示表单错误并保留输入，进行中禁止重复提交，照片限制三张', async () => {
   const response = deferred(); let calls = 0;
   const load = harness({ 'service/ProductService': { productService: { publishProduct: () => { calls++; return response.promise; } } } });
   const model = new (load('viewmodel/PublishViewModel').PublishViewModel)();
-  Object.assign(model, { title: '耳机', description: '九成新', priceText: '20', category: '耳机', campus: '江湾校区' });
+  Object.assign(model, { title: '耳机', description: '九成新', priceText: '20', category: '外设', campus: '江湾校区' });
   model.addImages(['a','b','c','d']); assert.equal(model.images.length, 3);
   model.removeImage(1); assert.equal(model.images.join(','), 'a,c');
   const first = model.submit(); assert.equal(await model.submit(), false); assert.equal(calls, 1);

@@ -2,6 +2,7 @@ import { Type, type Static } from "@earendil-works/pi-ai";
 import { Check } from "typebox/value";
 import { PRICE_MAX_CENTS, type SearchFilters } from "../contracts/index.js";
 import { hasSearchRequest, isGroundedKeyword, mentionsCategory, parseIntent, parseSearchUpdate } from "../intent/parser.js";
+import { CATEGORY_GROUPS } from "../intent/categories.js";
 
 const nullableText = (maxLength: number) => Type.Optional(Type.Union([Type.String({ minLength: 1, maxLength }), Type.Null()]));
 const nullablePrice = Type.Optional(Type.Union([Type.Integer({ minimum: 0, maximum: PRICE_MAX_CENTS }), Type.Null()]));
@@ -125,7 +126,16 @@ export function mergeSearchFilters(previous: SearchFilters, plan: TurnPlan, mess
   if (typeof changes.condition === "string" && !/成色|成新|全新|未使用/u.test(message)) delete changes.condition;
   const newCategory = typeof changes.category === "string" ? changes.category : undefined;
   if (newCategory && !mentionsCategory(message, newCategory)) delete changes.category;
-  const topicChanged = (typeof changes.category === "string" && previous.category !== undefined && previous.category !== changes.category)
+  const targetGroup = CATEGORY_GROUPS.find(group => group.category === changes.category);
+  const concreteSubject = recognizedTopic.keyword ?? recognizedTopic.category;
+  if (plan.action === "search" && targetGroup && !changes.keyword && concreteSubject
+    && concreteSubject !== targetGroup.category && isGroundedKeyword(message, concreteSubject)) {
+    changes.keyword = concreteSubject;
+  }
+  const nextGroup = CATEGORY_GROUPS.find(group => group.members.includes(changes.category ?? ""));
+  const sameConcreteTopic = nextGroup?.members.includes(previous.category ?? "")
+    && (recognizedTopic.category === previous.category || previous.category === nextGroup?.category);
+  const topicChanged = (typeof changes.category === "string" && previous.category !== undefined && previous.category !== changes.category && !sameConcreteTopic)
     || (newUnclassifiedTopic && changes.category === null && previous.category !== undefined)
     || (plan.action === "search" && typeof changes.keyword === "string" && previous.keyword !== changes.keyword && /换成|改找|切换|改成|换找/u.test(message));
   const filters: SearchFilters = topicChanged ? {} : { ...previous };

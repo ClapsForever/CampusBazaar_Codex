@@ -1,9 +1,9 @@
 import { common } from '@kit.AbilityKit';
 import { PublishViewModel } from '../viewmodel/PublishViewModel';
-import { CAMPUS_OPTIONS, CONDITION_OPTIONS, PRODUCT_CATEGORIES } from '../common/MarketOptions';
+import { CAMPUS_OPTIONS, CONDITION_OPTIONS, PRODUCT_CATEGORIES, publishCategoryHint } from '../common/MarketOptions';
 import { formatCondition } from '../common/Utils';
 import {
-  COLOR_DIVIDER, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY,
+  CONTROL_RADIUS, COLOR_DIVIDER, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY,
   COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, MAX_PRODUCT_PHOTOS
 } from '../common/Constants';
 
@@ -20,7 +20,7 @@ export struct PublishProductView {
             this.photoSection();
             this.fieldLabel('商品标题');
             TextInput({ placeholder: '写出品牌、型号和物品名称', text: this.vm.title })
-              .height(50).fontSize('14fp').backgroundColor(Color.White).borderRadius(12)
+              .height(50).fontSize('14fp').backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .padding({ left: 14, right: 14 })
               .onChange((value: string) => {
                 this.vm.title = value;
@@ -30,7 +30,7 @@ export struct PublishProductView {
 
             this.fieldLabel('商品描述');
             TextArea({ placeholder: '介绍使用情况和瑕疵；图书馆门口等见面地点也可写在这里', text: this.vm.description })
-              .height(118).fontSize('14fp').backgroundColor(Color.White).borderRadius(12)
+              .height(118).fontSize('14fp').backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .padding(14)
               .onChange((value: string) => {
                 this.vm.description = value;
@@ -41,7 +41,7 @@ export struct PublishProductView {
             this.fieldLabel('商品价格');
             TextInput({ placeholder: '输入价格（元）', text: this.vm.priceText })
               .type(InputType.NUMBER_DECIMAL).height(50).fontSize('15fp')
-              .backgroundColor(Color.White).borderRadius(12)
+              .backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .padding({ left: 14, right: 14 })
               .onChange((value: string) => {
                 this.vm.priceText = value;
@@ -50,26 +50,27 @@ export struct PublishProductView {
             this.errorText(this.vm.priceError);
             Text('当面交易时付款').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
 
-            this.fieldLabel('具体品类');
+            this.fieldLabel('商品类别');
             Select(PRODUCT_CATEGORIES.map((option): SelectOption => ({ value: option.value })))
-              .value(this.vm.category || '请选择具体品类').width('100%').height(50).font({ size: '14fp' })
-              .backgroundColor(Color.White).borderRadius(12)
+              .value(this.vm.category || '请选择商品类别').width('100%').height(50).font({ size: '14fp' })
+              .backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .onSelect((index: number) => {
                 this.vm.category = PRODUCT_CATEGORIES[index].value;
                 this.vm.categoryError = '';
               });
             this.errorText(this.vm.categoryError);
+            Text(publishCategoryHint(this.vm.category)).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
 
             this.fieldLabel('成色');
             Select(CONDITION_OPTIONS.map((value: string): SelectOption => ({ value: formatCondition(value) })))
               .value(formatCondition(this.vm.condition)).width('100%').height(50).font({ size: '14fp' })
-              .backgroundColor(Color.White).borderRadius(12)
+              .backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .onSelect((index: number) => this.vm.condition = CONDITION_OPTIONS[index]);
 
             this.fieldLabel('所在校区');
             Select(CAMPUS_OPTIONS.map((value: string): SelectOption => ({ value: value })))
               .value(this.vm.campus || '请选择所在校区').width('100%').height(50).font({ size: '14fp' })
-              .backgroundColor(Color.White).borderRadius(12)
+              .backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .onSelect((index: number) => {
                 this.vm.campus = CAMPUS_OPTIONS[index];
                 this.vm.campusError = '';
@@ -77,7 +78,7 @@ export struct PublishProductView {
             this.errorText(this.vm.campusError);
             this.fieldLabel('见面地点（选填）');
             TextInput({ placeholder: '例如：图书馆门口，会追加到商品描述', text: this.vm.meetingPlace })
-              .height(50).fontSize('14fp').backgroundColor(Color.White).borderRadius(12)
+              .height(50).fontSize('14fp').backgroundColor(Color.White).borderRadius(CONTROL_RADIUS)
               .padding({ left: 14, right: 14 })
               .onChange((value: string) => this.vm.meetingPlace = value);
             Text('当面交易 · 线下付款').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY)

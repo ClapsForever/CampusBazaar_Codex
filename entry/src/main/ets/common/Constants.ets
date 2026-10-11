@@ -17,6 +17,7 @@ export const BUYER_PENDING_HINT: string = '等待卖家确认';
 
 // Palette from the sibling arkui design project.
 export const COLOR_PRIMARY: string = '#E06620';
+export const COLOR_PRIMARY_STRONG: string = '#B7470F';
 export const COLOR_PRIMARY_SOFT: string = '#FFF0E5';
 export const COLOR_PRICE: string = '#E06620';
 export const COLOR_TEXT_PRIMARY: string = '#1A1918';
@@ -28,6 +29,8 @@ export const COLOR_CARD_BG: string = '#FFFFFF';
 export const COLOR_DIVIDER: string = '#E5E4E1';
 export const PAGE_PADDING: number = 16;
 export const CARD_RADIUS: number = 16;
+export const CONTROL_RADIUS: number = 16;
+export const SHEET_ACTION_HEIGHT: number = 44;
 export const GRID_GAP: number = 10;
 export const FONT_TITLE: string = '21fp';
 export const FONT_PRODUCT: string = '14fp';

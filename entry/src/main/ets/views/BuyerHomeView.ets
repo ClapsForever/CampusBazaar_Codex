@@ -5,7 +5,7 @@ import { StateView } from '../components/StateView';
 import { SearchSheetView } from './SearchSheetView';
 import { AgentSheetView } from './AgentSheetView';
 import { AgentViewModel } from '../viewmodel/AgentViewModel';
-import { COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, LoadState, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
+import { CONTROL_RADIUS, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, LoadState, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
 
 @ComponentV2
 export struct BuyerHomeView {
@@ -21,16 +21,16 @@ export struct BuyerHomeView {
       Column() {
         Row({ space: 10 }) {
           Button('🔍 搜索').layoutWeight(1).height(48).fontSize(14)
-            .backgroundColor(Color.White).fontColor(COLOR_TEXT_PRIMARY).borderRadius(21)
+            .backgroundColor(Color.White).fontColor(COLOR_TEXT_PRIMARY).borderRadius(CONTROL_RADIUS)
             .onClick(() => this.searchSheetVisible = true)
             .bindSheet($$this.searchSheetVisible, this.searchSheetContent(), {
               detents: [SheetSize.MEDIUM, SheetSize.LARGE]
             });
           Button('🤖 智能助手').layoutWeight(1).height(48).fontSize(14)
-            .backgroundColor(COLOR_PRIMARY).fontColor(Color.White).borderRadius(21)
+            .backgroundColor(COLOR_PRIMARY).fontColor(Color.White).borderRadius(CONTROL_RADIUS)
             .onClick(() => this.agentSheetVisible = true)
             .bindSheet($$this.agentSheetVisible, this.agentSheetContent(), {
-              detents: [SheetSize.LARGE]
+              detents: [SheetSize.LARGE], showClose: false
             });
         }
         .width('100%').padding({ left: 12, right: 12, top: 8, bottom: 8 });

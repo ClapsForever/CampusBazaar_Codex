@@ -43,6 +43,15 @@ describe("business intent policy", () => {
 });
 
 describe("server-owned search conditions", () => {
+  it("keeps the concrete object when a model only provides a broad category", () => {
+    const plan = { ...emptyPlan("search"), changes: { category: "外设" } };
+    expect(mergeSearchFilters({}, plan, "帮我找键盘")).toEqual({ category: "外设", keyword: "键盘" });
+    expect(mergeSearchFilters({ category: "键盘", maxPriceCents: 5000 }, plan, "帮我找键盘"))
+      .toEqual({ category: "外设", keyword: "键盘", maxPriceCents: 5000 });
+    const legacyPlan = { ...emptyPlan("search"), changes: { category: "键盘" } };
+    expect(mergeSearchFilters({ category: "外设", keyword: "键盘", maxPriceCents: 5000 }, legacyPlan, "帮我找键盘"))
+      .toEqual({ category: "键盘", keyword: "键盘", maxPriceCents: 5000 });
+  });
   const previous = { category: "教材", keyword: "高数", maxPriceCents: 5000, version: "同济第七版", campus: "江湾校区" };
   it.each([
     ["帮我找个英语书", "english book"],

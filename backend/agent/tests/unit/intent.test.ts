@@ -6,6 +6,12 @@ function messages(...contents: string[]) {
 }
 
 describe("intent parser", () => {
+  it.each([
+    ["帮我找个鼠标", "外设", "鼠标"], ["找个台灯", "日用", "台灯"], ["找个手机", "数码", "手机"],
+    ["find a mouse", "外设", "鼠标"],
+  ])("keeps the concrete object when assigning a broad category: %s", (message, category, keyword) => {
+    expect(parseIntent(messages(message)).filters).toEqual({ category, keyword });
+  });
   it.each(["帮我找个英语书", "please help me find a english book"])("recognizes the textbook subject: %s", (message) => {
     const result = parseIntent(messages(message));
     expect(result.filters.category).toBe("教材");

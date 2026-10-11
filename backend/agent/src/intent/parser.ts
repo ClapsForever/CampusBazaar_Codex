@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { ListingCondition, SearchFilters } from "../contracts/index.js";
+import { CATEGORY_GROUPS } from "./categories.js";
 
 export type UserIntentKind = "search" | "compare" | "detail" | "transaction" | "preference" | "unknown";
 
@@ -20,6 +21,7 @@ const CATEGORY_ALIASES: Array<[string, string[]]> = [
   ["显示器", ["显示器", "屏幕"]],
   ["耳机", ["耳机", "降噪"]],
   ["计算器", ["计算器"]],
+  ...CATEGORY_GROUPS.filter(group => group.category !== "教材").map(group => [group.category, group.members] as [string, string[]]),
 ];
 
 const CAMPUS_ALIASES = ["江湾校区", "邯郸校区", "张江校区", "枫林校区", "江湾", "邯郸", "张江", "枫林"];
@@ -28,12 +30,15 @@ const KEYWORD_ALIASES = [
   ["高数", "高等数学", "微积分"],
   ["英语", "英文", "english"],
   ["书", "书籍", "课本", "教材", "book", "books", "textbook", "textbooks"],
+  ["键盘", "keyboard"], ["鼠标", "mouse"], ["耳机", "headphone", "headphones", "earphone", "earphones"],
+  ["显示器", "monitor"], ["自行车", "单车", "bicycle", "bike"],
 ];
 
 function mentionsAlias(text: string, alias: string): boolean {
-  return /^[a-z ]+$/u.test(alias)
-    ? new RegExp(`\\b${alias}s?\\b`, "iu").test(text)
-    : text.includes(alias);
+  const alternatives = KEYWORD_ALIASES.slice(3).find(group => group.includes(alias)) ?? [alias];
+  return alternatives.some(value => /^[a-z ]+$/u.test(value)
+    ? new RegExp(`\\b${value}s?\\b`, "iu").test(text)
+    : text.includes(value));
 }
 
 function canonicalKeyword(text: string): string {
@@ -130,12 +135,16 @@ function parseTopic(text: string, current: SearchFilters): SearchFilters {
     if (aliases.some((alias) => mentionsAlias(text, alias))) {
       const topicChanged = current.category !== undefined && current.category !== category;
       const base = topicChanged ? {} : current;
+      const groupedSubject = CATEGORY_GROUPS.some(group => group.category === category)
+        ? aliases.find(alias => alias !== category && mentionsAlias(text, alias)
+          && !["生活", "生活用品", "出行", "运动用品"].includes(alias))
+        : undefined;
       return {
         ...base,
         category,
         ...(category === "教材" && /高数|高等数学|微积分|英语|英文|线性代数|概率论|数据结构|物理|化学|\benglish\b/iu.test(text)
           ? { keyword: text.match(/高数|高等数学|微积分|英语|英文|线性代数|概率论|数据结构|物理|化学|\benglish\b/iu)![0] }
-          : base.keyword ? { keyword: base.keyword } : {}),
+          : groupedSubject ? { keyword: groupedSubject } : base.keyword ? { keyword: base.keyword } : {}),
       };
     }
   }

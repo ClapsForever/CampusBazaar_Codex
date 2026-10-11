@@ -1,7 +1,7 @@
 import { AgentRecommendation, Product } from '../model/Models';
 import { AgentConversationTurn, AgentViewModel } from '../viewmodel/AgentViewModel';
 import { ProductCard } from '../components/ProductCard';
-import { COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
+import { COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_STRONG, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, CONTROL_RADIUS, SHEET_ACTION_HEIGHT, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
 
 @ComponentV2
 export struct AgentSheetView {
@@ -14,16 +14,24 @@ export struct AgentSheetView {
 
   build() {
     Column({ space: 10 }) {
-      Row() {
+      Row({ space: 8 }) {
         Text('AI 找物').fontSize('20fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
-          .layoutWeight(1);
+          .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         if (this.vm.turns.length > 0) {
-          Button('新对话').fontSize('12fp').fontColor(COLOR_PRIMARY).backgroundColor(COLOR_PRIMARY_SOFT)
-            .borderRadius(16).constraintSize({ minHeight: 44 }).enabled(!this.vm.loading)
+          Button('新对话', { type: ButtonType.Normal }).fontSize('14fp').fontWeight(FontWeight.Medium)
+            .fontColor(Color.White).backgroundColor(COLOR_PRIMARY_STRONG)
+            .height(SHEET_ACTION_HEIGHT).padding({ left: 12, right: 12 }).borderRadius(CONTROL_RADIUS)
+            .enabled(!this.vm.loading)
             .onClick(() => this.vm.resetConversation());
         }
+        Button({ type: ButtonType.Normal }) {
+          Image($r('app.media.design_close')).width(20).height(20);
+        }
+        .width(SHEET_ACTION_HEIGHT).height(SHEET_ACTION_HEIGHT)
+        .backgroundColor('#E5E4E1').borderRadius(CONTROL_RADIUS)
+        .accessibilityText('关闭 AI 找物').onClick(() => this.onClose());
       }
-      .width('100%').padding({ right: 50 }).margin({ top: 8 });
+      .width('100%').alignItems(VerticalAlign.Center).margin({ top: 8 });
       Text('描述商品、预算或校区，支持继续补充条件').fontSize('12fp')
         .fontColor(COLOR_TEXT_SECONDARY).width('100%');
 

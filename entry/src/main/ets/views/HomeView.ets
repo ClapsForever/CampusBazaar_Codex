@@ -8,7 +8,7 @@ import { SearchSheetView } from './SearchSheetView';
 import { AgentSheetView } from './AgentSheetView';
 import { HOME_CATEGORIES, homeCategory } from '../common/MarketOptions';
 import {
-  FONT_TITLE, PAGE_PADDING, GRID_GAP, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT,
+  FONT_TITLE, PAGE_PADDING, GRID_GAP, CONTROL_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT,
   COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
   LoadState, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
 } from '../common/Constants';
@@ -89,7 +89,7 @@ export struct HomeView {
             .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         }
         .layoutWeight(1).height(52).padding({ left: 16, right: 12 })
-        .backgroundColor(COLOR_PAGE_BG).borderRadius(26)
+        .backgroundColor(COLOR_PAGE_BG).borderRadius(CONTROL_RADIUS)
         .onClick(() => this.searchSheetVisible = true)
         .bindSheet($$this.searchSheetVisible, this.searchSheetContent(), {
           detents: [SheetSize.MEDIUM, SheetSize.LARGE]
@@ -99,10 +99,10 @@ export struct HomeView {
           Text('AI 找物').fontSize('12fp').fontWeight(FontWeight.Bold).fontColor(Color.White);
         }
         .constraintSize({ minWidth: 72, minHeight: 52 }).padding({ left: 8, right: 8 })
-        .justifyContent(FlexAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(18)
+        .justifyContent(FlexAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(CONTROL_RADIUS)
         .onClick(() => this.agentSheetVisible = true)
         .bindSheet($$this.agentSheetVisible, this.agentSheetContent(), {
-          detents: [SheetSize.LARGE]
+          detents: [SheetSize.LARGE], showClose: false
         });
       }
       .width('100%');

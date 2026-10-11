@@ -31,6 +31,17 @@ function fixture(overrides = {}) {
 }
 
 describe("controlled shopping workflow", () => {
+  it("finds newly published broad-category objects without returning unrelated peripherals", async () => {
+    const sample = { priceCents: 2000, category: "外设", condition: "like_new" as const, campus: "邯郸校区",
+      description: "测试商品", status: "active" as const, schoolId: user.schoolId,
+      sellerLabel: "测试同学", publishedAt: "2026-10-11T00:00:00.000Z" };
+    MOCK_LISTINGS.push({ ...sample, listingId: "listing_new_keyboard", title: "mechanical keyboard" },
+      { ...sample, listingId: "listing_new_headphone", title: "蓝牙耳机" });
+    const f = fixture();
+    const result = await f.chat("帮我找键盘，50元以内");
+    expect(result.body.recommendations.map((item: any) => item.listingId)).toEqual(["listing_new_keyboard"]);
+    expect(f.search.mock.calls.at(-1)?.[0]).toMatchObject({ category: "键盘", maxPriceCents: 5000 });
+  });
   it("finds an English-titled book in Chinese and explains why an inherited budget excludes it", async () => {
     MOCK_LISTINGS.push({ listingId: "listing_english_test", title: "english book", category: "教材", priceCents: 10_000_000,
       condition: "like_new", campus: "邯郸校区", description: "Language reference", status: "active", schoolId: user.schoolId,
