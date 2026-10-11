@@ -6,6 +6,16 @@ function messages(...contents: string[]) {
 }
 
 describe("intent parser", () => {
+  it.each(["帮我找个英语书", "please help me find a english book"])("recognizes the textbook subject: %s", (message) => {
+    const result = parseIntent(messages(message));
+    expect(result.filters.category).toBe("教材");
+    expect(result.filters.keyword?.toLowerCase()).toMatch(/英语|english/u);
+    expect(result.needsClarification).toBe(false);
+  });
+  it("extracts the book subject when switching from another category", () => {
+    expect(parseIntent(messages("键盘，80元以内", "find an English book")).filters)
+      .toEqual({ category: "教材", keyword: "English" });
+  });
   it("extracts hard budget and category", () => {
     const result = parseIntent(messages("50 元以内的高数教材"));
     expect(result.filters).toMatchObject({ category: "教材", keyword: "高数", maxPriceCents: 5000 });

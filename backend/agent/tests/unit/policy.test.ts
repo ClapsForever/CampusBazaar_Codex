@@ -44,6 +44,18 @@ describe("business intent policy", () => {
 
 describe("server-owned search conditions", () => {
   const previous = { category: "教材", keyword: "高数", maxPriceCents: 5000, version: "同济第七版", campus: "江湾校区" };
+  it.each([
+    ["帮我找个英语书", "english book"],
+    ["please help me find a english book", "英语书"],
+  ])("accepts a grounded translation without dropping the prior budget: %s", (message, keyword) => {
+    const plan = { ...emptyPlan("search"), changes: { keyword, category: "教材", maxPriceCents: null } };
+    expect(mergeSearchFilters({ category: "教材", keyword: "高数", maxPriceCents: 8000 }, plan, message))
+      .toEqual({ category: "教材", keyword, maxPriceCents: 8000 });
+  });
+  it.each(["keyboard", "  "])("still rejects an unrelated or empty keyword: %s", keyword => {
+    const plan = { ...emptyPlan("search"), changes: { keyword } };
+    expect(mergeSearchFilters(previous, plan, "帮我找个英语书").keyword).toBe("高数");
+  });
   it("preserves unmentioned hard conditions even when a model tries to remove or replace them", () => {
     const plan = { ...emptyPlan("refine"), changes: { maxPriceCents: null, version: null, campus: null, keyword: null, category: "自行车", condition: "like_new" as const } };
     expect(mergeSearchFilters(previous, plan, "最好九成新")).toEqual({ ...previous, condition: "like_new" });

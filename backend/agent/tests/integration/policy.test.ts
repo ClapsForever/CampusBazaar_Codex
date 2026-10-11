@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../../src/app.js";
 import { loadConfig } from "../../src/config/index.js";
-import { MockBusinessClient } from "../../src/clients/mock.js";
+import { MOCK_LISTINGS, MockBusinessClient } from "../../src/clients/mock.js";
 import { MemorySessionStore } from "../../src/sessions/store.js";
 import { AppError } from "../../src/errors/index.js";
 import { emptyPlan } from "../../src/agent/policy.js";
@@ -11,7 +11,8 @@ const config = loadConfig({ NODE_ENV: "test", SERVICE_AUTH_TOKEN: "test-token", 
 const user = { userId: "user_001", schoolId: "school_demo" };
 const headers = { "x-agent-service-token": "test-token", "x-user-id": user.userId, "x-school-id": user.schoolId };
 const apps: ReturnType<typeof buildApp>[] = [];
-afterEach(async () => { vi.restoreAllMocks(); await Promise.all(apps.splice(0).map((app) => app.close())); });
+const initialListingCount = MOCK_LISTINGS.length;
+afterEach(async () => { vi.restoreAllMocks(); MOCK_LISTINGS.splice(initialListingCount); await Promise.all(apps.splice(0).map((app) => app.close())); });
 
 function fixture(overrides = {}) {
   const client = new MockBusinessClient();
@@ -30,6 +31,26 @@ function fixture(overrides = {}) {
 }
 
 describe("controlled shopping workflow", () => {
+  it("finds an English-titled book in Chinese and explains why an inherited budget excludes it", async () => {
+    MOCK_LISTINGS.push({ listingId: "listing_english_test", title: "english book", category: "教材", priceCents: 10_000_000,
+      condition: "like_new", campus: "邯郸校区", description: "Language reference", status: "active", schoolId: user.schoolId,
+      sellerLabel: "测试同学", publishedAt: "2026-10-11T00:00:00.000Z" });
+    const f = fixture();
+    const first = await f.chat("帮我找80元以内的高等数学教材");
+    const english = await f.chat("please help me find a english book", first.body.sessionId);
+    expect(english.body.status).toBe("no_results");
+    expect(english.body.reply).toContain("价格不超过 80 元");
+    expect(f.search.mock.calls.at(-1)?.[0]).toMatchObject({ category: "教材", keyword: "english", maxPriceCents: 8000 });
+    const chinese = await f.chat("帮我找个英语书", first.body.sessionId);
+    expect(chinese.body.status).toBe("no_results");
+    expect(f.search.mock.calls.at(-1)?.[0]).toMatchObject({ category: "教材", keyword: "英语", maxPriceCents: 8000 });
+    const unbounded = await f.chat("取消预算限制", first.body.sessionId);
+    expect(unbounded.body.status).toBe("completed");
+    expect(unbounded.body.recommendations.map((item: any) => item.listingId)).toEqual(["listing_english_test"]);
+    const fresh = await f.chat("帮我找个英语书");
+    expect(fresh.body.recommendations.map((item: any) => item.listingId)).toEqual(["listing_english_test"]);
+    expect(f.store.get(fresh.body.sessionId, user).filters).not.toHaveProperty("maxPriceCents");
+  });
   it("returns no historic recommendations on refusal, help, or clarification and leaves search state intact", async () => {
     const f = fixture();
     const first = await f.chat("找键盘，300元以内");

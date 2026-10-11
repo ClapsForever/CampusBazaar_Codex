@@ -14,7 +14,7 @@ export interface ParsedIntent {
 }
 
 const CATEGORY_ALIASES: Array<[string, string[]]> = [
-  ["教材", ["教材", "高数", "高等数学", "微积分", "课本"]],
+  ["教材", ["教材", "高数", "高等数学", "微积分", "课本", "英语书", "英文书", "英语课本", "英文课本", "book", "textbook"]],
   ["键盘", ["键盘", "机械键盘", "蓝牙键盘"]],
   ["自行车", ["自行车", "单车"]],
   ["显示器", ["显示器", "屏幕"]],
@@ -23,6 +23,45 @@ const CATEGORY_ALIASES: Array<[string, string[]]> = [
 ];
 
 const CAMPUS_ALIASES = ["江湾校区", "邯郸校区", "张江校区", "枫林校区", "江湾", "邯郸", "张江", "枫林"];
+
+const KEYWORD_ALIASES = [
+  ["高数", "高等数学", "微积分"],
+  ["英语", "英文", "english"],
+  ["书", "书籍", "课本", "教材", "book", "books", "textbook", "textbooks"],
+];
+
+function mentionsAlias(text: string, alias: string): boolean {
+  return /^[a-z ]+$/u.test(alias)
+    ? new RegExp(`\\b${alias}s?\\b`, "iu").test(text)
+    : text.includes(alias);
+}
+
+function canonicalKeyword(text: string): string {
+  let result = text.toLowerCase();
+  for (const aliases of KEYWORD_ALIASES) {
+    for (const alias of [...aliases].sort((a, b) => b.length - a.length)) {
+      const pattern = /^[a-z]+$/u.test(alias) ? `\\b${alias}\\b` : alias;
+      result = result.replace(new RegExp(pattern, "gu"), aliases[0]!);
+    }
+  }
+  return result.replace(/\s+/gu, "");
+}
+
+/** Only allow a model translation when it is grounded in known user-mentioned equivalents. */
+export function isGroundedKeyword(message: string, keyword: string): boolean {
+  const normalized = canonicalKeyword(keyword);
+  return normalized.length > 0 && canonicalKeyword(message).includes(normalized);
+}
+
+export function hasSearchRequest(message: string): boolean {
+  return /找|搜|想买|想要|推荐/u.test(message) || /\b(?:find|search|recommend|looking\s+for)\b/iu.test(message);
+}
+
+export function searchKeywordGroups(keyword: string): string[][] {
+  const normalized = keyword.toLowerCase().replace(/(英语|英文)(书籍|课本|教材|书)/gu, "$1 $2");
+  return normalized.split(/\s+/u).filter(Boolean).slice(0, 8)
+    .map(term => KEYWORD_ALIASES.find(aliases => aliases.includes(term)) ?? [term]);
+}
 
 function textOf(message: AgentMessage): string | undefined {
   if (message.role !== "user") return undefined;
@@ -88,15 +127,15 @@ function parseCondition(text: string, current: SearchFilters): SearchFilters {
 
 function parseTopic(text: string, current: SearchFilters): SearchFilters {
   for (const [category, aliases] of CATEGORY_ALIASES) {
-    if (aliases.some((alias) => text.includes(alias))) {
+    if (aliases.some((alias) => mentionsAlias(text, alias))) {
       const topicChanged = current.category !== undefined && current.category !== category;
-      if (topicChanged) return { category };
+      const base = topicChanged ? {} : current;
       return {
-        ...current,
+        ...base,
         category,
-        ...(category === "教材" && /高数|高等数学|微积分|英语|线性代数|概率论|数据结构|物理|化学/u.test(text)
-          ? { keyword: text.match(/高数|高等数学|微积分|英语|线性代数|概率论|数据结构|物理|化学/u)![0] }
-          : current.keyword ? { keyword: current.keyword } : {}),
+        ...(category === "教材" && /高数|高等数学|微积分|英语|英文|线性代数|概率论|数据结构|物理|化学|\benglish\b/iu.test(text)
+          ? { keyword: text.match(/高数|高等数学|微积分|英语|英文|线性代数|概率论|数据结构|物理|化学|\benglish\b/iu)![0] }
+          : base.keyword ? { keyword: base.keyword } : {}),
       };
     }
   }
@@ -142,7 +181,7 @@ function chineseNumber(value: string): number {
 
 export function mentionsCategory(text: string, category: string): boolean {
   const aliases = CATEGORY_ALIASES.find(([name]) => name === category)?.[1] ?? [category];
-  return aliases.some((alias) => text.includes(alias));
+  return aliases.some((alias) => mentionsAlias(text, alias));
 }
 
 /** Apply only this user turn to server-owned conditions, never replay catalog text. */

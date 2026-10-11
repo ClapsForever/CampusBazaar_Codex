@@ -1,7 +1,7 @@
 import { Type, type Static } from "@earendil-works/pi-ai";
 import { Check } from "typebox/value";
 import { PRICE_MAX_CENTS, type SearchFilters } from "../contracts/index.js";
-import { mentionsCategory, parseIntent, parseSearchUpdate } from "../intent/parser.js";
+import { hasSearchRequest, isGroundedKeyword, mentionsCategory, parseIntent, parseSearchUpdate } from "../intent/parser.js";
 
 const nullableText = (maxLength: number) => Type.Optional(Type.Union([Type.String({ minLength: 1, maxLength }), Type.Null()]));
 const nullablePrice = Type.Optional(Type.Union([Type.Integer({ minimum: 0, maximum: PRICE_MAX_CENTS }), Type.Null()]));
@@ -69,7 +69,7 @@ export function mockTurnPlan(message: string, previous: SearchFilters, displayed
     return { ...emptyPlan(action), positions };
   }
   if (parsed.kind === "preference") return emptyPlan("preference");
-  const explicitSearch = /找|搜|想买|想要|推荐/u.test(message);
+  const explicitSearch = hasSearchRequest(message);
   const refinement = textbookSubject || /预算|价格|便宜|贵一点|成色|校区|版本|以内|以下|以上|九成新|八成新|七成新|全新|不限|放宽|换一批|下一页|再来|继续/u.test(message);
   if (!hasKnownTopic && !explicitSearch && !refinement) return emptyPlan("out_of_scope");
   if (refinement && !hasKnownTopic && !explicitSearch && !previous.category && !previous.keyword) return emptyPlan("clarification");
@@ -112,10 +112,10 @@ export function mergeSearchFilters(previous: SearchFilters, plan: TurnPlan, mess
   if (changes.version === null && !/不限版本|不限制版本|取消版本限制/u.test(message)) delete changes.version;
   if (changes.campus === null && !/不限校区|不限制校区|取消校区限制/u.test(message)) delete changes.campus;
   if (changes.preferredCampus === null && !/不限校区|不限制校区|取消校区限制|只要|必须/u.test(message)) delete changes.preferredCampus;
-  const newUnclassifiedTopic = plan.action === "search" && typeof changes.keyword === "string" && /找|搜|想买|想要/u.test(message) && message.includes(changes.keyword);
+  const newUnclassifiedTopic = plan.action === "search" && typeof changes.keyword === "string" && hasSearchRequest(message) && isGroundedKeyword(message, changes.keyword);
   if (changes.category === null && !/不限类别|取消类别|换成|改找|切换|改成/u.test(message) && !newUnclassifiedTopic) delete changes.category;
   if (changes.keyword === null && !/取消关键词|不限关键词|换成|改找|切换|改成/u.test(message)) delete changes.keyword;
-  if (typeof changes.keyword === "string" && !message.toLowerCase().includes(changes.keyword.toLowerCase()) && !(/高数/u.test(message) && /高等数学|微积分/u.test(changes.keyword))) delete changes.keyword;
+  if (typeof changes.keyword === "string" && !isGroundedKeyword(message, changes.keyword)) delete changes.keyword;
   if (typeof changes.version === "string" && !message.includes(changes.version)) delete changes.version;
   for (const key of ["campus", "preferredCampus"] as const) {
     const campus = changes[key];

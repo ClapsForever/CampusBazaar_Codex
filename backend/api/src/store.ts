@@ -5,6 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
 import { transaction } from './db.js';
 import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalText, positiveInt, text, tokenHash } from './http.js';
+import { keywordGroups } from './search.js';
 
 type UserRow = { id: string; phone: string; nickname: string; avatar: string; school_id: string };
 type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD'; published_at: number };
@@ -342,9 +343,7 @@ export class Store {
     if (keyword) {
       const checked = text(keyword, 'keyword', 1, 100);
       hard.keyword = checked;
-      const terms = checked.split(/\s+/u).filter(Boolean).slice(0, 8);
-      for (const term of terms) {
-        const aliases = term === '高数' ? ['高数', '高等数学', '微积分'] : [term];
+      for (const aliases of keywordGroups(checked)) {
         where.push(`(${aliases.map(() =>
           '(instr(lower(p.title),lower(?))>0 OR instr(lower(p.category),lower(?))>0 OR instr(lower(p.description),lower(?))>0 OR instr(lower(coalesce(p.version,\'\')),lower(?))>0)'
         ).join(' OR ')})`);

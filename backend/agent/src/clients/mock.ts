@@ -1,4 +1,5 @@
 import { AppError } from "../errors/index.js";
+import { searchKeywordGroups } from "../intent/parser.js";
 import type { BusinessReadClient } from "./types.js";
 import {
   type ListingDetail,
@@ -156,10 +157,7 @@ function toSummary(listing: ListingDetail): ListingSummary {
 function matchesText(listing: ListingDetail, keyword: string | undefined): boolean {
   if (!keyword) return true;
   const haystack = `${listing.title} ${listing.category} ${listing.description} ${listing.version ?? ""}`.toLowerCase();
-  return keyword.toLowerCase().split(/\s+/u).filter(Boolean).every((part) => {
-    if (part === "高数") return ["高数", "高等数学", "微积分"].some((alias) => haystack.includes(alias));
-    return haystack.includes(part);
-  });
+  return searchKeywordGroups(keyword).every(aliases => aliases.some(alias => haystack.includes(alias)));
 }
 
 function matchesCondition(listing: ListingDetail, condition: ListingCondition | undefined): boolean {

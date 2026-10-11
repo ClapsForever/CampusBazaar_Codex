@@ -9,7 +9,7 @@ import type { SessionRecord } from "../sessions/store.js";
 import { requestModelText } from "./model.js";
 import { withTurnSignal } from "./deadline.js";
 import { PLAN_PROMPT, SYSTEM_PROMPT } from "./prompts.js";
-import { normalizeReply } from "./reply.js";
+import { noResultsReply, normalizeReply } from "./reply.js";
 import { createAgentTools } from "../tools/index.js";
 import { CLARIFICATION_REPLY, HELP_REPLY, REFUSAL_REPLY, UNSUPPORTED_REPLY, TurnPlanSchema, decodeTurnPlan, emptyPlan, mergeSearchFilters, mockTurnPlan, scopeDecision, type TurnPlan } from "./policy.js";
 
@@ -141,7 +141,7 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
   // Detail/comparison cards also define the display order for the next user reference.
   else if (details.length) displayedListingIds = details.map(({ listing }) => listing.listingId);
   const status = currentSearch && !currentSearch.result.listings.length ? "no_results" : "completed";
-  if (status === "no_results") return finish("没有找到同时满足明确条件的商品。你可以选择调整预算、成色或取货地点，我会在你明确修改后重新查询。", status);
+  if (status === "no_results") return finish(noResultsReply(filters), status);
   const mockReply = currentSearch ? `已查询到 ${recommendations.length} 条符合明确条件的商品，商品卡片中的信息均来自平台查询结果。`
     : plan.action === "preference" ? "我已读取当前用户的兴趣偏好，只会把它作为辅助排序信号，不会改变学校权限范围。"
     : plan.action === "compare" ? "我已重新读取指定商品详情，可以从价格、成色、取货校区和描述进行比较；缺失信息会标为未知。"
