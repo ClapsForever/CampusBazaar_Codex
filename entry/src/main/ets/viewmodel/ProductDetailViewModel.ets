@@ -9,6 +9,7 @@ export class ProductDetailViewModel {
   @Trace detail: ProductDetail | null = null;
   @Trace state: LoadState = LoadState.LOADING;
   @Trace purchasing: boolean = false;
+  @Trace reserved: boolean = false;
   @Trace lastErrorMessage: string = '';
 
   get productTitle(): string {
@@ -43,7 +44,8 @@ export class ProductDetailViewModel {
   }
 
   async purchase(): Promise<boolean> {
-    if (this.detail === null || this.purchasing) {
+    if (this.detail === null || this.purchasing || this.reserved || this.isOwnProduct ||
+      this.detail.product.status === 'SOLD') {
       return false;
     }
     const current: User | null = authService.getCurrentUser();
@@ -54,6 +56,7 @@ export class ProductDetailViewModel {
     this.purchasing = true;
     try {
       await transactionService.createTransaction(this.detail.product.id, current.id);
+      this.reserved = true;
       return true;
     } catch (error) {
       this.lastErrorMessage = (error as Error).message;

@@ -5,6 +5,7 @@ import { PublishDraft } from '../model/Models';
 import { productService } from '../service/ProductService';
 import { isValidPrice, parsePrice } from '../common/Utils';
 import { MAX_PRODUCT_PHOTOS } from '../common/Constants';
+import { CAMPUS_OPTIONS, isPublishCategory } from '../common/MarketOptions';
 
 @ObservedV2
 export class PublishViewModel {
@@ -13,12 +14,16 @@ export class PublishViewModel {
   @Trace priceText: string = '';
   @Trace category: string = '';
   @Trace campus: string = '';
+  @Trace meetingPlace: string = '';
   @Trace condition: string = 'good';
   @Trace images: string[] = [];
   @Trace titleError: string = '';
   @Trace descriptionError: string = '';
   @Trace priceError: string = '';
   @Trace photoError: string = '';
+  @Trace categoryError: string = '';
+  @Trace campusError: string = '';
+  @Trace formError: string = '';
   @Trace submitting: boolean = false;
 
   get canAddPhoto(): boolean {
@@ -29,7 +34,10 @@ export class PublishViewModel {
     this.titleError = this.title.trim() === '' ? '请输入商品名称' : '';
     this.descriptionError = this.description.trim() === '' ? '请输入商品描述' : '';
     this.priceError = isValidPrice(this.priceText) ? '' : '请输入大于 0 的合法价格';
-    return this.titleError === '' && this.descriptionError === '' && this.priceError === '';
+    this.categoryError = isPublishCategory(this.category) ? '' : '请选择具体品类';
+    this.campusError = CAMPUS_OPTIONS.includes(this.campus) ? '' : '请选择所在校区';
+    return this.titleError === '' && this.descriptionError === '' && this.priceError === '' &&
+      this.categoryError === '' && this.campusError === '';
   }
 
   addImages(uris: string[]): void {
@@ -92,24 +100,26 @@ export class PublishViewModel {
   }
 
   async submit(): Promise<boolean> {
-    if (!this.validate() || this.submitting) {
+    if (this.submitting || !this.validate()) {
       return false;
     }
     this.submitting = true;
+    this.formError = '';
     try {
       const draft: PublishDraft = {
-        title: this.title,
-        description: this.description,
+        title: this.title.trim(),
+        description: this.description.trim() + (this.meetingPlace.trim() === '' ? '' :
+          `\n见面地点：${this.meetingPlace.trim()}`),
         price: parsePrice(this.priceText),
         images: [...this.images],
-        category: this.category.trim() || '其他',
-        campus: this.campus.trim() || '未填写校区',
+        category: this.category,
+        campus: this.campus,
         condition: this.condition
       };
       await productService.publishProduct(draft);
       return true;
     } catch (error) {
-      this.priceError = (error as Error).message;
+      this.formError = (error as Error).message || '发布失败，请稍后重试';
       return false;
     } finally {
       this.submitting = false;

@@ -6,22 +6,59 @@ import { LoadState } from '../common/Constants';
 export class BuyerHomeViewModel {
   @Trace feedState: LoadState = LoadState.LOADING;
   @Trace products: Product[] = [];
+  @Trace feedError: string = '';
+  @Trace feedRevision: number = 0;
+  private feedSeq: number = 0;
+  private initialized: boolean = false;
   @Trace searchKeyword: string = '';
   @Trace searchResults: Product[] = [];
   @Trace searching: boolean = false;
   @Trace searchDone: boolean = false;
   private searchSeq: number = 0;
 
+  ensureFeedLoaded(): void {
+    if (!this.initialized) {
+      this.initialized = true;
+      this.loadFeed(false);
+    }
+  }
+
+  clear(): void {
+    this.feedSeq += 1;
+    this.searchSeq += 1;
+    this.products = [];
+    this.searchResults = [];
+    this.searchKeyword = '';
+    this.searching = false;
+    this.searchDone = false;
+    this.feedError = '';
+    this.initialized = false;
+    this.feedState = LoadState.LOADING;
+  }
+
   async loadFeed(silent: boolean = false): Promise<void> {
-    if (!silent) {
+    this.initialized = true;
+    const seq: number = ++this.feedSeq;
+    this.feedError = '';
+    if (!silent && this.products.length === 0) {
       this.feedState = LoadState.LOADING;
     }
     try {
       const result: Product[] = await productService.getProductFeed();
-      this.products = result;
+      if (seq !== this.feedSeq) {
+        return;
+      }
+      // Keep references and the WaterFlow position for an unchanged response.
+      if (JSON.stringify(result) !== JSON.stringify(this.products)) {
+        this.products = result;
+        this.feedRevision += 1;
+      }
       this.feedState = result.length > 0 ? LoadState.CONTENT : LoadState.EMPTY;
     } catch (_error) {
-      this.feedState = LoadState.ERROR;
+      if (seq === this.feedSeq) {
+        this.feedError = '刷新失败，请检查网络后重试';
+        this.feedState = this.products.length > 0 ? LoadState.CONTENT : LoadState.ERROR;
+      }
     }
   }
 

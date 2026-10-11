@@ -16,13 +16,16 @@ export function formatCondition(condition: string | undefined): string {
   if (condition === 'new') {
     return '全新';
   }
+  if (condition === 'like_new') {
+    return '近乎全新';
+  }
   if (condition === 'good') {
     return '成色良好';
   }
   if (condition === 'fair') {
     return '有使用痕迹';
   }
-  return '';
+  return '未注明';
 }
 
 export function isValidPhone(phone: string): boolean {

@@ -16,18 +16,22 @@ export struct SellerHomeView {
   build() {
     NavDestination() {
       Column() {
+        if (this.vm.error !== '') {
+          Button(`${this.vm.error} · 重试`).fontSize('12fp').height(44)
+            .onClick(() => this.vm.loadMyProducts(true));
+        }
         Row() {
           Column({ space: 4 }) {
-            Text('我发布的').fontSize(20).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
-            Text('管理你的校园闲置好物').fontSize(12).fontColor(COLOR_TEXT_TERTIARY);
+            Text('我发布的').fontSize('20fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
+            Text('管理你的校园闲置好物').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
           }
           .layoutWeight(1).alignItems(HorizontalAlign.Start);
-          Text(`${this.vm.products.length} 件`).fontSize(13).fontColor(COLOR_PRIMARY);
+          Text(`${this.vm.products.length} 件`).fontSize('13fp').fontColor(COLOR_PRIMARY);
         }
         .width('100%').padding(16).backgroundColor(Color.White);
         Button('＋ 发布一件闲置').width('90%').height(48)
           .margin({ top: 14, bottom: 6 })
-          .fontSize(15).fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(24)
+          .fontSize('15fp').fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(24)
           .onClick(() => this.pathStack.pushPathByName(ROUTE_PUBLISH_PAGE, ''));
         if (this.vm.state === LoadState.CONTENT) {
           List({ space: 10 }) {
@@ -38,17 +42,18 @@ export struct SellerHomeView {
                     Image(item.images[0]).width(72).height(72).borderRadius(12)
                       .objectFit(ImageFit.Cover);
                   } else {
-                    Text('📷').fontSize(26).width(72).height(72).textAlign(TextAlign.Center)
+                    Text('📷').fontSize('26fp').width(72).height(72).textAlign(TextAlign.Center)
                       .backgroundColor(COLOR_PAGE_BG).borderRadius(12);
                   }
                   Column({ space: 6 }) {
-                    Text(item.title).fontSize(15).fontWeight(FontWeight.Medium)
+                    Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium)
                       .fontColor(COLOR_TEXT_PRIMARY).maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis });
-                    Row({ space: 8 }) {
-                      Text(formatPrice(item.price)).fontSize(17).fontWeight(FontWeight.Bold).fontColor(COLOR_PRICE);
-                      Text(formatTime(item.publishTime)).fontSize(12).fontColor(COLOR_TEXT_TERTIARY);
+                    Column({ space: 4 }) {
+                      Text(formatPrice(item.price)).fontSize('17fp').fontWeight(FontWeight.Bold).fontColor(COLOR_PRICE);
+                      Text(formatTime(item.publishTime)).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
                     }
+                    .alignItems(HorizontalAlign.Start);
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start);
                 }
@@ -64,7 +69,7 @@ export struct SellerHomeView {
             StateView({
               state: this.vm.state,
               emptyText: '还没有发布商品',
-              emptyHint: '点击上方「新增商品」发布你的第一件闲置吧',
+              emptyHint: '点击上方「发布一件闲置」发布你的第一件闲置吧',
               onRetry: (): void => {
                 this.vm.loadMyProducts(false);
               }

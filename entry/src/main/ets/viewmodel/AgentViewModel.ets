@@ -86,10 +86,12 @@ export class AgentViewModel {
   @Trace sessionId: string | null = null;
   private requestSeq: number = 0;
 
-  resetConversation(): void {
-    if (this.loading) {
+  resetConversation(force: boolean = false): void {
+    if (this.loading && !force) {
       return;
     }
+    this.requestSeq += 1;
+    this.loading = false;
     this.query = '';
     this.turns = [];
     this.error = '';

@@ -21,11 +21,18 @@ export const COLOR_PRIMARY_SOFT: string = '#FFF0E5';
 export const COLOR_PRICE: string = '#E06620';
 export const COLOR_TEXT_PRIMARY: string = '#1A1918';
 export const COLOR_TEXT_SECONDARY: string = '#6D6C6A';
-export const COLOR_TEXT_TERTIARY: string = '#9C9B99';
-export const COLOR_ERROR: string = '#C85A1A';
+export const COLOR_TEXT_TERTIARY: string = '#75736F';
+export const COLOR_ERROR: string = '#B83232';
 export const COLOR_PAGE_BG: string = '#F5F4F1';
 export const COLOR_CARD_BG: string = '#FFFFFF';
 export const COLOR_DIVIDER: string = '#E5E4E1';
+export const PAGE_PADDING: number = 16;
+export const CARD_RADIUS: number = 16;
+export const GRID_GAP: number = 10;
+export const FONT_TITLE: string = '21fp';
+export const FONT_PRODUCT: string = '14fp';
+export const FONT_PRICE: string = '19fp';
+export const FONT_META: string = '12fp';
 
 export const STATUS_PENDING_TEXT_COLOR: string = '#E8830C';
 export const STATUS_PENDING_BG_COLOR: string = '#E8830C1F';
@@ -47,11 +54,11 @@ export class TradeStatusUI {
   static text(status: TransactionStatus): string {
     switch (status) {
       case TransactionStatus.PENDING:
-        return '待处理';
+        return '待确认';
       case TransactionStatus.ACCEPTED:
-        return '已接受';
+        return '待见面';
       case TransactionStatus.REJECTED:
-        return '已拒绝';
+        return '已关闭';
       case TransactionStatus.COMPLETED:
         return '已完成';
       default:

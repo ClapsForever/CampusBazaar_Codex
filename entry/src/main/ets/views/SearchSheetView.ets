@@ -16,33 +16,43 @@ export struct SearchSheetView {
   private timerId: number = -1;
   private searchSeq: number = 0;
 
+  aboutToDisappear(): void {
+    this.searchSeq += 1;
+    if (this.timerId >= 0) {
+      clearTimeout(this.timerId);
+    }
+  }
+
   build() {
     Column({ space: 12 }) {
-      Text('搜索商品').fontSize(20).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
+      Text('搜索商品').fontSize('20fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
         .width('100%').margin({ top: 8 });
       TextInput({ placeholder: '搜索教材、数码、生活用品', text: this.keyword })
-        .height(50).fontSize(14).backgroundColor(COLOR_PAGE_BG).borderRadius(25)
+        .height(50).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(25)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {
           this.keyword = value;
           this.error = '';
           this.scheduleSearch();
-        });
+        })
+        .enterKeyType(EnterKeyType.Search)
+        .onSubmit(() => this.scheduleSearch());
       if (this.loading) {
         Row({ space: 8 }) {
           LoadingProgress().width(22).height(22).color(COLOR_PRIMARY);
-          Text('搜索中…').fontSize(13).fontColor(COLOR_TEXT_TERTIARY);
+          Text('搜索中…').fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY);
         }
         .width('100%').justifyContent(FlexAlign.Center);
       } else if (!this.searched) {
-        Text('输入商品名称开始搜索').fontSize(14).fontColor(COLOR_TEXT_TERTIARY)
+        Text('输入商品名称开始搜索').fontSize('14fp').fontColor(COLOR_TEXT_TERTIARY)
           .width('100%').textAlign(TextAlign.Center).margin({ top: 26 });
       } else if (this.error !== '') {
-        Text(this.error).fontSize(14).fontColor(COLOR_TEXT_SECONDARY).width('100%').textAlign(TextAlign.Center);
+        Text(this.error).fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).width('100%').textAlign(TextAlign.Center);
+        Button('重试').height(44).fontColor(COLOR_PRIMARY).onClick(() => this.scheduleSearch());
       } else if (this.results.length === 0) {
-        Text('无匹配商品').fontSize(16).fontColor(COLOR_TEXT_SECONDARY).width('100%')
+        Text('无匹配商品').fontSize('16fp').fontColor(COLOR_TEXT_SECONDARY).width('100%')
           .textAlign(TextAlign.Center).margin({ top: 26 });
-        Text('换个关键词试试吧').fontSize(13).fontColor(COLOR_TEXT_TERTIARY).width('100%')
+        Text('换个关键词试试吧').fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY).width('100%')
           .textAlign(TextAlign.Center);
       } else {
         List({ space: 10 }) {
@@ -65,6 +75,7 @@ export struct SearchSheetView {
   }
 
   private scheduleSearch(): void {
+    this.error = "";
     if (this.timerId >= 0) {
       clearTimeout(this.timerId);
     }
