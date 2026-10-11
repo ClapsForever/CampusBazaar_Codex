@@ -1,0 +1,26 @@
+[Unit]
+Description=CampusBazaar Pi Agent
+Wants=network-online.target campusbazaar-api.service
+After=network-online.target campusbazaar-api.service
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=campusbazaar
+Group=campusbazaar
+WorkingDirectory=/srv/campusbazaar/current/backend/agent
+EnvironmentFile=/etc/campusbazaar/agent.env
+ExecStart=/opt/campusbazaar-node/bin/node --max-old-space-size=1024 dist/server.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=90
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+MemoryMax=1536M
+
+[Install]
+WantedBy=multi-user.target

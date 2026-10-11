@@ -1,0 +1,28 @@
+[Unit]
+Description=CampusBazaar business API
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=campusbazaar
+Group=campusbazaar
+WorkingDirectory=/srv/campusbazaar/current/backend/api
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/campusbazaar/api.env
+ExecStart=/opt/campusbazaar-node/bin/node --max-old-space-size=512 dist/src/main.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=90
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/campusbazaar
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target

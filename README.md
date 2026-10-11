@@ -1,6 +1,8 @@
 # CampusBazaar
 
-CampusBazaar 是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持本机手机号登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。当前部署面向 Windows 电脑和鸿蒙模拟器；学校统一认证与真实短信尚未接入。
+CampusBazaar 是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持本机手机号登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；学校统一认证与真实短信尚未接入。
+
+腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。当前固定验证码登录只适用于受限测试；正式上线前须完成正式认证和 HTTPS 等准备。
 
 ## 目录与运行架构
 
