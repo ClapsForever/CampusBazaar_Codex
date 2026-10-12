@@ -3,8 +3,8 @@ import { TradeViewModel } from '../viewmodel/TradeViewModel';
 import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
-  COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
-  LoadState, TradeStatusUI, STATUS_ACCEPTED_TEXT_COLOR, STATUS_REJECTED_TEXT_COLOR
+  UI_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+  COLOR_TEXT_TERTIARY, LoadState, TradeStatusUI, STATUS_ACCEPTED_TEXT_COLOR, STATUS_REJECTED_TEXT_COLOR
 } from '../common/Constants';
 
 @ComponentV2
@@ -58,11 +58,11 @@ export struct TradeDetailView {
     if (this.vm.detail !== null) {
       Row({ space: 12 }) {
         if (this.vm.detail.product.images.length > 0) {
-          Image(this.vm.detail.product.images[0]).width(76).height(76).borderRadius(12)
+          Image(this.vm.detail.product.images[0]).width(76).height(76).borderRadius(UI_RADIUS)
             .objectFit(ImageFit.Cover);
         } else {
           Text('📷').fontSize('26fp').width(76).height(76).textAlign(TextAlign.Center)
-            .backgroundColor(COLOR_PAGE_BG).borderRadius(12);
+            .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
         }
         Column({ space: 6 }) {
           Text(this.vm.detail.product.title).fontSize('16fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
@@ -73,11 +73,11 @@ export struct TradeDetailView {
           Text(TradeStatusUI.text(this.vm.detail.transaction.status)).fontSize('12fp')
             .fontColor(TradeStatusUI.textColor(this.vm.detail.transaction.status))
             .backgroundColor(TradeStatusUI.bgColor(this.vm.detail.transaction.status))
-            .borderRadius(8).padding({ left: 8, right: 8, top: 3, bottom: 3 });
+            .borderRadius(UI_RADIUS).padding({ left: 8, right: 8, top: 3, bottom: 3 });
         }
         .alignItems(HorizontalAlign.Start).layoutWeight(1);
       }
-      .width('100%').padding(14).backgroundColor(Color.White).borderRadius(16)
+      .width('100%').padding(14).backgroundColor(Color.White).borderRadius(UI_RADIUS)
       .margin({ top: 12 }).width('92%');
     }
   }
@@ -87,19 +87,19 @@ export struct TradeDetailView {
     if (this.vm.isSeller && this.vm.detail !== null) {
       Row({ space: 10 }) {
         if (this.vm.detail.transaction.status === TransactionStatus.PENDING) {
-          Button('接受').layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(STATUS_ACCEPTED_TEXT_COLOR)
-            .borderRadius(21).enabled(!this.vm.actioning).onClick(async () => {
+          Button('接受').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(STATUS_ACCEPTED_TEXT_COLOR)
+            .borderRadius(UI_RADIUS).enabled(!this.vm.actioning).onClick(async () => {
               const success: boolean = await this.vm.accept();
               this.showActionToast(success, '交易已接受');
             });
-          Button('拒绝').layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(STATUS_REJECTED_TEXT_COLOR)
-            .borderRadius(21).enabled(!this.vm.actioning).onClick(async () => {
+          Button('拒绝').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(STATUS_REJECTED_TEXT_COLOR)
+            .borderRadius(UI_RADIUS).enabled(!this.vm.actioning).onClick(async () => {
               const success: boolean = await this.vm.reject();
               this.showActionToast(success, '交易已拒绝');
             });
         } else if (this.vm.detail.transaction.status === TransactionStatus.ACCEPTED) {
-          Button('标记完成').layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(COLOR_PRIMARY)
-            .borderRadius(21).enabled(!this.vm.actioning).onClick(async () => {
+          Button('标记完成').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(COLOR_PRIMARY)
+            .borderRadius(UI_RADIUS).enabled(!this.vm.actioning).onClick(async () => {
               const success: boolean = await this.vm.complete();
               this.showActionToast(success, '交易已完成');
             });
@@ -136,7 +136,7 @@ export struct TradeDetailView {
       Text(message.content).fontSize('14fp').fontColor(this.isCurrentUserMessage(message)
         ? Color.White : COLOR_TEXT_PRIMARY)
         .backgroundColor(this.isCurrentUserMessage(message) ? COLOR_PRIMARY : Color.White)
-        .borderRadius(16).padding({ left: 12, right: 12, top: 8, bottom: 8 });
+        .borderRadius(UI_RADIUS).padding({ left: 12, right: 12, top: 8, bottom: 8 });
     }
     .width('100%').justifyContent(this.isCurrentUserMessage(message)
       ? FlexAlign.End : FlexAlign.Start);
@@ -150,11 +150,11 @@ export struct TradeDetailView {
         text: this.vm.chatText
       })
         .enabled(this.vm.canChat).height(44).layoutWeight(1).fontSize('14fp')
-        .backgroundColor(this.vm.canChat && !this.vm.sending ? COLOR_PAGE_BG : COLOR_DIVIDER).borderRadius(22)
+        .backgroundColor(this.vm.canChat && !this.vm.sending ? COLOR_PAGE_BG : COLOR_DIVIDER).borderRadius(UI_RADIUS)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => this.vm.chatText = value);
-      Button(this.vm.sending ? '…' : '发送').enabled(this.vm.canChat && !this.vm.sending).constraintSize({ minHeight: 44, minWidth: 64 })
-        .fontColor(Color.White).backgroundColor(this.vm.canChat && !this.vm.sending ? COLOR_PRIMARY : '#C9CDD4').borderRadius(22)
+      Button(this.vm.sending ? '…' : '发送').type(ButtonType.Normal).enabled(this.vm.canChat && !this.vm.sending).constraintSize({ minHeight: 44, minWidth: 64 })
+        .fontColor(Color.White).backgroundColor(this.vm.canChat && !this.vm.sending ? COLOR_PRIMARY : '#C9CDD4').borderRadius(UI_RADIUS)
         .onClick(async () => {
           const success: boolean = await this.vm.send();
           if (!success && this.vm.lastError !== '') {

@@ -2,15 +2,15 @@ import { Product, User } from '../model/Models';
 import { authService } from '../service/AuthenticationService';
 import { BuyerHomeViewModel } from '../viewmodel/BuyerHomeViewModel';
 import { AgentViewModel } from '../viewmodel/AgentViewModel';
-import { ProductCard } from '../components/ProductCard';
+import { ProductGrid } from '../components/ProductGrid';
 import { StateView } from '../components/StateView';
 import { SearchSheetView } from './SearchSheetView';
 import { AgentSheetView } from './AgentSheetView';
 import { HOME_CATEGORIES, homeCategory } from '../common/MarketOptions';
 import {
-  FONT_TITLE, PAGE_PADDING, GRID_GAP, CONTROL_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT,
-  COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
-  LoadState, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
+  UI_RADIUS, UI_CORNERS, CIRCLE_RADIUS, FONT_TITLE, PAGE_PADDING, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY,
+  COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, LoadState,
+  ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
 } from '../common/Constants';
 
 @ComponentV2
@@ -78,7 +78,7 @@ export struct HomeView {
           Text('消息').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY);
         }
         .width(52).constraintSize({ minHeight: 44 }).justifyContent(FlexAlign.Center)
-        .backgroundColor(COLOR_PAGE_BG).borderRadius(16)
+        .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
         .onClick(() => this.pathStack.pushPathByName(ROUTE_TRADE_LIST, ''));
       }
       .width('100%');
@@ -89,20 +89,20 @@ export struct HomeView {
             .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         }
         .layoutWeight(1).height(52).padding({ left: 16, right: 12 })
-        .backgroundColor(COLOR_PAGE_BG).borderRadius(CONTROL_RADIUS)
+        .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
         .onClick(() => this.searchSheetVisible = true)
         .bindSheet($$this.searchSheetVisible, this.searchSheetContent(), {
-          detents: [SheetSize.MEDIUM, SheetSize.LARGE]
+          radius: UI_CORNERS, detents: [SheetSize.MEDIUM, SheetSize.LARGE]
         });
         Column({ space: 1 }) {
           Image($r('app.media.design_sparkles')).width(18).height(18);
           Text('AI 找物').fontSize('12fp').fontWeight(FontWeight.Bold).fontColor(Color.White);
         }
         .constraintSize({ minWidth: 72, minHeight: 52 }).padding({ left: 8, right: 8 })
-        .justifyContent(FlexAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(CONTROL_RADIUS)
+        .justifyContent(FlexAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
         .onClick(() => this.agentSheetVisible = true)
         .bindSheet($$this.agentSheetVisible, this.agentSheetContent(), {
-          detents: [SheetSize.LARGE], showClose: false
+          radius: UI_CORNERS, detents: [SheetSize.LARGE], showClose: false
         });
       }
       .width('100%');
@@ -120,7 +120,7 @@ export struct HomeView {
             .fontColor(this.category === item ? Color.White : COLOR_TEXT_SECONDARY)
             .padding({ left: 17, right: 17, top: 8, bottom: 8 })
             .backgroundColor(this.category === item ? COLOR_PRIMARY : Color.White)
-            .borderRadius(18)
+            .borderRadius(UI_RADIUS)
             .border({ width: this.category === item ? 0 : 1, color: COLOR_DIVIDER })
             .onClick(() => {
               this.category = item;
@@ -148,14 +148,14 @@ export struct HomeView {
       if (this.vm.feedError !== '' && this.vm.products.length > 0) {
         Row({ space: 8 }) {
           Text(this.vm.feedError).fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).layoutWeight(1);
-          Button('重试').height(44).fontSize('12fp').fontColor(COLOR_PRIMARY)
-            .backgroundColor(COLOR_PRIMARY_SOFT).onClick(() => this.vm.loadFeed(true));
+          Button('重试').type(ButtonType.Normal).height(44).fontSize('12fp').fontColor(COLOR_PRIMARY)
+            .backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(UI_RADIUS).onClick(() => this.vm.loadFeed(true));
         }
         .width('100%');
       }
       if (this.vm.feedState === LoadState.CONTENT) {
         if (this.filteredProducts().length > 0) {
-          this.productGrid(this.filteredProducts());
+          this.productGrid();
         } else {
           Column() {
             StateView({ state: LoadState.EMPTY, emptyText: '暂时没有相关商品', emptyHint: '试试其他分类，或用 AI 找物描述需求' });
@@ -188,28 +188,22 @@ export struct HomeView {
   }
 
   @Builder
-  productGrid(items: Product[]): void {
-    WaterFlow({ scroller: this.feedScroller }) {
-      ForEach(items, (item: Product) => {
-        FlowItem() {
-          ProductCard({
-            product: item,
-            onCardClick: (product: Product): void => {
-              this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, product.id);
-            }
-          });
+  productGrid(): void {
+    ProductGrid({
+      products: this.filteredProducts(),
+      scroller: this.feedScroller,
+      onCardClick: (product: Product): void => {
+        this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, product.id);
+      },
+      onScrollIndex: (first: number, _last: number): void => {
+        const visibleItems: Product[] = this.filteredProducts();
+        if (first >= 0 && first < visibleItems.length) {
+          this.visibleProductIndex = first;
+          this.visibleProductId = visibleItems[first].id;
         }
-      }, (item: Product): string => item.id);
-    }
-    .columnsTemplate('1fr 1fr').columnsGap(GRID_GAP).rowsGap(GRID_GAP)
-    .layoutWeight(1).width('100%').scrollBar(BarState.Off)
-    .onScrollIndex((first: number, _last: number) => {
-      const items: Product[] = this.filteredProducts();
-      if (first >= 0 && first < items.length) {
-        this.visibleProductIndex = first;
-        this.visibleProductId = items[first].id;
       }
-    });
+    })
+    .layoutWeight(1).width('100%');
   }
 
   @Builder
@@ -220,10 +214,10 @@ export struct HomeView {
           .width('100%').margin({ top: 16 });
         Row({ space: 14 }) {
           if (this.user !== null && this.user.avatar !== '') {
-            Image(this.user.avatar).width(56).height(56).borderRadius(28);
+            Image(this.user.avatar).width(56).height(56).borderRadius(CIRCLE_RADIUS);
           } else {
             Text('我').fontSize(FONT_TITLE).fontColor(COLOR_PRIMARY).width(56).height(56)
-              .textAlign(TextAlign.Center).backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(28);
+              .textAlign(TextAlign.Center).backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(CIRCLE_RADIUS);
           }
           Column({ space: 6 }) {
             Text(this.user === null ? '校园同学' : this.user.nickname)
@@ -232,14 +226,14 @@ export struct HomeView {
           }
           .alignItems(HorizontalAlign.Start).layoutWeight(1);
         }
-        .width('100%').padding(18).backgroundColor(Color.White).borderRadius(16);
+        .width('100%').padding(18).backgroundColor(Color.White).borderRadius(UI_RADIUS);
         Text('我的闲置').fontSize('15fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
           .width('100%').margin({ top: 8 });
         this.profileLink('我发布的', '管理在售商品', ROUTE_SELLER_HOME);
         this.profileLink('我的交易', '查看预约与聊天消息', ROUTE_TRADE_LIST);
-        Button('退出登录').width('100%').height(46).margin({ top: 12 })
+        Button('退出登录').type(ButtonType.Normal).width('100%').height(46).margin({ top: 12 })
           .fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
-          .borderRadius(12).onClick(async () => {
+          .borderRadius(UI_RADIUS).onClick(async () => {
             try {
               await authService.logout();
             } catch (_error) {
@@ -266,7 +260,7 @@ export struct HomeView {
       .layoutWeight(1).alignItems(HorizontalAlign.Start);
       Text('›').fontSize('24fp').fontColor(COLOR_TEXT_TERTIARY);
     }
-    .width('100%').padding(18).backgroundColor(Color.White).borderRadius(14)
+    .width('100%').padding(18).backgroundColor(Color.White).borderRadius(UI_RADIUS)
     .onClick(() => this.pathStack.pushPathByName(route, ''));
   }
 
@@ -276,7 +270,7 @@ export struct HomeView {
       this.tabItem(0, '首页');
       Column({ space: 4 }) {
         Text('+').fontSize('28fp').fontColor(Color.White).height(48).width(48)
-          .textAlign(TextAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(24);
+          .textAlign(TextAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(CIRCLE_RADIUS);
         Text('发布').fontSize('12fp').fontWeight(FontWeight.Bold).fontColor(COLOR_PRIMARY);
       }
       .width(72).onClick(() => this.pathStack.pushPathByName(ROUTE_PUBLISH_PAGE, ''));

@@ -124,7 +124,7 @@ test('退出时强制清空 AI，并忽略之前尚未完成的请求', async ()
 test('成色和交易状态文案覆盖接口值', () => {
   const load = harness(); const { formatCondition } = load('common/Utils');
   assert.equal(['new','like_new','good','fair','unknown'].map(formatCondition).join(','), '全新,近乎全新,成色良好,有使用痕迹,未注明');
-  assert.equal(['PENDING','ACCEPTED','COMPLETED','REJECTED'].map(load('common/Constants').TradeStatusUI.text).join(','), '待确认,待见面,已完成,已关闭');
+  assert.equal(['PENDING','ACCEPTED','COMPLETED','REJECTED'].map(load('common/Constants').TradeStatusUI.text).join(','), '待确认,待交易,已完成,已关闭');
 });
 
 test('自己的商品和已售出商品不预约，成功后不重复提交', async () => {

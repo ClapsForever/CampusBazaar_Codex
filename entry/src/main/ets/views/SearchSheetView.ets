@@ -1,7 +1,10 @@
 import { Product } from '../model/Models';
 import { productService } from '../service/ProductService';
 import { ProductCard } from '../components/ProductCard';
-import { CONTROL_RADIUS, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
+import {
+  UI_RADIUS, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
+  ROUTE_PRODUCT_DETAIL
+} from '../common/Constants';
 
 @ComponentV2
 export struct SearchSheetView {
@@ -28,7 +31,7 @@ export struct SearchSheetView {
       Text('搜索商品').fontSize('20fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
         .width('100%').margin({ top: 8 });
       TextInput({ placeholder: '搜索高数教材、键盘、台灯', text: this.keyword })
-        .height(50).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(CONTROL_RADIUS)
+        .height(50).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {
           this.keyword = value;
@@ -48,7 +51,7 @@ export struct SearchSheetView {
           .width('100%').textAlign(TextAlign.Center).margin({ top: 26 });
       } else if (this.error !== '') {
         Text(this.error).fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).width('100%').textAlign(TextAlign.Center);
-        Button('重试').height(44).fontColor(COLOR_PRIMARY).onClick(() => this.scheduleSearch());
+        Button('重试').type(ButtonType.Normal).height(44).fontColor(COLOR_PRIMARY).borderRadius(UI_RADIUS).onClick(() => this.scheduleSearch());
       } else if (this.results.length === 0) {
         Text('无匹配商品').fontSize('16fp').fontColor(COLOR_TEXT_SECONDARY).width('100%')
           .textAlign(TextAlign.Center).margin({ top: 26 });

@@ -3,8 +3,8 @@ import { SellerHomeViewModel } from '../viewmodel/SellerHomeViewModel';
 import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
-  COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY,
-  LoadState, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE
+  UI_RADIUS, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY, LoadState,
+  ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE
 } from '../common/Constants';
 
 @ComponentV2
@@ -17,7 +17,7 @@ export struct SellerHomeView {
     NavDestination() {
       Column() {
         if (this.vm.error !== '') {
-          Button(`${this.vm.error} · 重试`).fontSize('12fp').height(44)
+          Button(`${this.vm.error} · 重试`).type(ButtonType.Normal).fontSize('12fp').height(44).borderRadius(UI_RADIUS)
             .onClick(() => this.vm.loadMyProducts(true));
         }
         Row() {
@@ -29,9 +29,9 @@ export struct SellerHomeView {
           Text(`${this.vm.products.length} 件`).fontSize('13fp').fontColor(COLOR_PRIMARY);
         }
         .width('100%').padding(16).backgroundColor(Color.White);
-        Button('＋ 发布一件闲置').width('90%').height(48)
+        Button('＋ 发布一件闲置').type(ButtonType.Normal).width('90%').height(48)
           .margin({ top: 14, bottom: 6 })
-          .fontSize('15fp').fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(24)
+          .fontSize('15fp').fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
           .onClick(() => this.pathStack.pushPathByName(ROUTE_PUBLISH_PAGE, ''));
         if (this.vm.state === LoadState.CONTENT) {
           List({ space: 10 }) {
@@ -39,11 +39,11 @@ export struct SellerHomeView {
               ListItem() {
                 Row({ space: 12 }) {
                   if (item.images.length > 0) {
-                    Image(item.images[0]).width(72).height(72).borderRadius(12)
+                    Image(item.images[0]).width(72).height(72).borderRadius(UI_RADIUS)
                       .objectFit(ImageFit.Cover);
                   } else {
                     Text('📷').fontSize('26fp').width(72).height(72).textAlign(TextAlign.Center)
-                      .backgroundColor(COLOR_PAGE_BG).borderRadius(12);
+                      .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
                   }
                   Column({ space: 6 }) {
                     Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium)
@@ -57,7 +57,7 @@ export struct SellerHomeView {
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start);
                 }
-                .width('100%').padding(12).backgroundColor(Color.White).borderRadius(16)
+                .width('100%').padding(12).backgroundColor(Color.White).borderRadius(UI_RADIUS)
                 .onClick(() => this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, item.id));
               }
             }, (item: Product): string => item.id);

@@ -2,7 +2,7 @@ import { ProductDetailViewModel } from '../viewmodel/ProductDetailViewModel';
 import { StateView } from '../components/StateView';
 import { formatCondition, formatPrice } from '../common/Utils';
 import {
-  COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+  UI_RADIUS, CIRCLE_RADIUS, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
   COLOR_TEXT_TERTIARY, LoadState, OWN_PRODUCT_HINT
 } from '../common/Constants';
 
@@ -41,10 +41,10 @@ export struct ProductDetailView {
                   Text(this.vm.detail.product.status === 'SOLD' ? '已售出' :
                     (this.vm.reserved ? '已预约' : '在售'))
                     .fontSize('12fp').fontColor('#2E9E5B')
-                    .backgroundColor('#EAF6ED').borderRadius(12)
+                    .backgroundColor('#EAF6ED').borderRadius(UI_RADIUS)
                     .padding({ left: 10, right: 10, top: 5, bottom: 5 });
                   Text('同校当面交易').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY)
-                    .backgroundColor(COLOR_PAGE_BG).borderRadius(12)
+                    .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
                     .padding({ left: 10, right: 10, top: 5, bottom: 5 });
                 }
               }
@@ -63,17 +63,17 @@ export struct ProductDetailView {
                     this.infoLine('所在校区', this.vm.detail.product.campus);
                   }
                 }
-                .width('100%').padding(16).backgroundColor(Color.White).borderRadius(16)
+                .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS)
                 .margin({ top: 12 });
                 Column({ space: 8 }) {
                   Text('商品描述').fontSize('15fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY).width('100%');
                   Text(this.vm.detail.product.description).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY)
                     .lineHeight(22).width('100%');
                 }
-                .width('100%').padding(16).backgroundColor(Color.White).borderRadius(16)
+                .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS)
                   .margin({ top: 12 });
                 Row({ space: 10 }) {
-                  Image(this.vm.detail.seller.avatar).width(46).height(46).borderRadius(23);
+                  Image(this.vm.detail.seller.avatar).width(46).height(46).borderRadius(CIRCLE_RADIUS);
                   Column({ space: 2 }) {
                     Text(this.vm.detail.seller.nickname).fontSize('15fp').fontWeight(FontWeight.Medium)
                       .fontColor(COLOR_TEXT_PRIMARY);
@@ -81,7 +81,7 @@ export struct ProductDetailView {
                   }
                   .alignItems(HorizontalAlign.Start).layoutWeight(1);
                 }
-                .width('100%').padding(16).backgroundColor(Color.White).borderRadius(16)
+                .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS)
                   .margin({ top: 12 });
                 Column({ space: 6 }) {
                   Text('当面交易 · 线下付款').fontSize('13fp').fontWeight(FontWeight.Medium)
@@ -90,7 +90,7 @@ export struct ProductDetailView {
                     .fontSize('12fp').lineHeight(18).fontColor(COLOR_TEXT_SECONDARY);
                 }
                 .width('100%').alignItems(HorizontalAlign.Start)
-                .padding(14).backgroundColor('#FFF4EB').borderRadius(14)
+                .padding(14).backgroundColor('#FFF4EB').borderRadius(UI_RADIUS)
                 .margin({ top: 12, bottom: 20 });
               }
               .width('100%').padding({ left: 16, right: 16 });
@@ -100,18 +100,18 @@ export struct ProductDetailView {
           .layoutWeight(1).width('100%').scrollBar(BarState.Off);
           Row() {
             if (this.vm.isOwnProduct) {
-              Button(OWN_PRODUCT_HINT).enabled(false).width('100%').height(48).fontSize('15fp')
-                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(24);
+              Button(OWN_PRODUCT_HINT).type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
+                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(UI_RADIUS);
             } else if (this.vm.detail.product.status === 'SOLD') {
-              Button('已售出').enabled(false).width('100%').height(48).fontSize('15fp')
-                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(24);
+              Button('已售出').type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
+                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(UI_RADIUS);
             } else if (this.vm.reserved) {
-              Button('已预约，等待交易确认').enabled(false).width('100%').height(48).fontSize('15fp')
-                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(24);
+              Button('已预约，等待交易确认').type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
+                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(UI_RADIUS);
             } else {
-              Button(this.vm.purchasing ? '提交中…' : '预约交易').enabled(!this.vm.purchasing)
+              Button(this.vm.purchasing ? '提交中…' : '预约交易').type(ButtonType.Normal).enabled(!this.vm.purchasing)
                 .width('100%').height(48).fontSize('16fp').fontColor(Color.White)
-                .backgroundColor(COLOR_PRIMARY).borderRadius(24)
+                .backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
                 .onClick(() => this.showPurchaseDialog());
             }
           }
@@ -151,6 +151,7 @@ export struct ProductDetailView {
   private showPurchaseDialog(): void {
     this.getUIContext().showAlertDialog({
       title: '确认预约',
+      cornerRadius: UI_RADIUS,
       message: `确定以 ${formatPrice(this.vm.productPrice)} 预约「${this.vm.productTitle}」吗？`,
       primaryButton: {
         value: '确认预约',

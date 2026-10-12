@@ -1,10 +1,14 @@
 import { Product } from '../model/Models';
 import { formatCondition, formatPrice } from '../common/Utils';
-import { CARD_RADIUS, FONT_PRODUCT, FONT_PRICE, FONT_META, COLOR_PAGE_BG, COLOR_PRICE, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY } from '../common/Constants';
+import {
+  UI_RADIUS, FONT_PRODUCT, FONT_PRICE, FONT_META, COLOR_PAGE_BG, COLOR_PRICE, COLOR_TEXT_PRIMARY,
+  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY
+} from '../common/Constants';
 
 @ComponentV2
 export struct ProductCard {
   @Require @Param product: Product;
+  @Param cardWidth: number | string = '100%';
   @Event onCardClick: (product: Product) => void = (_product: Product): void => {
   };
 
@@ -19,10 +23,10 @@ export struct ProductCard {
     Column() {
       if (this.product.images.length > 0 && !this.imageFailed) {
         Image(this.product.images[0])
-          .width('100%')
+          .width(this.cardWidth)
           .aspectRatio(1)
           .objectFit(ImageFit.Cover)
-          .borderRadius({ topLeft: 16, topRight: 16 })
+          .borderRadius({ topLeft: UI_RADIUS, topRight: UI_RADIUS })
           .backgroundColor(COLOR_PAGE_BG)
           .onError(() => this.imageFailed = true);
       } else {
@@ -30,11 +34,11 @@ export struct ProductCard {
           Image($r('app.media.design_photo')).width(28).height(28);
           Text('暂无图片').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
         }
-        .width('100%')
+        .width(this.cardWidth)
         .aspectRatio(1)
         .justifyContent(FlexAlign.Center)
         .backgroundColor(COLOR_PAGE_BG)
-        .borderRadius({ topLeft: 16, topRight: 16 });
+        .borderRadius({ topLeft: UI_RADIUS, topRight: UI_RADIUS });
       }
       Column({ space: 8 }) {
         Text(this.product.title)
@@ -61,9 +65,9 @@ export struct ProductCard {
       .alignItems(HorizontalAlign.Start)
       .padding(12);
     }
-    .width('100%').alignItems(HorizontalAlign.Start)
+    .width(this.cardWidth).alignItems(HorizontalAlign.Start)
     .backgroundColor(Color.White)
-    .borderRadius(CARD_RADIUS)
+    .borderRadius(UI_RADIUS)
     .clip(true)
     .onClick(() => this.onCardClick(this.product));
   }

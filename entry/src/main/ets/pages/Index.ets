@@ -1,7 +1,7 @@
 import { AuthViewModel } from '../viewmodel/AuthViewModel';
 import {
-  COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY,
-  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, PAGE_MAIN
+  UI_RADIUS, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+  COLOR_TEXT_TERTIARY, PAGE_MAIN
 } from '../common/Constants';
 
 @Entry
@@ -16,7 +16,7 @@ struct Index {
           Column({ space: 12 }) {
             Text('集').fontSize(32).fontWeight(FontWeight.Bold).fontColor(Color.White)
               .width(72).height(72).textAlign(TextAlign.Center)
-              .backgroundColor(COLOR_PRIMARY).borderRadius(20);
+              .backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS);
             Text('校园二手集市').fontSize(27).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
             Text('同校好物 · 当面交易').fontSize(14).fontColor(COLOR_TEXT_SECONDARY);
           }
@@ -33,7 +33,7 @@ struct Index {
               Text(this.vm.formError).fontSize(12).fontColor(COLOR_ERROR).width('100%');
             }
           }
-          .width('100%').padding(18).backgroundColor(Color.White).borderRadius(16);
+          .width('100%').padding(18).backgroundColor(Color.White).borderRadius(UI_RADIUS);
           Text('当前测试环境请使用项目配置的验证码')
             .fontSize(11).fontColor(COLOR_TEXT_TERTIARY).width('100%');
         }
@@ -41,11 +41,11 @@ struct Index {
       }
       .layoutWeight(1).width('100%').scrollBar(BarState.Off);
 
-      Button(this.vm.loggingIn ? '登录中…' : '登录')
+      Button(this.vm.loggingIn ? '登录中…' : '登录').type(ButtonType.Normal)
         .enabled(!this.vm.loggingIn)
         .width('86%').height(50).margin({ bottom: 18 })
         .fontSize(16).fontWeight(FontWeight.Bold).fontColor(Color.White)
-        .backgroundColor(COLOR_PRIMARY).borderRadius(25)
+        .backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
         .onClick(async () => {
           const success: boolean = await this.vm.login();
           if (success) {
@@ -64,7 +64,7 @@ struct Index {
     Column({ space: 8 }) {
       TextInput({ placeholder: '请输入 11 位手机号', text: this.vm.phone })
         .type(InputType.PhoneNumber).maxLength(11).height(48).fontSize(15)
-        .backgroundColor(COLOR_PAGE_BG).borderRadius(12).padding({ left: 14, right: 14 })
+        .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS).padding({ left: 14, right: 14 })
         .onChange((value: string) => {
           this.vm.phone = value;
           this.vm.phoneError = '';
@@ -75,7 +75,7 @@ struct Index {
       Row({ space: 10 }) {
         TextInput({ placeholder: '请输入 6 位数字验证码', text: this.vm.smsCode })
           .type(InputType.Number).maxLength(6).height(48).layoutWeight(1).fontSize(15)
-          .backgroundColor(COLOR_PAGE_BG).borderRadius(12).padding({ left: 14, right: 14 })
+          .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS).padding({ left: 14, right: 14 })
           .onChange((value: string) => {
             this.vm.smsCode = value;
             this.vm.smsCodeError = '';

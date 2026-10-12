@@ -1,7 +1,10 @@
 import { AgentRecommendation, Product } from '../model/Models';
 import { AgentConversationTurn, AgentViewModel } from '../viewmodel/AgentViewModel';
 import { ProductCard } from '../components/ProductCard';
-import { COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_STRONG, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, CONTROL_RADIUS, SHEET_ACTION_HEIGHT, ROUTE_PRODUCT_DETAIL } from '../common/Constants';
+import {
+  UI_RADIUS, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_STRONG, COLOR_TEXT_PRIMARY,
+  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, SHEET_ACTION_HEIGHT, ROUTE_PRODUCT_DETAIL
+} from '../common/Constants';
 
 @ComponentV2
 export struct AgentSheetView {
@@ -20,7 +23,7 @@ export struct AgentSheetView {
         if (this.vm.turns.length > 0) {
           Button('新对话', { type: ButtonType.Normal }).fontSize('14fp').fontWeight(FontWeight.Medium)
             .fontColor(Color.White).backgroundColor(COLOR_PRIMARY_STRONG)
-            .height(SHEET_ACTION_HEIGHT).padding({ left: 12, right: 12 }).borderRadius(CONTROL_RADIUS)
+            .height(SHEET_ACTION_HEIGHT).padding({ left: 12, right: 12 }).borderRadius(UI_RADIUS)
             .enabled(!this.vm.loading)
             .onClick(() => this.vm.resetConversation());
         }
@@ -28,7 +31,7 @@ export struct AgentSheetView {
           Image($r('app.media.design_close')).width(20).height(20);
         }
         .width(SHEET_ACTION_HEIGHT).height(SHEET_ACTION_HEIGHT)
-        .backgroundColor('#E5E4E1').borderRadius(CONTROL_RADIUS)
+        .backgroundColor('#E5E4E1').borderRadius(UI_RADIUS)
         .accessibilityText('关闭 AI 找物').onClick(() => this.onClose());
       }
       .width('100%').alignItems(VerticalAlign.Center).margin({ top: 8 });
@@ -56,7 +59,7 @@ export struct AgentSheetView {
               Column({ space: 10 }) {
                 Row() {
                   Text(this.vm.query).fontSize('14fp').fontColor(Color.White).lineHeight(20)
-                    .width('82%').padding(12).backgroundColor(COLOR_PRIMARY).borderRadius(12);
+                    .width('82%').padding(12).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS);
                 }
                 .width('100%').justifyContent(FlexAlign.End);
                 Row({ space: 8 }) {
@@ -78,14 +81,14 @@ export struct AgentSheetView {
       }
       Row({ space: 8 }) {
         TextInput({ placeholder: '继续提问或补充条件', text: this.vm.query, controller: this.inputController })
-          .height(48).layoutWeight(1).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(24)
+          .height(48).layoutWeight(1).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
           .padding({ left: 12, right: 12 })
           .onChange((value: string) => {
             this.vm.query = value;
             this.vm.error = '';
           });
-        Button(this.vm.loading ? '…' : '发送').enabled(!this.vm.loading).height(48).fontColor(Color.White)
-          .backgroundColor(COLOR_PRIMARY).borderRadius(24)
+        Button(this.vm.loading ? '…' : '发送').type(ButtonType.Normal).enabled(!this.vm.loading).height(48).fontColor(Color.White)
+          .backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
           .onClick(() => this.sendMessage());
       }
       .width('100%');
@@ -96,7 +99,7 @@ export struct AgentSheetView {
   @Builder
   suggestion(prompt: string): void {
     Text(prompt).fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY)
-      .width('100%').padding(12).backgroundColor(Color.White).borderRadius(12)
+      .width('100%').padding(12).backgroundColor(Color.White).borderRadius(UI_RADIUS)
       .onClick(() => {
         this.vm.query = prompt;
         this.sendMessage();
@@ -108,11 +111,11 @@ export struct AgentSheetView {
     Column({ space: 10 }) {
       Row() {
         Text(turn.question).fontSize('14fp').lineHeight(20).fontColor(Color.White)
-          .width('82%').padding(12).backgroundColor(COLOR_PRIMARY).borderRadius(12);
+          .width('82%').padding(12).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS);
       }
       .width('100%').justifyContent(FlexAlign.End);
       Text(turn.replyLead).fontSize('14fp').lineHeight(21).fontColor(COLOR_TEXT_PRIMARY)
-        .width('100%').padding(12).backgroundColor(Color.White).borderRadius(12);
+        .width('100%').padding(12).backgroundColor(Color.White).borderRadius(UI_RADIUS);
       if (turn.recommendations.length > 0) {
         Text(`推荐商品 · ${turn.recommendations.length} 件`).fontSize('14fp')
           .fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY).width('100%');
@@ -133,7 +136,7 @@ export struct AgentSheetView {
                     .fontColor(COLOR_TEXT_PRIMARY);
                   Text('点击查看详情').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
                 }
-                .width('100%').padding(12).backgroundColor(Color.White).borderRadius(12)
+                .width('100%').padding(12).backgroundColor(Color.White).borderRadius(UI_RADIUS)
                 .onClick(() => {
                   this.onClose();
                   this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, item.listingId);
@@ -146,7 +149,7 @@ export struct AgentSheetView {
       }
       if (turn.replyDetail !== '') {
         Text(turn.replyDetail).fontSize('13fp').lineHeight(20).fontColor(COLOR_TEXT_SECONDARY)
-          .width('100%').padding(12).backgroundColor(Color.White).borderRadius(12);
+          .width('100%').padding(12).backgroundColor(Color.White).borderRadius(UI_RADIUS);
       }
     }
     .width('100%').alignItems(HorizontalAlign.Start);

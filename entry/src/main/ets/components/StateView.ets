@@ -1,4 +1,6 @@
-import { LoadState, COLOR_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY } from '../common/Constants';
+import {
+  UI_RADIUS, LoadState, COLOR_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY
+} from '../common/Constants';
 
 @ComponentV2
 export struct StateView {
@@ -30,8 +32,8 @@ export struct StateView {
       Column({ space: 12 }) {
         Text('⚠️').fontSize(40);
         Text(this.errorText).fontSize(15).fontColor(COLOR_TEXT_SECONDARY);
-        Button('重试')
-          .height(48).fontSize(14).fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(20)
+        Button('重试').type(ButtonType.Normal)
+          .height(48).fontSize(14).fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
           .padding({ left: 24, right: 24, top: 8, bottom: 8 })
           .onClick(() => this.onRetry());
       }

@@ -28,8 +28,14 @@ export const COLOR_PAGE_BG: string = '#F5F4F1';
 export const COLOR_CARD_BG: string = '#FFFFFF';
 export const COLOR_DIVIDER: string = '#E5E4E1';
 export const PAGE_PADDING: number = 16;
-export const CARD_RADIUS: number = 16;
-export const CONTROL_RADIUS: number = 16;
+// One radius for all app-owned rounded rectangles; circles scale with their size.
+export const UI_RADIUS: number = 16;
+export const CIRCLE_RADIUS: string = '50%';
+export const UI_CORNERS: BorderRadiuses = {
+  topLeft: UI_RADIUS, topRight: UI_RADIUS, bottomLeft: UI_RADIUS, bottomRight: UI_RADIUS
+};
+export const CARD_RADIUS: number = UI_RADIUS;
+export const CONTROL_RADIUS: number = UI_RADIUS;
 export const SHEET_ACTION_HEIGHT: number = 44;
 export const GRID_GAP: number = 10;
 export const FONT_TITLE: string = '21fp';
@@ -59,7 +65,7 @@ export class TradeStatusUI {
       case TransactionStatus.PENDING:
         return '待确认';
       case TransactionStatus.ACCEPTED:
-        return '待见面';
+        return '待交易';
       case TransactionStatus.REJECTED:
         return '已关闭';
       case TransactionStatus.COMPLETED:
