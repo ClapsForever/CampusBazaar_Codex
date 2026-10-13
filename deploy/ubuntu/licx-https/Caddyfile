@@ -1,0 +1,31 @@
+{
+    admin unix//home/licx/campusbazaar/https/admin.sock
+    auto_https disable_redirects
+    storage file_system /home/licx/campusbazaar/https/data
+    servers {
+        protocols h1 h2
+        strict_sni_host on
+        timeouts {
+            read_header 15s
+            idle 120s
+        }
+    }
+}
+
+api.campusbazaar.cn {
+    bind 0.0.0.0
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
+    reverse_proxy 127.0.0.1:18080 {
+        # Nginx trusts this header only from the local HTTPS proxy.
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto https
+        transport http {
+            dial_timeout 5s
+            response_header_timeout 90s
+        }
+    }
+}
