@@ -1,6 +1,6 @@
-# CampusBazaar
+# 校园集市（CampusBazaar）
 
-CampusBazaar 是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持本机手机号登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；学校统一认证与真实短信尚未接入。
+校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持本机手机号登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；学校统一认证与真实短信尚未接入。
 
 腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。当前固定验证码登录只适用于受限测试；正式上线前须完成正式认证和 HTTPS 等准备。
 
@@ -120,7 +120,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 2. 打开 `entry/src/main/ets/service/BackendRuntimeConfig.ets`，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与 API 的 `PUBLIC_BASE_URL` 使用同一个地址。仓库中的开发者 IP 不能直接照搬。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
-登录页填写有效的 11 位手机号及**自己 API `.env` 中的 `DEV_LOGIN_CODE`**。例如 `13800000011` 和 `13800000012` 可模拟两名用户。
+首次登录在验证码模式填写有效的 11 位手机号及**自己 API `.env` 中的 `DEV_LOGIN_CODE`**；在“我的 → 个人设置”设置密码后，可切换到密码登录。例如 `13800000011` 和 `13800000012` 可模拟两名用户。
 
 ## 6. 验证完整流程
 
@@ -133,7 +133,8 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 ## 7. 数据与协作
 
 - 业务数据在 `backend/api/.local-data/`。停止 API 后备份整个目录，可同时保存 SQLite 和图片。队友首次启动会得到自己的空数据库。
-- Agent 会话目前存于内存；重启 Agent 或 App 后需新建助手会话，业务商品和交易数据不受影响。
+- AI 对话每轮成功回复后自动保存在业务 SQLite，按账号隔离；“新对话”旁的“历史记录”可按时间分页查看，退出登录、重启 App 或服务不会丢失已保存内容。历史详情供回看；Agent 的续聊上下文仍存于内存，重启或过期后需新建对话。更新前已经丢失的内存对话无法补回。
+- “我的 → 个人设置”支持相册头像、昵称及登录密码。设置密码需开发验证码，修改密码需当前密码；密码以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
 - `.env`、DeepSeek Key、数据库、上传图片、`node_modules`、构建产物均已被 Git 忽略。只提交源码、两个 `package-lock.json`、`.env.example`、文档和测试。
 - 本机部署不包含学校统一认证、真实短信或公网服务。
 

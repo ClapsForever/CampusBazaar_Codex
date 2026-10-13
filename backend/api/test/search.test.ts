@@ -39,7 +39,7 @@ function fixture() {
       VALUES(?,?,?,?,'测试商品',5000,?,'like_new','邯郸校区',?,2)`)
       .run(id, user.id, school, title, category, status);
   };
-  return { db, search, add };
+  return { db, search, add, store, user };
 }
 
 test('英语书与 English book 可以交叉搜索，且保持学校、在售和交易占用限制', t => {
@@ -86,4 +86,27 @@ test('中英文同义匹配仍严格执行预算和校区条件', t => {
   assert.deepEqual(search('英语书', { maxPriceCents: '8000' }), ['listing_chinese']);
   assert.deepEqual(search('english book', { maxPriceCents: '8000' }), ['listing_chinese']);
   assert.deepEqual(search('English book', { campus: '江湾校区' }), []);
+});
+
+test('最低成色包括更新商品，价格排序和排除关键词继续执行可见性与预算限制', t => {
+  const { db, search, add, store, user } = fixture();
+  t.after(() => db.close());
+  add('listing_basic', '有线键盘', '外设');
+  add('listing_mechanical', '机械键盘', '外设');
+  add('listing_new', '全新蓝牙键盘', '外设');
+  add('listing_private', '机械键盘', '外设', 'school_other');
+  add('listing_sold_key', '机械键盘', '外设', 'school_demo', 'SOLD');
+  db.prepare("UPDATE products SET price_cents=4000,condition='good' WHERE id='listing_basic'").run();
+  db.prepare("UPDATE products SET price_cents=8000 WHERE id='listing_mechanical'").run();
+  db.prepare("UPDATE products SET price_cents=12000,condition='new' WHERE id='listing_new'").run();
+  assert.deepEqual(search('键盘', { condition: 'like_new' }), ['listing_mechanical', 'listing_new']);
+  assert.deepEqual(search('键盘', { condition: 'new' }), ['listing_new']);
+  assert.deepEqual(search('键盘', { maxPriceCents: '5000', sort: 'price_asc' }), ['listing_basic']);
+  assert.deepEqual(search('键盘', { excludeKeywords: '["机械"]' }), ['listing_basic', 'listing_new']);
+  assert.deepEqual(search('键盘', { excludeKeywords: '["机械 键盘"]' }), ['listing_basic', 'listing_new']);
+  const ordered = store.internalSearch(user, new URLSearchParams({ keyword: '键盘', sort: 'price_asc', pageSize: '1' }));
+  assert.deepEqual((ordered.listings as Array<{ listingId: string }>).map(p => p.listingId), ['listing_basic']);
+  assert.equal(ordered.total, 3);
+  assert.throws(() => search('键盘', { sort: 'price_asc; DROP TABLE products' }));
+  assert.throws(() => search('键盘', { excludeKeywords: '[42]' }));
 });

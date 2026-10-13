@@ -29,6 +29,9 @@ const SearchListingsParameters = Type.Object({
     Type.Literal("unknown"),
   ])),
   version: Type.Optional(Type.String({ maxLength: 80 })),
+  sort: Type.Optional(Type.Union([Type.Literal("price_asc"), Type.Literal("price_desc"), Type.Literal("published_desc")])),
+  resultLimit: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
+  excludeKeywords: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 40 }), { maxItems: 5 })),
   page: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
   pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
 }, { additionalProperties: false });
@@ -52,7 +55,7 @@ export interface ToolRuntimeContext {
 
 function ensureSearchInput(params: SearchParams, runtime: ToolRuntimeContext): SearchListingsInput {
   if (!Check(SearchListingsParameters, params)) throw new AppError("TOOL_INPUT_INVALID", "搜索参数格式不合法");
-  const input = { ...runtime.filters, page: params.page ?? 1, pageSize: Math.min(params.pageSize ?? runtime.maxResults, runtime.maxResults) };
+  const input = { ...runtime.filters, page: params.page ?? 1, pageSize: Math.min(params.pageSize ?? runtime.maxResults, runtime.maxResults, runtime.filters.resultLimit ?? runtime.maxResults) };
   if (!Check(SearchListingsParameters, input)) throw new AppError("TOOL_INPUT_INVALID", "服务端筛选条件格式不合法");
   if (input.minPriceCents !== undefined && input.maxPriceCents !== undefined && input.minPriceCents > input.maxPriceCents) {
     throw new AppError("TOOL_INPUT_INVALID", "最低价不能高于最高价");

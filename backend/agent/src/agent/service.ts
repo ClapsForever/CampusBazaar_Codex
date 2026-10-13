@@ -11,7 +11,8 @@ import { withTurnSignal } from "./deadline.js";
 import { PLAN_PROMPT, SYSTEM_PROMPT } from "./prompts.js";
 import { noResultsReply, normalizeReply } from "./reply.js";
 import { createAgentTools } from "../tools/index.js";
-import { CLARIFICATION_REPLY, HELP_REPLY, REFUSAL_REPLY, UNSUPPORTED_REPLY, TurnPlanSchema, decodeTurnPlan, emptyPlan, mergeSearchFilters, mockTurnPlan, scopeDecision, type TurnPlan } from "./policy.js";
+import { priceDelta, relativePriceRequested, requestedPage } from "../intent/constraints.js";
+import { CLARIFICATION_REPLY, HELP_REPLY, REFUSAL_REPLY, UNSUPPORTED_REPLY, TurnPlanSchema, parseTurnPlan, emptyPlan, mergeSearchFilters, mockTurnPlan, scopeDecision, type TurnPlan } from "./policy.js";
 
 interface SearchDetails {
   kind: "searchListings";
@@ -45,6 +46,7 @@ interface TurnResult {
   messages: AgentMessage[];
   filters: SearchFilters;
   displayedListingIds: string[];
+  displayedProducts: Array<{ listingId: string; title: string }>;
   searchPage: number;
 }
 
@@ -54,11 +56,12 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
   const signal = AbortSignal.timeout(config.turnTimeoutMs);
   let filters = { ...session.filters };
   let displayedListingIds = [...session.displayedListingIds];
+  let displayedProducts = [...(session.displayedProducts ?? [])];
   let searchPage = session.searchPage;
   const finish = (reply: string, status: AgentResponse["status"] = "completed", recommendations: Recommendation[] = []): TurnResult => ({
     response: { requestId: options.requestId, sessionId: session.sessionId, status, reply: normalizeReply(reply), recommendations, relaxedConditions: [] },
     messages: [...session.messages, { role: "user", content: message, timestamp: Date.now() }, fauxAssistantMessage(normalizeReply(reply), { stopReason: "stop" })],
-    filters, displayedListingIds, searchPage,
+    filters, displayedListingIds, displayedProducts, searchPage,
   });
   const earlyScope = scopeDecision(message);
   let plan: TurnPlan;
@@ -67,8 +70,16 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     const mockPlan = mockTurnPlan(message, filters, displayedListingIds.length, searchPage);
     const text = await requestModelText(config, PLAN_PROMPT.replace("SCHEMA_PLACEHOLDER", JSON.stringify(TurnPlanSchema)), JSON.stringify({
       message, previousFilters: filters, displayedListingCount: displayedListingIds.length, previousPage: searchPage,
+      displayedProducts: displayedProducts.map((p, i) => ({ position: i + 1, title: p.title.slice(0, 100) })),
     }), signal, JSON.stringify(mockPlan));
-    plan = decodeTurnPlan(text);
+    const decoded = parseTurnPlan(text);
+    // Invalid/unavailable plans always fail closed; only a valid clarification can be refined.
+    if (!decoded) return finish(CLARIFICATION_REPLY, "clarification");
+    plan = decoded;
+    if (["search", "refine", "clarification"].includes(plan.action) && relativePriceRequested(message)
+      && filters.maxPriceCents === undefined) return finish("当前没有预算上限，请明确新的最高金额，我再帮你筛选。", "clarification");
+    if (plan.action === "clarification" && (filters.keyword || filters.category)
+      && Object.keys(priceDelta(message, filters)).length > 0) plan = { ...emptyPlan("refine"), changes: priceDelta(message, filters) };
   }
   options.log("business_intent", { requestId: options.requestId, action: plan.action });
   switch (plan.action) {
@@ -87,14 +98,21 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     }
     if (!Check(TurnPlanSchema.properties.changes, next)) return finish("筛选条件超出支持范围，请重新说明商品和预算。", "clarification");
     if (next.minPriceCents !== undefined && next.maxPriceCents !== undefined && next.minPriceCents > next.maxPriceCents) return finish("最低预算不能高于最高预算，请明确新的价格范围。", "clarification");
-    if (plan.action === "refine" && JSON.stringify(next) === JSON.stringify(filters) && !/继续|下一页|换一批|再来/u.test(message)) return finish("请明确要调整的条件，例如新的预算金额、成色或取货校区。", "clarification");
-    const explicitPage = message.match(/第\s*(\d+)\s*页/u)?.[1];
-    const nextPage = explicitPage ? Number(explicitPage) : /换一批|下一页|再来/u.test(message) ? session.searchPage + 1 : 1;
+    const pageRequest = requestedPage(message, session.searchPage);
+    const nextPage = pageRequest ?? plan.page;
+    if (plan.action === "refine" && JSON.stringify(next) === JSON.stringify(filters)
+      && nextPage === session.searchPage && pageRequest === undefined) return finish("请明确要调整的条件，例如新的预算金额、成色或取货校区。", "clarification");
     if (!Number.isSafeInteger(nextPage) || nextPage < 1 || nextPage > 1000) return finish("页码应在1到1000之间，请重新说明。", "clarification");
     filters = next;
     searchPage = nextPage;
   }
 
+  if (plan.action === "detail" && displayedProducts.length) {
+    const normalize = (s: string) => s.toLowerCase().replace(/[\s，,。?？!！]/gu, "");
+    const reference = normalize(message.replace(/(?:那|这)(?:款|件|台|个)|的?(?:详情|怎么样|给我看看)/gu, ""));
+    const matches = displayedProducts.flatMap((p, i) => reference.length >= 3 && normalize(p.title).includes(reference) ? [i + 1] : []);
+    if (matches.length === 1) plan.positions = matches;
+  }
   const targetIds = (plan.action === "detail" || plan.action === "compare")
     ? plan.positions.map((position) => session.displayedListingIds[position - 1]) : [];
   if (plan.action === "detail" || plan.action === "compare") {
@@ -137,9 +155,15 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
   const recommendations: Recommendation[] = currentSearch
     ? currentSearch.result.listings.map((listing) => ({ listingId: listing.listingId, reasons: reasonFor(listing, currentSearch) }))
     : details.map(({ listing }) => ({ listingId: listing.listingId, reasons: [`已通过只读详情接口重新验证，售价 ${priceText(listing.priceCents)}`] }));
-  if (currentSearch) displayedListingIds = currentSearch.result.listings.map((listing) => listing.listingId);
+  if (currentSearch) {
+    displayedListingIds = currentSearch.result.listings.map((listing) => listing.listingId);
+    displayedProducts = currentSearch.result.listings.map(listing => ({ listingId: listing.listingId, title: listing.title }));
+  }
   // Detail/comparison cards also define the display order for the next user reference.
-  else if (details.length) displayedListingIds = details.map(({ listing }) => listing.listingId);
+  else if (details.length) {
+    displayedListingIds = details.map(({ listing }) => listing.listingId);
+    displayedProducts = details.map(({ listing }) => ({ listingId: listing.listingId, title: listing.title }));
+  }
   const status = currentSearch && !currentSearch.result.listings.length ? "no_results" : "completed";
   if (status === "no_results") return finish(noResultsReply(filters), status);
   const mockReply = currentSearch ? `已查询到 ${recommendations.length} 条符合明确条件的商品，商品卡片中的信息均来自平台查询结果。`
@@ -147,7 +171,7 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     : plan.action === "compare" ? "我已重新读取指定商品详情，可以从价格、成色、取货校区和描述进行比较；缺失信息会标为未知。"
     : "这是本次指定商品的详情，信息已经通过平台重新验证，未提供的版本或属性会标为未知。";
   const reply = await requestModelText(config, SYSTEM_PROMPT, JSON.stringify({
-    action: plan.action, filters, results: modelResults,
+    action: plan.action, question: message, filters, results: modelResults,
   }), signal, mockReply);
   return finish(reply ?? mockReply, status, recommendations);
 }

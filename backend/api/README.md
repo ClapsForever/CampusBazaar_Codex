@@ -52,7 +52,7 @@ BUSINESS_BACKEND_URL=http://127.0.0.1:8080
 BUSINESS_BACKEND_TOKEN=<与业务 API 的 INTERNAL_AGENT_TOKEN 相同的令牌 B>
 ```
 
-Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，再启动 Agent。Agent 当前版本仍使用内存会话存储，重启 Agent 后已有对话无法继续；业务 API 中持久化的会话归属映射不能替代 Agent 的会话存储。需要跨 Agent 重启续聊时，应在 Agent 仓库实现持久化 `SessionStore`。
+Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，再启动 Agent。Agent 当前版本仍使用内存会话存储，重启 Agent 后已有对话无法继续；业务 API 自动持久化会话归属和成功轮次，重启后仍能查看历史记录，但历史回看不能替代 Agent 的续聊上下文。需要跨 Agent 重启续聊时，应在 Agent 仓库实现持久化 `SessionStore`。
 
 可在业务 API `.env` 配好三枚随机值后，从 `backend/api` 运行下面的脚本同步 A、B 两枚令牌和业务地址。脚本会先将 `backend/agent/.env` 备份为同目录下 Git 忽略的 `.env.before-campusbazaar`，保留现有 DeepSeek 设置：
 
@@ -67,6 +67,11 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 | 操作 | 方法与路径 | 请求体/说明 |
 | --- | --- | --- |
 | 本机登录 | `POST /api/v1/auth/local/sessions` | `{"phone":"13800000001","smsCode":"<开发验证码>"}`，返回 `{user,token,expiresAt}` |
+| 密码登录 | `POST /api/v1/auth/password/sessions` | `phone,password`；连续错误 5 次后限流 15 分钟 |
+| 更新个人资料 | `PUT /api/v1/me`（也支持 PATCH） | `nickname`（1–24 字），可选 `avatarId`（当前账号的未绑定商品图片）；返回当前用户 |
+| 设置或修改密码 | `POST /api/v1/me/password` | `newPassword`（8–64 位字母和数字）；首次需 `smsCode`，已有密码需 `currentPassword`；撤销其他会话 |
+| 对话历史列表 | `GET /api/v1/agent/conversations?limit=20&cursor=...` | 当前账号按开始时间倒序；每项 `sessionId,title,createdAt,updatedAt,turnCount` |
+| 历史对话详情 | `GET /api/v1/agent/conversations/{sessionId}?limit=50&cursor=...` | 时间正序的 `{question,createdAt,response}`；仅归属用户可读 |
 | 当前用户、退出 | `GET /api/v1/me`、`POST /api/v1/auth/logout` | 退出后令牌失效 |
 | 商品流、搜索 | `GET /api/v1/products?q=...&limit=20&cursor=...` | 只显示本校可购买商品 |
 | 商品详情、我的商品 | `GET /api/v1/products/{id}`、`GET /api/v1/me/products` | 商品包含 ArkTS `Product` 字段及分类、成色、校区 |
@@ -79,7 +84,7 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 | 消息 | `GET/POST /api/v1/transactions/{id}/messages` | 发送体 `{"content":"..."}`，可带 `Idempotency-Key` |
 | Agent | `POST /api/agent/chat` | `{"requestId":"req_1","sessionId":null,"message":"找教材"}` |
 
-上传图片后，将返回的 `id` 放在发布请求的 `imageIds` 中。设备本地 `photo://` URI 不能直接提交为图片 ID。商品响应中的图片 URL 含短期签名，可交给原生 `Image` 组件显示；签名到期后重新获取商品数据。未发布图片仍仅允许上传者通过 Bearer 令牌读取。
+上传图片后，将返回的 `id` 放在发布请求的 `imageIds` 中。设备本地 `photo://` URI 不能直接提交为图片 ID。商品响应中的图片 URL 含短期签名，可交给原生 `Image` 组件显示；签名到期后重新获取商品数据。未绑定商品或头像的图片仅允许上传者通过 Bearer 令牌读取。头像保存图片 ID，每次读取用户信息生成 24 小时签名 URL；当前头像不会被过期未发布图片清理。当前用户返回 `hasPassword`，不会返回密码摘要。
 
 Agent 使用 `Authorization: Bearer <令牌 B>` 及 `x-user-id`、`x-school-id` 调用内部三个只读接口：`/internal/listings/search`、`/internal/listings/{listingId}`、`/internal/users/preferences`。这些请求仍校验用户所属学校。
 
@@ -89,7 +94,9 @@ Agent 使用 `Authorization: Bearer <令牌 B>` 及 `x-user-id`、`x-school-id` 
 npm test
 ```
 
-测试会在系统临时目录创建独立数据库和模拟 Agent，不调用 DeepSeek，也不读取本机 `.env`。真实 DeepSeek 与模拟器联调需在两个服务启动后单独验证。
+测试会在系统临时目录创建独立数据库和模拟 Agent，不调用 DeepSeek，也不读取本机 `.env`；保留临时数据，不递归删除目录。真实 DeepSeek 与模拟器联调需在两个服务启动后单独验证。
+
+本版启动会自动把数据库 schema 从 v1 升级到 v2（增加密码摘要、AI 对话轮次及索引），保留原有数据。更新前备份数据库与图片；旧 v1 API 无法直接打开 v2 数据库。
 
 停止业务 API 后，将整个 `.local-data` 目录复制到安全位置即可同时备份 SQLite 和图片。恢复时停止 API，用备份覆盖该目录再启动。若在 API 运行期间备份，请先使用 SQLite 的在线备份机制，避免只复制主数据库文件而遗漏 WAL 数据。
 

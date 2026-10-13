@@ -14,9 +14,9 @@ export function openDatabase(config: Config): DatabaseSync {
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 1) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 1) return;
-  db.exec(`
+  if (version.user_version > 2) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 2) return;
+  if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
       id TEXT PRIMARY KEY, phone TEXT NOT NULL UNIQUE, nickname TEXT NOT NULL,
@@ -71,6 +71,20 @@ function migrate(db: DatabaseSync): void {
       preferred_campuses TEXT NOT NULL DEFAULT '[]', price_ceiling_cents INTEGER
     );
     PRAGMA user_version=1;
+    COMMIT;
+  `);
+  db.exec(`
+    BEGIN IMMEDIATE;
+    ALTER TABLE users ADD COLUMN password_hash TEXT;
+    CREATE TABLE agent_turns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL REFERENCES agent_sessions(session_id),
+      request_id TEXT NOT NULL, question TEXT NOT NULL, response_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL, UNIQUE(session_id,request_id)
+    );
+    CREATE INDEX agent_turns_session ON agent_turns(session_id,id);
+    CREATE INDEX agent_sessions_history ON agent_sessions(user_id,created_at DESC,session_id DESC);
+    PRAGMA user_version=2;
     COMMIT;
   `);
 }

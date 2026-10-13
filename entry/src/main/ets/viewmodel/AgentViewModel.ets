@@ -1,4 +1,5 @@
-import { AgentRecommendation, AgentResult, AgentStatus } from '../model/Models';
+import { AgentRecommendation, AgentResult, AgentStatus, AgentConversationSummary,
+  AgentHistoryPage, AgentHistoryTurnPage, AgentHistoryTurn, AgentListingRecommendation } from '../model/Models';
 import { agentService } from '../service/AgentService';
 
 export interface AgentConversationTurn {
@@ -7,6 +8,7 @@ export interface AgentConversationTurn {
   replyLead: string;
   replyDetail: string;
   recommendations: AgentRecommendation[];
+  createdAt?: number;
 }
 
 interface FormattedReply {
@@ -84,7 +86,16 @@ export class AgentViewModel {
   @Trace turns: AgentConversationTurn[] = [];
   @Trace error: string = '';
   @Trace sessionId: string | null = null;
+  @Trace historyVisible: boolean = false;
+  @Trace history: AgentConversationSummary[] = [];
+  @Trace historyLoading: boolean = false;
+  @Trace historyError: string = '';
+  @Trace historyCursor: string | null = null;
+  @Trace selectedHistory: AgentConversationSummary | null = null;
+  @Trace historyTurns: AgentConversationTurn[] = [];
+  @Trace historyTurnCursor: string | null = null;
   private requestSeq: number = 0;
+  private historySeq: number = 0;
 
   resetConversation(force: boolean = false): void {
     if (this.loading && !force) {
@@ -96,6 +107,71 @@ export class AgentViewModel {
     this.turns = [];
     this.error = '';
     this.sessionId = null;
+    this.closeHistory();
+    if (force) this.history = [];
+  }
+
+  closeHistory(): void {
+    this.historySeq += 1;
+    this.historyVisible = false;
+    this.selectedHistory = null;
+    this.historyTurns = [];
+    this.historyError = '';
+    this.historyLoading = false;
+    this.historyCursor = null;
+    this.historyTurnCursor = null;
+  }
+
+  async openHistory(more: boolean = false): Promise<void> {
+    if (more && (this.historyLoading || this.historyCursor === null)) return;
+    this.historyVisible = true;
+    this.selectedHistory = null;
+    this.historyTurns = [];
+    this.historyError = '';
+    this.historyLoading = true;
+    if (!more) { this.history = []; this.historyCursor = null; }
+    const seq: number = ++this.historySeq;
+    try {
+      const page: AgentHistoryPage = await agentService.getHistory(more ? this.historyCursor : null);
+      if (seq !== this.historySeq) return;
+      this.history = more ? [...this.history, ...page.items] : page.items;
+      this.historyCursor = page.nextCursor;
+    } catch (error) {
+      if (seq === this.historySeq) this.historyError = (error as Error).message;
+    } finally {
+      if (seq === this.historySeq) this.historyLoading = false;
+    }
+  }
+
+  async viewHistory(item: AgentConversationSummary, more: boolean = false): Promise<void> {
+    if (more && (this.historyLoading || this.historyTurnCursor === null)) return;
+    this.selectedHistory = item;
+    this.historyVisible = true;
+    if (!more) { this.historyTurns = []; this.historyTurnCursor = null; }
+    this.historyLoading = true;
+    this.historyError = '';
+    const seq: number = ++this.historySeq;
+    try {
+      const page: AgentHistoryTurnPage = await agentService.getHistoryTurns(item.sessionId,
+        more ? this.historyTurnCursor : null);
+      if (seq !== this.historySeq) return;
+      const turns: AgentConversationTurn[] = page.items.map((turn: AgentHistoryTurn): AgentConversationTurn => {
+        const result: AgentResult = { requestId: turn.response.requestId, sessionId: turn.response.sessionId,
+          status: turn.response.status, replyText: turn.response.reply,
+          recommendations: turn.response.recommendations.map((rec: AgentListingRecommendation): AgentRecommendation => {
+            return { listingId: rec.listingId, reasons: rec.reasons, product: null };
+          }) };
+        const reply: FormattedReply = formatReply(result);
+        return { id: result.requestId, question: turn.question, replyLead: reply.lead,
+          replyDetail: reply.detail, recommendations: result.recommendations, createdAt: turn.createdAt };
+      });
+      this.historyTurns = more ? [...this.historyTurns, ...turns] : turns;
+      this.historyTurnCursor = page.nextCursor;
+    } catch (error) {
+      if (seq === this.historySeq) this.historyError = (error as Error).message;
+    } finally {
+      if (seq === this.historySeq) this.historyLoading = false;
+    }
   }
 
   async send(): Promise<boolean> {

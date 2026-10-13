@@ -32,5 +32,6 @@ backend/api/.local-data/
 *.key
 
 # OS/editor noise
+.DS_Store
 Thumbs.db
 Desktop.ini

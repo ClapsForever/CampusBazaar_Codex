@@ -3,6 +3,7 @@ import { Check } from "typebox/value";
 import { PRICE_MAX_CENTS, type SearchFilters } from "../contracts/index.js";
 import { hasSearchRequest, isGroundedKeyword, mentionsCategory, parseIntent, parseSearchUpdate } from "../intent/parser.js";
 import { CATEGORY_GROUPS } from "../intent/categories.js";
+import { cancellation, conditionMentioned, explicitCampus, explicitCondition, explicitVersion, mentionsMoney, priceDelta, purposeTopic, rankingDelta } from "../intent/constraints.js";
 
 const nullableText = (maxLength: number) => Type.Optional(Type.Union([Type.String({ minLength: 1, maxLength }), Type.Null()]));
 const nullablePrice = Type.Optional(Type.Union([Type.Integer({ minimum: 0, maximum: PRICE_MAX_CENTS }), Type.Null()]));
@@ -14,6 +15,9 @@ export const TurnPlanSchema = Type.Object({
     campus: nullableText(40), preferredCampus: nullableText(40),
     condition: Type.Optional(Type.Union([Type.Literal("new"), Type.Literal("like_new"), Type.Literal("good"), Type.Literal("fair"), Type.Literal("unknown"), Type.Null()])),
     version: nullableText(80),
+    sort: Type.Optional(Type.Union([Type.Literal("price_asc"), Type.Literal("price_desc"), Type.Literal("published_desc"), Type.Null()])),
+    resultLimit: Type.Optional(Type.Union([Type.Integer({ minimum: 1, maximum: 10 }), Type.Null()])),
+    excludeKeywords: Type.Optional(Type.Union([Type.Array(Type.String({ minLength: 1, maxLength: 40 }), { maxItems: 5, uniqueItems: true }), Type.Null()])),
   }, { additionalProperties: false }),
   positions: Type.Array(Type.Integer({ minimum: 1, maximum: 10 }), { maxItems: 10, uniqueItems: true }),
   page: Type.Integer({ minimum: 1, maximum: 1000 }),
@@ -90,70 +94,93 @@ export function mockTurnPlan(message: string, previous: SearchFilters, displayed
 }
 
 export function decodeTurnPlan(text: string | undefined): TurnPlan {
-  if (!text) return emptyPlan("clarification");
+  return parseTurnPlan(text) ?? emptyPlan("clarification");
+}
+
+export function parseTurnPlan(text: string | undefined): TurnPlan | undefined {
+  if (!text) return undefined;
   try {
     const value: unknown = JSON.parse(text.trim().replace(/^```(?:json)?\s*/u, "").replace(/\s*```$/u, ""));
-    return Check(TurnPlanSchema, value) ? value : emptyPlan("clarification");
-  } catch { return emptyPlan("clarification"); }
+    return Check(TurnPlanSchema, value) ? value : undefined;
+  } catch { return undefined; }
 }
 
 /** Merge a delta, never accept a model-generated replacement of the entire state. */
 export function mergeSearchFilters(previous: SearchFilters, plan: TurnPlan, message: string): SearchFilters {
   const changes = { ...plan.changes };
-  const explicitlyParsed = parseSearchUpdate(message, previous);
-  // Price edits and removals must be grounded in this user turn, not model/catalog suggestions.
-  const cancelPrice = /不限预算|不限制(?:价格|预算)|取消(?:价格|预算)(?:限制|上限)?|预算不限/u.test(message);
-  const priceMentioned = cancelPrice || (/预算|价格|\d+(?:\.\d+)?\s*元|便宜|贵|以内|以下|以上|不超过|至少|最低|最多/u.test(message) && /\d|[一二三四五六七八九十百千万两零]+\s*元/u.test(message));
-  if (!priceMentioned) { delete changes.minPriceCents; delete changes.maxPriceCents; }
+  const numeric = priceDelta(message, previous);
+  const cancelPrice = cancellation(message, "price");
+  if (!mentionsMoney(message) && !cancelPrice) { delete changes.minPriceCents; delete changes.maxPriceCents; }
   if (!cancelPrice) {
-    if (changes.minPriceCents === null && !/预算|以内|以下|不超过|最多/u.test(message)) delete changes.minPriceCents;
+    if (changes.minPriceCents === null && numeric.minPriceCents !== null) delete changes.minPriceCents;
     if (changes.maxPriceCents === null) delete changes.maxPriceCents;
   }
-  if (changes.condition === null && !/不限制成色|不限成色|不看成色|取消成色限制/u.test(message)) delete changes.condition;
-  if (changes.version === null && !/不限版本|不限制版本|取消版本限制/u.test(message)) delete changes.version;
-  if (changes.campus === null && !/不限校区|不限制校区|取消校区限制/u.test(message)) delete changes.campus;
-  if (changes.preferredCampus === null && !/不限校区|不限制校区|取消校区限制|只要|必须/u.test(message)) delete changes.preferredCampus;
+  for (const [field, kind] of [["condition", "condition"], ["version", "version"], ["campus", "campus"], ["preferredCampus", "campus"]] as const) {
+    if (changes[field] === null && !cancellation(message, kind)
+      && !(field === "preferredCampus" && /只要|必须/u.test(message))) delete changes[field];
+    if (cancellation(message, kind) && !(field === "preferredCampus" && typeof changes.preferredCampus === "string")) changes[field] = null;
+  }
   const recognizedTopic = parseSearchUpdate(message, {});
-  const newUnclassifiedTopic = !recognizedTopic.category && plan.action === "search" && typeof changes.keyword === "string" && hasSearchRequest(message) && isGroundedKeyword(message, changes.keyword);
+  const purpose = purposeTopic(message);
+  const grounded = (keyword: string) => isGroundedKeyword(message, keyword) || purpose?.keyword === keyword;
+  const newUnclassifiedTopic = !recognizedTopic.category && !purpose && plan.action === "search"
+    && typeof changes.keyword === "string" && hasSearchRequest(message) && grounded(changes.keyword);
   if (changes.category === null && !/不限类别|取消类别|换成|改找|切换|改成/u.test(message) && !newUnclassifiedTopic) delete changes.category;
   if (changes.keyword === null && !/取消关键词|不限关键词|换成|改找|切换|改成/u.test(message)) delete changes.keyword;
-  if (typeof changes.keyword === "string" && !isGroundedKeyword(message, changes.keyword)) delete changes.keyword;
+  if (typeof changes.keyword === "string" && !grounded(changes.keyword)) delete changes.keyword;
   if (typeof changes.version === "string" && !message.includes(changes.version)) delete changes.version;
+  const version = explicitVersion(message);
+  if (version) {
+    changes.version = version;
+    if (typeof changes.keyword === "string" && changes.keyword.includes(version) && recognizedTopic.keyword) changes.keyword = recognizedTopic.keyword;
+  }
   for (const key of ["campus", "preferredCampus"] as const) {
     const campus = changes[key];
     if (typeof campus === "string" && !message.includes(campus.replace(/校区$/u, ""))) delete changes[key];
+    else if (typeof campus === "string" && !campus.endsWith("校区")
+      && (message.includes(`${campus}校区`) || ["江湾", "邯郸", "张江", "枫林"].includes(campus))) changes[key] = `${campus}校区`;
   }
-  if (typeof changes.condition === "string" && !/成色|成新|全新|未使用/u.test(message)) delete changes.condition;
+  if (typeof changes.condition === "string" && !conditionMentioned(message)) delete changes.condition;
+  const condition = explicitCondition(message);
+  if (condition) changes.condition = condition;
+  const campus = explicitCampus(message);
+  if (campus) {
+    if (campus.soft) {
+      changes.preferredCampus = campus.name;
+      if (previous.campus === campus.name || cancellation(message, "campus")) changes.campus = null;
+      else delete changes.campus;
+    } else { changes.campus = campus.name; changes.preferredCampus = null; }
+  }
   const newCategory = typeof changes.category === "string" ? changes.category : undefined;
-  if (newCategory && !mentionsCategory(message, newCategory)) delete changes.category;
+  if (newCategory && !mentionsCategory(message, newCategory) && purpose?.category !== newCategory) delete changes.category;
+  if (purpose && !recognizedTopic.keyword) { changes.keyword = purpose.keyword; changes.category = purpose.category; }
   const targetGroup = CATEGORY_GROUPS.find(group => group.category === changes.category);
   const concreteSubject = recognizedTopic.keyword ?? recognizedTopic.category;
   if (plan.action === "search" && targetGroup && !changes.keyword && concreteSubject
-    && concreteSubject !== targetGroup.category && isGroundedKeyword(message, concreteSubject)) {
-    changes.keyword = concreteSubject;
-  }
-  const nextGroup = CATEGORY_GROUPS.find(group => group.members.includes(changes.category ?? ""));
-  const sameConcreteTopic = nextGroup?.members.includes(previous.category ?? "")
-    && (recognizedTopic.category === previous.category || previous.category === nextGroup?.category);
-  const topicChanged = (typeof changes.category === "string" && previous.category !== undefined && previous.category !== changes.category && !sameConcreteTopic)
-    || (newUnclassifiedTopic && changes.category === null && previous.category !== undefined)
-    || (plan.action === "search" && typeof changes.keyword === "string" && previous.keyword !== changes.keyword && /换成|改找|切换|改成|换找/u.test(message));
+    && concreteSubject !== targetGroup.category && grounded(concreteSubject)) changes.keyword = concreteSubject;
+  const groupFor = (category: string | undefined) => CATEGORY_GROUPS.find(group => group.members.includes(category ?? ""))?.category ?? category;
+  const topicChanged = (typeof changes.category === "string" && previous.category !== undefined && groupFor(previous.category) !== groupFor(changes.category))
+    || (newUnclassifiedTopic && changes.category === null && previous.category !== undefined);
   const filters: SearchFilters = topicChanged ? {} : { ...previous };
+  // Sorting and exclusions must also be grounded in this turn, never in catalog text.
+  if (changes.sort !== undefined && !/价格|便宜|贵|排序|最新|发布|price|cheap|sort/iu.test(message)) delete changes.sort;
+  if (changes.resultLimit !== undefined && !/只|一个|一件|一款|数量|条|件|款|one|only/iu.test(message)) delete changes.resultLimit;
+  if (Array.isArray(changes.excludeKeywords)) {
+    if (!/不要|排除|别推荐|不考虑|except|exclude|without/iu.test(message)) delete changes.excludeKeywords;
+    else changes.excludeKeywords = changes.excludeKeywords.filter(keyword => isGroundedKeyword(message, keyword));
+  }
+  if (changes.excludeKeywords === null && !/不排除|取消排除|不限类型/u.test(message)) delete changes.excludeKeywords;
   for (const [key, value] of Object.entries(changes)) {
     if (value === null) delete filters[key as keyof SearchFilters];
     else Object.assign(filters, { [key]: value });
   }
-  // Numeric bounds recognized by the parser take precedence over proposed model values.
-  if (priceMentioned) {
-    const numericUpdate = parseSearchUpdate(message, {});
-    for (const key of ["minPriceCents", "maxPriceCents"] as const) {
-      if (numericUpdate[key] !== undefined) filters[key] = numericUpdate[key];
-      else if (explicitlyParsed[key] !== previous[key] || cancelPrice) {
-        if (explicitlyParsed[key] === undefined) delete filters[key];
-        else filters[key] = explicitlyParsed[key];
-      }
-    }
+  // Only explicit money deltas overwrite model amounts. Topic parser omissions are not removals.
+  for (const [key, value] of Object.entries(numeric)) {
+    if (value === null) delete filters[key as keyof SearchFilters];
+    else Object.assign(filters, { [key]: value });
   }
+  Object.assign(filters, rankingDelta(message));
+
   return filters;
 }
 

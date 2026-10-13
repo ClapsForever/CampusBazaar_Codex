@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "vitest run tests/evals.test.ts",
+    "eval:paraphrases": "node scripts/evaluate-paraphrases.mjs",
     "format:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

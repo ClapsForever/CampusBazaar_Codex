@@ -1,0 +1,946 @@
+{
+  "startedAt": "2026-10-12T12:22:08.274Z",
+  "modelMode": "real",
+  "provider": "deepseek",
+  "modelName": "deepseek-chat",
+  "temperature": 0,
+  "maxResults": 10,
+  "turnTimeoutMs": 60000,
+  "nodeVersion": "v24.21.0",
+  "projectRoot": "/home/licx/campusbazaar/current",
+  "datasetSha256": "d8943da3225f74319741b97c6117820a157db1a58c26eca462d6387820811631",
+  "sourceHashes": {
+    "backend/agent/dist/agent/service.js": "51fe46cd0341a76cdcfd30e3bd9ce183ae25a6e1ef3709eda71d4368f63289ae",
+    "backend/agent/dist/agent/policy.js": "0769f356e71fdafbfc4d96b43f90b1ef09593384bff67cf59315bf6e458477ca",
+    "backend/agent/dist/agent/prompts.js": "dfb3d5e1e57069d555e18c63f70b20f5c14bb0c4c6b96c0f8e3dbc89a8fee1da",
+    "backend/agent/dist/intent/parser.js": "885a98c5c5c04207ecc79db736efd969b9b2d8d076a870be9cba683cb1e7286f",
+    "backend/api/dist/src/store.js": "37d0b7ede047702ba922d79385794e12f847f90632971818369aad2bda4e0880",
+    "backend/api/dist/src/search.js": "45cda065dea3e9df21f3930bbea26b0fb4685a7ac106e7e2422ea6770b09419e"
+  },
+  "catalog": [
+    {
+      "id": "listing_keyboard_basic",
+      "title": "有线办公键盘",
+      "category": "外设",
+      "price": 40,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "有线 USB 连接，八成新，有少量使用痕迹，不支持蓝牙。"
+    },
+    {
+      "id": "listing_keyboard_mechanical",
+      "title": "Keychron 机械键盘",
+      "category": "外设",
+      "price": 80,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "九成新，红轴，支持蓝牙和 USB，包装盒在。"
+    },
+    {
+      "id": "listing_keyboard_new",
+      "title": "罗技 K380 蓝牙键盘",
+      "category": "外设",
+      "price": 120,
+      "condition": "new",
+      "campus": "张江校区",
+      "description": "全新未使用，支持蓝牙，适合平板输入。"
+    },
+    {
+      "id": "listing_mouse",
+      "title": "罗技无线鼠标",
+      "category": "外设",
+      "price": 25,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "USB 接收器齐全，八成新。"
+    },
+    {
+      "id": "listing_headphone",
+      "title": "蓝牙无线耳机",
+      "category": "外设",
+      "price": 70,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "九成新，支持蓝牙，耳罩干净。"
+    },
+    {
+      "id": "listing_monitor",
+      "title": "24 英寸显示器",
+      "category": "外设",
+      "price": 100,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "1080P，八成新。"
+    },
+    {
+      "id": "listing_laptop",
+      "title": "联想笔记本电脑",
+      "category": "数码",
+      "price": 950,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "8GB 内存，256GB 固态硬盘，可用于文档学习。"
+    },
+    {
+      "id": "listing_tablet",
+      "title": "学习平板",
+      "category": "数码",
+      "price": 600,
+      "condition": "like_new",
+      "campus": "张江校区",
+      "description": "九成新，可用于看课件。"
+    },
+    {
+      "id": "listing_math7",
+      "title": "高等数学高数教材",
+      "category": "教材",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区",
+      "version": "同济第七版",
+      "description": "同济第七版，少量铅笔笔记，微积分教材。"
+    },
+    {
+      "id": "listing_math8",
+      "title": "高等数学高数教材",
+      "category": "教材",
+      "price": 45,
+      "condition": "new",
+      "campus": "江湾校区",
+      "version": "同济第八版",
+      "description": "同济第八版，微积分课本，全新。"
+    },
+    {
+      "id": "listing_english_basic",
+      "title": "english book 英语课本",
+      "category": "教材",
+      "price": 35,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "大学英文教材，少量笔记，English textbook。"
+    },
+    {
+      "id": "listing_english_new",
+      "title": "英语课本 English book",
+      "category": "教材",
+      "price": 90,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "大学英文教材，九成新。"
+    },
+    {
+      "id": "listing_lamp",
+      "title": "学习台灯",
+      "category": "日用",
+      "price": 15,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "充电式 LED 台灯，适合宿舍熄灯后阅读。"
+    },
+    {
+      "id": "listing_bike",
+      "title": "通勤自行车",
+      "category": "运动",
+      "price": 120,
+      "condition": "good",
+      "campus": "江湾校区",
+      "description": "山地单车，刹车正常，适合校园通勤。"
+    },
+    {
+      "id": "listing_racket",
+      "title": "羽毛球拍",
+      "category": "运动",
+      "price": 45,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "适合羽毛球运动，八成新。"
+    },
+    {
+      "id": "listing_pen_01",
+      "title": "黑色中性笔 1",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_02",
+      "title": "黑色中性笔 2",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_03",
+      "title": "黑色中性笔 3",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_04",
+      "title": "黑色中性笔 4",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_05",
+      "title": "黑色中性笔 5",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_06",
+      "title": "黑色中性笔 6",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_07",
+      "title": "黑色中性笔 7",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_08",
+      "title": "黑色中性笔 8",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_09",
+      "title": "黑色中性笔 9",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_10",
+      "title": "黑色中性笔 10",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_11",
+      "title": "黑色中性笔 11",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_12",
+      "title": "黑色中性笔 12",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_13",
+      "title": "黑色中性笔 13",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_14",
+      "title": "黑色中性笔 14",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    }
+  ],
+  "presets": [
+    {
+      "name": "budget100",
+      "result": {
+        "message": "找100元以内的键盘",
+        "response": {
+          "requestId": "req_eval_8dbd92ad-2a5d-489c-bc87-be8f2d528bfe",
+          "sessionId": "session_1d372b6b-dc11-4787-95cc-4606cf320c34",
+          "status": "completed",
+          "reply": "找到 2 个符合条件的键盘（外设，100 元以内）：\n\n1. Keychron 机械键盘\n价格：80 元\n成色：九成新\n校区：江湾校区\n描述：红轴，支持蓝牙和 USB，包装盒在。\n\n2. 有线办公键盘\n价格：40 元\n成色：八成新\n校区：邯郸校区\n描述：有线 USB 连接，有少量使用痕迹，不支持蓝牙。\n\n需要我按价格、成色或校区进一步筛选，或对比这两款吗？",
+          "recommendations": [
+            {
+              "listingId": "listing_keyboard_mechanical",
+              "reasons": [
+                "售价 80 元，符合 100 元 以内预算",
+                "类别为 外设"
+              ]
+            },
+            {
+              "listingId": "listing_keyboard_basic",
+              "reasons": [
+                "售价 40 元，符合 100 元 以内预算",
+                "类别为 外设"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "键盘",
+          "category": "外设",
+          "maxPriceCents": 10000
+        },
+        "displayedListingIds": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "searchPage": 1,
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "键盘",
+              "category": "外设",
+              "maxPriceCents": 10000,
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_keyboard_mechanical",
+              "listing_keyboard_basic"
+            ],
+            "total": 2,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 961,
+              "completion_tokens": 60,
+              "total_tokens": 1021,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 193
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"键盘\",\"category\":\"外设\",\"minPriceCents\":null,\"maxPriceCents\":10000,\"campus\":null,\"preferredCampus\":null,\"condition\":null,\"version\":null},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "键盘",
+                "category": "外设",
+                "minPriceCents": null,
+                "maxPriceCents": 10000,
+                "campus": null,
+                "preferredCampus": null,
+                "condition": null,
+                "version": null
+              },
+              "positions": [],
+              "page": 1
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 664,
+              "completion_tokens": 114,
+              "total_tokens": 778,
+              "prompt_tokens_details": {
+                "cached_tokens": 512
+              },
+              "prompt_cache_hit_tokens": 512,
+              "prompt_cache_miss_tokens": 152
+            }
+          }
+        ],
+        "elapsedMs": 1956
+      },
+      "problems": []
+    }
+  ],
+  "cases": [
+    {
+      "id": "diagnostic-cheaper-1",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100",
+      "result": {
+        "message": "再便宜20元",
+        "response": {
+          "requestId": "req_eval_887d4fbd-d6c0-4eb0-aa66-2be68a779440",
+          "sessionId": "session_994e0738-9fc6-4983-b21f-de7d88df0a8b",
+          "status": "clarification",
+          "reply": "请告诉我想找的商品、预算或校区；查看和比较商品时，请指出本次展示的商品编号顺序。",
+          "recommendations": [],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "键盘",
+          "category": "外设",
+          "maxPriceCents": 10000
+        },
+        "displayedListingIds": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "searchPage": 1,
+        "action": "clarification",
+        "tools": [],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 976,
+              "completion_tokens": 18,
+              "total_tokens": 994,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 208
+            },
+            "rawPlan": "{\"action\":\"clarification\",\"changes\":{},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "clarification",
+              "changes": {},
+              "positions": [],
+              "page": 1
+            }
+          }
+        ],
+        "elapsedMs": 946
+      },
+      "passed": false,
+      "problems": [
+        "状态应为 completed，实际 clarification",
+        "商品应为 listing_keyboard_mechanical, listing_keyboard_basic，实际 空",
+        "maxPriceCents 应为 8000，实际 10000"
+      ]
+    },
+    {
+      "id": "diagnostic-cheaper-2",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100",
+      "result": {
+        "message": "再便宜20元",
+        "response": {
+          "requestId": "req_eval_273ac0b7-aaf4-495d-9abb-aa5d6f5ef1c9",
+          "sessionId": "session_e23585a1-25ed-4623-9cbe-624492e8fba9",
+          "status": "clarification",
+          "reply": "请告诉我想找的商品、预算或校区；查看和比较商品时，请指出本次展示的商品编号顺序。",
+          "recommendations": [],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "键盘",
+          "category": "外设",
+          "maxPriceCents": 10000
+        },
+        "displayedListingIds": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "searchPage": 1,
+        "action": "clarification",
+        "tools": [],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 976,
+              "completion_tokens": 18,
+              "total_tokens": 994,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 208
+            },
+            "rawPlan": "{\"action\":\"clarification\",\"changes\":{},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "clarification",
+              "changes": {},
+              "positions": [],
+              "page": 1
+            }
+          }
+        ],
+        "elapsedMs": 823
+      },
+      "passed": false,
+      "problems": [
+        "状态应为 completed，实际 clarification",
+        "商品应为 listing_keyboard_mechanical, listing_keyboard_basic，实际 空",
+        "maxPriceCents 应为 8000，实际 10000"
+      ]
+    },
+    {
+      "id": "diagnostic-cheaper-3",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100",
+      "result": {
+        "message": "再便宜20元",
+        "response": {
+          "requestId": "req_eval_ffff8bbf-2d2c-4163-8f09-2c8b2db6ebb2",
+          "sessionId": "session_01793672-e743-4c82-a329-b73fcdf7320f",
+          "status": "clarification",
+          "reply": "请告诉我想找的商品、预算或校区；查看和比较商品时，请指出本次展示的商品编号顺序。",
+          "recommendations": [],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "键盘",
+          "category": "外设",
+          "maxPriceCents": 10000
+        },
+        "displayedListingIds": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "searchPage": 1,
+        "action": "clarification",
+        "tools": [],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 976,
+              "completion_tokens": 18,
+              "total_tokens": 994,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 208
+            },
+            "rawPlan": "{\"action\":\"clarification\",\"changes\":{},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "clarification",
+              "changes": {},
+              "positions": [],
+              "page": 1
+            }
+          }
+        ],
+        "elapsedMs": 903
+      },
+      "passed": false,
+      "problems": [
+        "状态应为 completed，实际 clarification",
+        "商品应为 listing_keyboard_mechanical, listing_keyboard_basic，实际 空",
+        "maxPriceCents 应为 8000，实际 10000"
+      ]
+    },
+    {
+      "id": "diagnostic-version-separated",
+      "group": "诊断复核",
+      "scope": "core",
+      "message": "帮我找高数教材，版本同济第七版，40元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math7"
+        ],
+        "filters": {
+          "version": "同济第七版",
+          "maxPriceCents": 4000
+        }
+      },
+      "result": {
+        "message": "帮我找高数教材，版本同济第七版，40元以内",
+        "response": {
+          "requestId": "req_eval_a970f120-d2cb-460a-a818-b2c440ec60de",
+          "sessionId": "session_c00d415c-777a-499e-8b39-1c545f877f38",
+          "status": "completed",
+          "reply": "找到 1 个符合条件的商品：\n\n1. 高等数学高数教材\n价格：20 元\n成色：like_new\n校区：邯郸校区\n商品 ID：listing_math7\n描述：同济第七版，少量铅笔笔记，微积分教材。\n\n本轮条件：教材、同济第七版、关键词“高数”、价格上限 40 元。\n\n需要我按价格或成色帮你比较，还是继续看其他教材？",
+          "recommendations": [
+            {
+              "listingId": "listing_math7",
+              "reasons": [
+                "售价 20 元，符合 40 元 以内预算",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "高数",
+          "category": "教材",
+          "version": "同济第七版",
+          "maxPriceCents": 4000
+        },
+        "displayedListingIds": [
+          "listing_math7"
+        ],
+        "searchPage": 1,
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "高数",
+              "category": "教材",
+              "version": "同济第七版",
+              "maxPriceCents": 4000,
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_math7"
+            ],
+            "total": 1,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 970,
+              "completion_tokens": 39,
+              "total_tokens": 1009,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 202
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"高数\",\"category\":\"教材\",\"version\":\"同济第七版\",\"maxPriceCents\":4000},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "高数",
+                "category": "教材",
+                "version": "同济第七版",
+                "maxPriceCents": 4000
+              },
+              "positions": [],
+              "page": 1
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 591,
+              "completion_tokens": 93,
+              "total_tokens": 684,
+              "prompt_tokens_details": {
+                "cached_tokens": 256
+              },
+              "prompt_cache_hit_tokens": 256,
+              "prompt_cache_miss_tokens": 335
+            }
+          }
+        ],
+        "elapsedMs": 1792
+      },
+      "passed": true,
+      "problems": []
+    },
+    {
+      "id": "diagnostic-version-subject",
+      "group": "诊断复核",
+      "scope": "core",
+      "message": "高数教材，同济第七版，预算40元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math7"
+        ],
+        "filters": {
+          "version": "同济第七版",
+          "maxPriceCents": 4000
+        }
+      },
+      "result": {
+        "message": "高数教材，同济第七版，预算40元",
+        "response": {
+          "requestId": "req_eval_4cb0b4dd-7455-42ea-ad88-8f59b69a505b",
+          "sessionId": "session_079911cc-17c1-48c1-ac6f-d272300701df",
+          "status": "completed",
+          "reply": "找到 1 个符合条件的商品：\n\n1. 高等数学高数教材\n价格：20 元\n成色：like_new\n校区：邯郸校区\n商品 ID：listing_math7\n描述：同济第七版，少量铅笔笔记，微积分教材。\n\n需要我按价格或成色再帮你筛选，或查看其他教材吗？",
+          "recommendations": [
+            {
+              "listingId": "listing_math7",
+              "reasons": [
+                "售价 20 元，符合 40 元 以内预算",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "高数教材",
+          "category": "教材",
+          "version": "同济第七版",
+          "maxPriceCents": 4000
+        },
+        "displayedListingIds": [
+          "listing_math7"
+        ],
+        "searchPage": 1,
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "高数教材",
+              "category": "教材",
+              "version": "同济第七版",
+              "maxPriceCents": 4000,
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_math7"
+            ],
+            "total": 1,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 967,
+              "completion_tokens": 40,
+              "total_tokens": 1007,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 199
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"高数教材\",\"category\":\"教材\",\"version\":\"同济第七版\",\"maxPriceCents\":4000},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "高数教材",
+                "category": "教材",
+                "version": "同济第七版",
+                "maxPriceCents": 4000
+              },
+              "positions": [],
+              "page": 1
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 593,
+              "completion_tokens": 73,
+              "total_tokens": 666,
+              "prompt_tokens_details": {
+                "cached_tokens": 256
+              },
+              "prompt_cache_hit_tokens": 256,
+              "prompt_cache_miss_tokens": 337
+            }
+          }
+        ],
+        "elapsedMs": 1752
+      },
+      "passed": true,
+      "problems": []
+    },
+    {
+      "id": "diagnostic-explicit-price",
+      "group": "诊断复核",
+      "scope": "core",
+      "preset": "budget100",
+      "message": "把预算上限改成80元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "result": {
+        "message": "把预算上限改成80元",
+        "response": {
+          "requestId": "req_eval_5a6c1da3-02cb-4f37-ab68-065a49493a12",
+          "sessionId": "session_72d6a2fc-6465-4c41-ab40-5c84115ad2e2",
+          "status": "completed",
+          "reply": "按当前条件（关键词：键盘，品类：外设，价格上限：80 元）找到 2 件商品：\n\n1. Keychron 机械键盘\n价格：80 元\n成色：like_new\n校区：江湾校区\n描述：九成新，红轴，支持蓝牙和 USB，包装盒在。\n\n2. 有线办公键盘\n价格：40 元\n成色：good\n校区：邯郸校区\n描述：有线 USB 连接，八成新，有少量使用痕迹，不支持蓝牙。\n\n需要我按价格、成色或校区进一步筛选，或对比这两件吗？",
+          "recommendations": [
+            {
+              "listingId": "listing_keyboard_mechanical",
+              "reasons": [
+                "售价 80 元，符合 80 元 以内预算",
+                "类别为 外设"
+              ]
+            },
+            {
+              "listingId": "listing_keyboard_basic",
+              "reasons": [
+                "售价 40 元，符合 80 元 以内预算",
+                "类别为 外设"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "键盘",
+          "category": "外设",
+          "maxPriceCents": 8000
+        },
+        "displayedListingIds": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "searchPage": 1,
+        "action": "refine",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "键盘",
+              "category": "外设",
+              "maxPriceCents": 8000,
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_keyboard_mechanical",
+              "listing_keyboard_basic"
+            ],
+            "total": 2,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 978,
+              "completion_tokens": 25,
+              "total_tokens": 1003,
+              "prompt_tokens_details": {
+                "cached_tokens": 768
+              },
+              "prompt_cache_hit_tokens": 768,
+              "prompt_cache_miss_tokens": 210
+            },
+            "rawPlan": "{\"action\":\"refine\",\"changes\":{\"maxPriceCents\":8000},\"positions\":[],\"page\":1}",
+            "plan": {
+              "action": "refine",
+              "changes": {
+                "maxPriceCents": 8000
+              },
+              "positions": [],
+              "page": 1
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 665,
+              "completion_tokens": 130,
+              "total_tokens": 795,
+              "prompt_tokens_details": {
+                "cached_tokens": 512
+              },
+              "prompt_cache_hit_tokens": 512,
+              "prompt_cache_miss_tokens": 153
+            }
+          }
+        ],
+        "elapsedMs": 1722
+      },
+      "passed": true,
+      "problems": []
+    }
+  ],
+  "completedAt": "2026-10-12T12:22:14.694Z",
+  "summary": {
+    "core": {
+      "total": 6,
+      "passed": 3,
+      "failed": 3,
+      "blocked": 0
+    },
+    "extension": {
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "blocked": 0
+    }
+  },
+  "modelRequests": 11
+}

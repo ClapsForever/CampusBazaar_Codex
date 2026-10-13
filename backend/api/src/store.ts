@@ -6,8 +6,9 @@ import type { Config } from './config.js';
 import { transaction } from './db.js';
 import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalText, positiveInt, text, tokenHash } from './http.js';
 import { categorySearchSpec, keywordGroups } from './search.js';
+import { hashPassword, validatePassword, verifyPassword } from './password.js';
 
-type UserRow = { id: string; phone: string; nickname: string; avatar: string; school_id: string };
+type UserRow = { id: string; phone: string; nickname: string; avatar: string; school_id: string; password_hash: string | null };
 type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD'; published_at: number };
 type TransactionRow = { id: string; product_id: string; buyer_id: string; seller_id: string; school_id: string; create_time: number; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED'; price_cents: number; title_snapshot: string };
 type MessageRow = { id: string; transaction_id: string; sender_id: string; content: string; send_time: number };
@@ -17,10 +18,11 @@ const productIdPattern = /^listing_[a-z0-9_-]{1,64}$/;
 const conditions = ['new', 'like_new', 'good', 'fair', 'unknown'];
 
 export class Store {
+  private passwordFailures = new Map<string, { count: number; until: number }>();
   constructor(public db: DatabaseSync, public config: Config) {}
 
   cleanupAbandonedUploads(now = Date.now()): number {
-    const rows = this.db.prepare('SELECT id,extension FROM product_images WHERE product_id IS NULL AND created_at<?')
+    const rows = this.db.prepare('SELECT id,extension FROM product_images WHERE product_id IS NULL AND NOT EXISTS (SELECT 1 FROM users WHERE avatar=product_images.id) AND created_at<?')
       .all(now - 86_400_000) as { id: string; extension: string }[];
     let removed = 0;
     for (const row of rows) {
@@ -33,8 +35,10 @@ export class Store {
     return removed;
   }
 
-  user(row: UserRow): Record<string, unknown> {
-    return { id: row.id, nickname: row.nickname, avatar: row.avatar, phone: row.phone };
+  user(row: UserRow, own = false): Record<string, unknown> {
+    return { id: row.id, nickname: row.nickname,
+      avatar: /^img_[a-f0-9]{32}$/.test(row.avatar) ? this.imageUrl(row.avatar) : row.avatar,
+      phone: row.phone, ...(own ? { hasPassword: !!row.password_hash } : {}) };
   }
 
   findUser(id: string): UserRow | undefined {
@@ -56,12 +60,81 @@ export class Store {
           .run(id, phone, `同学${phone.slice(-4)}`, '', this.config.schoolId, now);
         row = this.findUser(id)!;
       }
-      const token = randomBytes(32).toString('base64url');
-      const expiresAt = now + 7 * 86_400_000;
-      this.db.prepare('INSERT INTO auth_sessions(id,user_id,token_hash,expires_at) VALUES(?,?,?,?)')
-        .run(`auth_${randomUUID()}`, row.id, tokenHash(token, this.config), expiresAt);
-      return { user: this.user(row), token, expiresAt };
+      return this.issueSession(row);
     });
+  }
+
+  private issueSession(row: UserRow): { user: Record<string, unknown>; token: string; expiresAt: number } {
+    const token = randomBytes(32).toString('base64url');
+    const expiresAt = Date.now() + 7 * 86_400_000;
+    this.db.prepare('INSERT INTO auth_sessions(id,user_id,token_hash,expires_at) VALUES(?,?,?,?)')
+      .run(`auth_${randomUUID()}`, row.id, tokenHash(token, this.config), expiresAt);
+    return { user: this.user(row, true), token, expiresAt };
+  }
+
+  async loginWithPassword(body: Record<string, unknown>) {
+    const phone = text(body.phone, '手机号', 11, 11);
+    if (!/^1\d{10}$/.test(phone)) throw new ApiError(400, 'BAD_REQUEST', '请输入 11 位手机号');
+    const failure = this.passwordFailures.get(phone);
+    if (failure && failure.until > Date.now() && failure.count >= 5) {
+      throw new ApiError(429, 'TOO_MANY_ATTEMPTS', '尝试次数过多，请 15 分钟后重试');
+    }
+    const row = this.db.prepare('SELECT * FROM users WHERE phone=?').get(phone) as UserRow | undefined;
+    // Derive a key for unknown accounts too; never reveal whether an account exists.
+    const valid = await verifyPassword(body.password,
+      row?.password_hash ?? `scrypt:${'0'.repeat(32)}:${'0'.repeat(128)}`);
+    if (!row?.password_hash || !valid) {
+      if (this.passwordFailures.size >= 10000) this.passwordFailures.delete(this.passwordFailures.keys().next().value!);
+      this.passwordFailures.set(phone, { count: failure && failure.until > Date.now() ? failure.count + 1 : 1,
+        until: Date.now() + 15 * 60_000 });
+      throw new ApiError(401, 'INVALID_CREDENTIALS', '手机号或密码错误');
+    }
+    this.passwordFailures.delete(phone);
+    // Do not issue a session if a concurrent password change revoked this credential.
+    return transaction(this.db, () => {
+      const fresh = this.findUser(row.id)!;
+      if (fresh.password_hash !== row.password_hash) throw new ApiError(401, 'INVALID_CREDENTIALS', '密码已变更，请重试');
+      return this.issueSession(fresh);
+    });
+  }
+
+  updateProfile(user: UserRow, body: Record<string, unknown>): Record<string, unknown> {
+    const nickname = body.nickname === undefined ? user.nickname : text(body.nickname, '昵称', 1, 24);
+    const avatar = body.avatarId === undefined ? user.avatar : text(body.avatarId, '头像', 1, 100);
+    if (body.avatarId !== undefined) {
+      const image = this.image(avatar);
+      if (!image || image.owner_id !== user.id || image.product_id) {
+        throw new ApiError(403, 'IMAGE_FORBIDDEN', '请选择自己上传的头像');
+      }
+    }
+    this.db.prepare('UPDATE users SET nickname=?,avatar=? WHERE id=?').run(nickname, avatar, user.id);
+    return this.user(this.findUser(user.id)!, true);
+  }
+
+  async changePassword(user: UserRow, body: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
+    const password = validatePassword(body.newPassword);
+    if (user.password_hash) {
+      if (!await verifyPassword(body.currentPassword, user.password_hash)) {
+        throw new ApiError(401, 'INVALID_PASSWORD', '当前密码不正确');
+      }
+    } else if (body.smsCode !== this.config.devLoginCode) {
+      throw new ApiError(401, 'INVALID_CODE', '验证码错误');
+    }
+    const hash = await hashPassword(password);
+    return transaction(this.db, () => {
+      const fresh = this.findUser(user.id)!;
+      if (fresh.password_hash !== user.password_hash) throw new ApiError(409, 'PASSWORD_CHANGED', '密码已变更，请刷新后重试');
+      this.authenticate(token);
+      this.db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hash, user.id);
+      this.db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL')
+        .run(Date.now(), user.id, tokenHash(token, this.config));
+      return this.user(this.findUser(user.id)!, true);
+    });
+  }
+
+  isAvatar(id: string, schoolId?: string): boolean {
+    return !!this.db.prepare(`SELECT 1 FROM users WHERE avatar=? ${schoolId ? 'AND school_id=?' : ''}`)
+      .get(...(schoolId ? [id, schoolId] : [id]));
   }
 
   authenticate(token: string): UserRow {
@@ -154,7 +227,7 @@ export class Store {
     transaction(this.db, () => {
       for (const imageId of imageIds) {
         const image = this.image(imageId);
-        if (!image || image.owner_id !== user.id || image.product_id) throw new ApiError(403, 'IMAGE_FORBIDDEN', '图片不属于当前用户或已被使用');
+        if (!image || image.owner_id !== user.id || image.product_id || this.isAvatar(imageId)) throw new ApiError(403, 'IMAGE_FORBIDDEN', '图片不属于当前用户或已被使用');
       }
       this.db.prepare(`INSERT INTO products(id,seller_id,school_id,title,description,price_cents,category,condition,campus,version,status,published_at)
         VALUES(?,?,?,?,?,?,?,?,?,?,'ACTIVE',?)`).run(id, user.id, user.school_id, title, description, priceCents, category, condition, campus, version, now);
@@ -295,6 +368,47 @@ export class Store {
     if (!row) this.db.prepare('INSERT INTO agent_sessions VALUES(?,?,?)').run(sessionId, user.id, Date.now());
   }
 
+  saveAgentTurn(sessionId: string, user: UserRow, question: string, response: Record<string, unknown>): void {
+    transaction(this.db, () => {
+      this.rememberAgentSession(sessionId, user);
+      const previous = this.db.prepare('SELECT question FROM agent_turns WHERE session_id=? AND request_id=?')
+        .get(sessionId, response.requestId as string) as { question: string } | undefined;
+      if (previous && previous.question !== question) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', '请求编号已用于其他问题');
+      if (!previous) this.db.prepare('INSERT INTO agent_turns(session_id,request_id,question,response_json,created_at) VALUES(?,?,?,?,?)')
+        .run(sessionId, response.requestId as string, question, JSON.stringify(response), Date.now());
+    });
+  }
+
+  agentHistory(user: UserRow, params: URLSearchParams): Record<string, unknown> {
+    const limit = params.has('limit') ? positiveInt(params.get('limit'), 'limit', 100) : 20;
+    const cursor = cursorDecode(params.get('cursor'));
+    const rows = this.db.prepare(`SELECT s.session_id,s.created_at,
+      (SELECT question FROM agent_turns WHERE session_id=s.session_id ORDER BY id LIMIT 1) AS title,
+      (SELECT COUNT(*) FROM agent_turns WHERE session_id=s.session_id) AS turn_count,
+      (SELECT MAX(created_at) FROM agent_turns WHERE session_id=s.session_id) AS updated_at
+      FROM agent_sessions s WHERE user_id=? AND EXISTS (SELECT 1 FROM agent_turns WHERE session_id=s.session_id)
+      ${cursor ? 'AND (s.created_at<? OR (s.created_at=? AND s.session_id<?))' : ''}
+      ORDER BY s.created_at DESC,s.session_id DESC LIMIT ?`)
+      .all(user.id, ...(cursor ? [cursor[0], cursor[0], cursor[1]] : []), limit + 1) as {
+        session_id: string; created_at: number; title: string; turn_count: number; updated_at: number
+      }[];
+    const slice = rows.slice(0, limit), last = slice.at(-1);
+    return { items: slice.map(row => ({ sessionId: row.session_id, title: row.title,
+      createdAt: row.created_at, updatedAt: row.updated_at, turnCount: row.turn_count })),
+      nextCursor: rows.length > limit && last ? cursorEncode(last.created_at, last.session_id) : null };
+  }
+
+  agentHistoryTurns(user: UserRow, sessionId: string, params: URLSearchParams): Record<string, unknown> {
+    this.agentSessionOwned(sessionId, user);
+    const limit = params.has('limit') ? positiveInt(params.get('limit'), 'limit', 100) : 50;
+    const cursor = params.has('cursor') ? positiveInt(params.get('cursor'), 'cursor', Number.MAX_SAFE_INTEGER) : 0;
+    const rows = this.db.prepare('SELECT * FROM agent_turns WHERE session_id=? AND id>? ORDER BY id LIMIT ?')
+      .all(sessionId, cursor, limit + 1) as { id: number; question: string; response_json: string; created_at: number }[];
+    const slice = rows.slice(0, limit), last = slice.at(-1);
+    return { items: slice.map(row => ({ question: row.question, createdAt: row.created_at,
+      response: JSON.parse(row.response_json) as unknown })), nextCursor: rows.length > limit && last ? String(last.id) : null };
+  }
+
   internalUser(userId: string, schoolId: string): UserRow {
     const row = this.findUser(userId);
     if (!row || row.school_id !== schoolId) throw new ApiError(403, 'FORBIDDEN', '用户或学校范围无效');
@@ -353,7 +467,16 @@ export class Store {
       ['campus','campus',100], ['condition','condition',30], ['version','version',100]
     ] as const) {
       const value = params.get(key);
-      if (value) { const checked = text(value, key, 1, max); hard[key] = checked; where.push(`p.${column}=?`); args.push(checked); }
+      if (value) {
+        const checked = text(value, key, 1, max); hard[key] = checked;
+        if (key === 'condition') {
+          const rank = ['unknown', 'fair', 'good', 'like_new', 'new'];
+          const index = rank.indexOf(checked);
+          if (index < 0) throw new ApiError(400, 'BAD_REQUEST', '成色不支持');
+          const allowed = rank.slice(index);
+          where.push(`p.condition IN (${allowed.map(() => '?').join(',')})`); args.push(...allowed);
+        } else { where.push(`p.${column}=?`); args.push(checked); }
+      }
     }
     const keyword = params.get('keyword');
     if (keyword) {
@@ -371,6 +494,21 @@ export class Store {
       if (value !== null) { const num = Number(value); if (!Number.isSafeInteger(num) || num < 0 || num > 10_000_000) throw new ApiError(400, 'BAD_REQUEST', `${key} 无效`);
         hard[key] = num; where.push(`p.price_cents${op}?`); args.push(num); }
     }
+    const excluded = params.get('excludeKeywords');
+    if (excluded !== null) {
+      let values: unknown;
+      try { values = JSON.parse(excluded); } catch { throw new ApiError(400, 'BAD_REQUEST', '排除关键词格式不正确'); }
+      if (!Array.isArray(values) || values.length > 5 || values.some(v => typeof v !== 'string' || v.length < 1 || v.length > 40)) throw new ApiError(400, 'BAD_REQUEST', '排除关键词不支持');
+      hard.excludeKeywords = values;
+      for (const value of values as string[]) {
+        const groups = keywordGroups(value);
+        where.push(`NOT (${groups.map(aliases => `(${aliases.map(() => '(instr(lower(p.title),lower(?))>0 OR instr(lower(p.category),lower(?))>0 OR instr(lower(p.description),lower(?))>0 OR instr(lower(coalesce(p.version,\'\')),lower(?))>0)').join(' OR ')})`).join(' AND ')})`);
+        for (const aliases of groups) for (const alias of aliases) args.push(alias, alias, alias, alias);
+      }
+    }
+    const sort = params.get('sort');
+    if (sort && !['price_asc', 'price_desc', 'published_desc'].includes(sort)) throw new ApiError(400, 'BAD_REQUEST', '排序方式不支持');
+    if (sort) hard.sort = sort;
     const preferredCampus = params.get('preferredCampus');
     if (preferredCampus) soft.preferredCampus = text(preferredCampus, 'preferredCampus', 1, 100);
     const clause = where.join(' AND ');
@@ -378,7 +516,8 @@ export class Store {
     const offset = (page - 1) * pageSize;
     const preferredOrder = preferredCampus ? 'CASE WHEN p.campus=? THEN 0 ELSE 1 END,' : '';
     const orderArgs = preferredCampus ? [preferredCampus] : [];
-    const rows = this.db.prepare(`SELECT p.* FROM products p WHERE ${clause} ORDER BY ${preferredOrder}p.published_at DESC,p.id DESC LIMIT ? OFFSET ?`)
+    const priceOrder = sort === 'price_asc' ? 'p.price_cents ASC,' : sort === 'price_desc' ? 'p.price_cents DESC,' : '';
+    const rows = this.db.prepare(`SELECT p.* FROM products p WHERE ${clause} ORDER BY ${priceOrder}${preferredOrder}p.published_at DESC,p.id DESC LIMIT ? OFFSET ?`)
       .all(...args, ...orderArgs, pageSize, offset) as ProductRow[];
     return { listings: rows.map(row => this.listing(row)), page, pageSize, total, hasMore: offset + rows.length < total,
       appliedConditions: { hard, soft }, source: 'business_backend' };

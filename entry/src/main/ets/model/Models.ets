@@ -12,6 +12,7 @@ export interface User {
   avatar: string;
   phone?: string;
   studentId?: string;
+  hasPassword?: boolean;
 }
 
 export interface Product {
@@ -99,6 +100,30 @@ export interface AgentChatResponse {
 export interface AgentListingRecommendation {
   listingId: string;
   reasons: string[];
+}
+
+export interface AgentConversationSummary {
+  sessionId: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  turnCount: number;
+}
+
+export interface AgentHistoryTurn {
+  question: string;
+  createdAt: number;
+  response: AgentChatResponse;
+}
+
+export interface AgentHistoryPage {
+  items: AgentConversationSummary[];
+  nextCursor: string | null;
+}
+
+export interface AgentHistoryTurnPage {
+  items: AgentHistoryTurn[];
+  nextCursor: string | null;
 }
 
 export interface PublishDraft {

@@ -1,0 +1,464 @@
+{
+  "description": "真实模型改写评测；价格以元表示，所有商品为合成数据。core 为已有契约能力，extension 为常见但尚无明确实现的需求。取消预算、同学科切换和翻页均检查实际服务端条件与推荐，不以回复自称成功为准。",
+  "fixtures": [
+    {
+      "id": "listing_keyboard_basic",
+      "title": "有线办公键盘",
+      "category": "外设",
+      "price": 40,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "有线 USB 连接，八成新，有少量使用痕迹，不支持蓝牙。"
+    },
+    {
+      "id": "listing_keyboard_mechanical",
+      "title": "Keychron 机械键盘",
+      "category": "外设",
+      "price": 80,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "九成新，红轴，支持蓝牙和 USB，包装盒在。"
+    },
+    {
+      "id": "listing_keyboard_new",
+      "title": "罗技 K380 蓝牙键盘",
+      "category": "外设",
+      "price": 120,
+      "condition": "new",
+      "campus": "张江校区",
+      "description": "全新未使用，支持蓝牙，适合平板输入。"
+    },
+    {
+      "id": "listing_mouse",
+      "title": "罗技无线鼠标",
+      "category": "外设",
+      "price": 25,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "USB 接收器齐全，八成新。"
+    },
+    {
+      "id": "listing_headphone",
+      "title": "蓝牙无线耳机",
+      "category": "外设",
+      "price": 70,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "九成新，支持蓝牙，耳罩干净。"
+    },
+    {
+      "id": "listing_monitor",
+      "title": "24 英寸显示器",
+      "category": "外设",
+      "price": 100,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "1080P，八成新。"
+    },
+    {
+      "id": "listing_laptop",
+      "title": "联想笔记本电脑",
+      "category": "数码",
+      "price": 950,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "8GB 内存，256GB 固态硬盘，可用于文档学习。"
+    },
+    {
+      "id": "listing_tablet",
+      "title": "学习平板",
+      "category": "数码",
+      "price": 600,
+      "condition": "like_new",
+      "campus": "张江校区",
+      "description": "九成新，可用于看课件。"
+    },
+    {
+      "id": "listing_math7",
+      "title": "高等数学高数教材",
+      "category": "教材",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区",
+      "version": "同济第七版",
+      "description": "同济第七版，少量铅笔笔记，微积分教材。"
+    },
+    {
+      "id": "listing_math8",
+      "title": "高等数学高数教材",
+      "category": "教材",
+      "price": 45,
+      "condition": "new",
+      "campus": "江湾校区",
+      "version": "同济第八版",
+      "description": "同济第八版，微积分课本，全新。"
+    },
+    {
+      "id": "listing_english_basic",
+      "title": "english book 英语课本",
+      "category": "教材",
+      "price": 35,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "大学英文教材，少量笔记，English textbook。"
+    },
+    {
+      "id": "listing_english_new",
+      "title": "英语课本 English book",
+      "category": "教材",
+      "price": 90,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "大学英文教材，九成新。"
+    },
+    {
+      "id": "listing_lamp",
+      "title": "学习台灯",
+      "category": "日用",
+      "price": 15,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "充电式 LED 台灯，适合宿舍熄灯后阅读。"
+    },
+    {
+      "id": "listing_bike",
+      "title": "通勤自行车",
+      "category": "运动",
+      "price": 120,
+      "condition": "good",
+      "campus": "江湾校区",
+      "description": "山地单车，刹车正常，适合校园通勤。"
+    },
+    {
+      "id": "listing_racket",
+      "title": "羽毛球拍",
+      "category": "运动",
+      "price": 45,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "适合羽毛球运动，八成新。"
+    },
+    {
+      "id": "listing_pen_01",
+      "title": "黑色中性笔 1",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_02",
+      "title": "黑色中性笔 2",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_03",
+      "title": "黑色中性笔 3",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_04",
+      "title": "黑色中性笔 4",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_05",
+      "title": "黑色中性笔 5",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_06",
+      "title": "黑色中性笔 6",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_07",
+      "title": "黑色中性笔 7",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_08",
+      "title": "黑色中性笔 8",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_09",
+      "title": "黑色中性笔 9",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_10",
+      "title": "黑色中性笔 10",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_11",
+      "title": "黑色中性笔 11",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_12",
+      "title": "黑色中性笔 12",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_13",
+      "title": "黑色中性笔 13",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_14",
+      "title": "黑色中性笔 14",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    }
+  ],
+  "presets": {
+    "budget": {
+      "message": "找50元以内的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    "budget100": {
+      "message": "找100元以内的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 10000
+        }
+      }
+    },
+    "quality": {
+      "message": "找全新键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new"
+        ],
+        "filters": {
+          "condition": "new"
+        }
+      }
+    },
+    "campus": {
+      "message": "找键盘，只要江湾校区",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "filters": {
+          "campus": "江湾校区"
+        }
+      }
+    },
+    "math": {
+      "message": "找50元以内的高数教材",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math8",
+          "listing_math7"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    "pens": {
+      "message": "找中性笔",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_14",
+          "listing_pen_13",
+          "listing_pen_12",
+          "listing_pen_11",
+          "listing_pen_10",
+          "listing_pen_09",
+          "listing_pen_08",
+          "listing_pen_07",
+          "listing_pen_06",
+          "listing_pen_05"
+        ],
+        "page": 1
+      }
+    },
+    "keyboards": {
+      "message": "找键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "diagnostic-cheaper-1",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100"
+    },
+    {
+      "id": "diagnostic-cheaper-2",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100"
+    },
+    {
+      "id": "diagnostic-cheaper-3",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100"
+    },
+    {
+      "id": "diagnostic-version-separated",
+      "group": "诊断复核",
+      "scope": "core",
+      "message": "帮我找高数教材，版本同济第七版，40元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math7"
+        ],
+        "filters": {
+          "version": "同济第七版",
+          "maxPriceCents": 4000
+        }
+      }
+    },
+    {
+      "id": "diagnostic-version-subject",
+      "group": "诊断复核",
+      "scope": "core",
+      "message": "高数教材，同济第七版，预算40元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math7"
+        ],
+        "filters": {
+          "version": "同济第七版",
+          "maxPriceCents": 4000
+        }
+      }
+    },
+    {
+      "id": "diagnostic-explicit-price",
+      "group": "诊断复核",
+      "scope": "core",
+      "preset": "budget100",
+      "message": "把预算上限改成80元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      }
+    }
+  ]
+}

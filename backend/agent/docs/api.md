@@ -61,7 +61,7 @@ x-school-id: school_demo
 
 服务端根据经过校验的业务意图选择以下只读工具；计划模型和表述模型都不获得工具执行权限：
 
-- `searchListings`：关键词、类别、价格分、硬性校区、偏好校区、成色、版本和分页。
+- `searchListings`：关键词、类别、价格分、硬性校区、偏好校区、最低成色、版本、价格排序、排除关键词和分页。`sort` 可为 `price_asc`、`price_desc`、`published_desc`；`excludeKeywords` 最多5项、每项40字，通过 HTTP 查询时编码为 JSON 数组；`resultLimit` 为1–10，在服务端转为不超过 `MAX_RESULTS` 的查询 `pageSize`。
 - `getListingDetail`：只读取本轮指定的、上次实际展示的 `listingId`，并且后端每次重新检查权限和商品状态。
 - `getUserPreferences`：不接收身份参数，从服务端注入的用户上下文确定用户。
 

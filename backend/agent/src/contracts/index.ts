@@ -41,6 +41,9 @@ export interface SearchFilters {
   preferredCampus?: string;
   condition?: ListingCondition;
   version?: string;
+  sort?: "price_asc" | "price_desc" | "published_desc";
+  resultLimit?: number;
+  excludeKeywords?: string[];
 }
 
 export interface SearchListingsInput extends SearchFilters {

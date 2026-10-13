@@ -8,6 +8,7 @@ export interface SessionRecord {
   messages: AgentMessage[];
   filters: SearchFilters;
   displayedListingIds: string[];
+  displayedProducts?: Array<{ listingId: string; title: string }>;
   searchPage: number;
   createdAt: number;
   updatedAt: number;

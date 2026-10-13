@@ -1,0 +1,1193 @@
+{
+  "description": "真实模型改写评测；价格以元表示，所有商品为合成数据。core 为已有契约能力，extension 为常见但尚无明确实现的需求。取消预算、同学科切换和翻页均检查实际服务端条件与推荐，不以回复自称成功为准。",
+  "fixtures": [
+    {
+      "id": "listing_keyboard_basic",
+      "title": "有线办公键盘",
+      "category": "外设",
+      "price": 40,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "有线 USB 连接，八成新，有少量使用痕迹，不支持蓝牙。"
+    },
+    {
+      "id": "listing_keyboard_mechanical",
+      "title": "Keychron 机械键盘",
+      "category": "外设",
+      "price": 80,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "九成新，红轴，支持蓝牙和 USB，包装盒在。"
+    },
+    {
+      "id": "listing_keyboard_new",
+      "title": "罗技 K380 蓝牙键盘",
+      "category": "外设",
+      "price": 120,
+      "condition": "new",
+      "campus": "张江校区",
+      "description": "全新未使用，支持蓝牙，适合平板输入。"
+    },
+    {
+      "id": "listing_mouse",
+      "title": "罗技无线鼠标",
+      "category": "外设",
+      "price": 25,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "USB 接收器齐全，八成新。"
+    },
+    {
+      "id": "listing_headphone",
+      "title": "蓝牙无线耳机",
+      "category": "外设",
+      "price": 70,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "九成新，支持蓝牙，耳罩干净。"
+    },
+    {
+      "id": "listing_monitor",
+      "title": "24 英寸显示器",
+      "category": "外设",
+      "price": 100,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "1080P，八成新。"
+    },
+    {
+      "id": "listing_laptop",
+      "title": "联想笔记本电脑",
+      "category": "数码",
+      "price": 950,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "8GB 内存，256GB 固态硬盘，可用于文档学习。"
+    },
+    {
+      "id": "listing_tablet",
+      "title": "学习平板",
+      "category": "数码",
+      "price": 600,
+      "condition": "like_new",
+      "campus": "张江校区",
+      "description": "九成新，可用于看课件。"
+    },
+    {
+      "id": "listing_math7",
+      "title": "高等数学高数教材",
+      "category": "教材",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区",
+      "version": "同济第七版",
+      "description": "同济第七版，少量铅笔笔记，微积分教材。"
+    },
+    {
+      "id": "listing_math8",
+      "title": "高等数学高数教材",
+      "category": "教材",
+      "price": 45,
+      "condition": "new",
+      "campus": "江湾校区",
+      "version": "同济第八版",
+      "description": "同济第八版，微积分课本，全新。"
+    },
+    {
+      "id": "listing_english_basic",
+      "title": "english book 英语课本",
+      "category": "教材",
+      "price": 35,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "大学英文教材，少量笔记，English textbook。"
+    },
+    {
+      "id": "listing_english_new",
+      "title": "英语课本 English book",
+      "category": "教材",
+      "price": 90,
+      "condition": "like_new",
+      "campus": "江湾校区",
+      "description": "大学英文教材，九成新。"
+    },
+    {
+      "id": "listing_lamp",
+      "title": "学习台灯",
+      "category": "日用",
+      "price": 15,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "充电式 LED 台灯，适合宿舍熄灯后阅读。"
+    },
+    {
+      "id": "listing_bike",
+      "title": "通勤自行车",
+      "category": "运动",
+      "price": 120,
+      "condition": "good",
+      "campus": "江湾校区",
+      "description": "山地单车，刹车正常，适合校园通勤。"
+    },
+    {
+      "id": "listing_racket",
+      "title": "羽毛球拍",
+      "category": "运动",
+      "price": 45,
+      "condition": "good",
+      "campus": "邯郸校区",
+      "description": "适合羽毛球运动，八成新。"
+    },
+    {
+      "id": "listing_pen_01",
+      "title": "黑色中性笔 1",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_02",
+      "title": "黑色中性笔 2",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_03",
+      "title": "黑色中性笔 3",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_04",
+      "title": "黑色中性笔 4",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_05",
+      "title": "黑色中性笔 5",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_06",
+      "title": "黑色中性笔 6",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_07",
+      "title": "黑色中性笔 7",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_08",
+      "title": "黑色中性笔 8",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_09",
+      "title": "黑色中性笔 9",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_10",
+      "title": "黑色中性笔 10",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_11",
+      "title": "黑色中性笔 11",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_12",
+      "title": "黑色中性笔 12",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_13",
+      "title": "黑色中性笔 13",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    },
+    {
+      "id": "listing_pen_14",
+      "title": "黑色中性笔 14",
+      "category": "其他",
+      "price": 3,
+      "condition": "new",
+      "campus": "邯郸校区",
+      "description": "0.5mm 黑色墨水中性笔。"
+    }
+  ],
+  "presets": {
+    "budget": {
+      "message": "找50元以内的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    "budget100": {
+      "message": "找100元以内的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 10000
+        }
+      }
+    },
+    "quality": {
+      "message": "找全新键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new"
+        ],
+        "filters": {
+          "condition": "new"
+        }
+      }
+    },
+    "campus": {
+      "message": "找键盘，只要江湾校区",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "filters": {
+          "campus": "江湾校区"
+        }
+      }
+    },
+    "math": {
+      "message": "找50元以内的高数教材",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math8",
+          "listing_math7"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    "pens": {
+      "message": "找中性笔",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_14",
+          "listing_pen_13",
+          "listing_pen_12",
+          "listing_pen_11",
+          "listing_pen_10",
+          "listing_pen_09",
+          "listing_pen_08",
+          "listing_pen_07",
+          "listing_pen_06",
+          "listing_pen_05"
+        ],
+        "page": 1
+      }
+    },
+    "keyboards": {
+      "message": "找键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "search-01",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "帮我找50元以内的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-02",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "想收个键盘，别超过五十块",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-03",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "键盘有吗？我就五十块预算",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-04",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "求个键盘，50元封顶",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-05",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "有没有便宜点的键盘？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ]
+      }
+    },
+    {
+      "id": "search-06",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "Find a keyboard under 50 yuan",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-07",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "帮我找个耳机，100元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_headphone"
+        ],
+        "filters": {
+          "maxPriceCents": 10000
+        }
+      }
+    },
+    {
+      "id": "search-08",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "有蓝牙无线耳机吗？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_headphone"
+        ]
+      }
+    },
+    {
+      "id": "search-09",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "找个英语书，50元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_english_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-10",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "Please find an English book under 50 yuan",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_english_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-11",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "明天高数开课了，想淘本二手课本，50元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math8",
+          "listing_math7"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "search-12",
+      "group": "商品问法",
+      "scope": "core",
+      "message": "帮我找同济第七版高数教材，40元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_math7"
+        ],
+        "filters": {
+          "maxPriceCents": 4000,
+          "version": "同济第七版"
+        }
+      }
+    },
+    {
+      "id": "price-01",
+      "group": "价格理解",
+      "scope": "core",
+      "message": "找50到100元的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "filters": {
+          "minPriceCents": 5000,
+          "maxPriceCents": 10000
+        }
+      }
+    },
+    {
+      "id": "price-02",
+      "group": "价格理解",
+      "scope": "core",
+      "message": "键盘，预算五十元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "price-03",
+      "group": "价格理解",
+      "scope": "core",
+      "message": "键盘不要超过50块钱",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "price-04",
+      "group": "价格理解",
+      "scope": "core",
+      "message": "找键盘，上限50元，最低30元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "minPriceCents": 3000,
+          "maxPriceCents": 5000
+        }
+      }
+    },
+    {
+      "id": "campus-01",
+      "group": "校区和成色",
+      "scope": "core",
+      "message": "找键盘，只要江湾校区，100元以内",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "filters": {
+          "campus": "江湾校区",
+          "maxPriceCents": 10000
+        }
+      }
+    },
+    {
+      "id": "campus-02",
+      "group": "校区和成色",
+      "scope": "core",
+      "message": "找100元以内的键盘，最好在江湾校区",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "preferredCampus": "江湾校区",
+          "maxPriceCents": 10000
+        },
+        "absentFilters": [
+          "campus"
+        ]
+      }
+    },
+    {
+      "id": "quality-01",
+      "group": "校区和成色",
+      "scope": "core",
+      "message": "找全新键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new"
+        ],
+        "filters": {
+          "condition": "new"
+        }
+      }
+    },
+    {
+      "id": "quality-02",
+      "group": "校区和成色",
+      "scope": "core",
+      "message": "想找没用过的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new"
+        ],
+        "filters": {
+          "condition": "new"
+        }
+      }
+    },
+    {
+      "id": "quality-03",
+      "group": "校区和成色",
+      "scope": "core",
+      "message": "找九成新以上的键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical"
+        ]
+      }
+    },
+    {
+      "id": "cancel-price-01",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "取消预算限制",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "maxPriceCents",
+          "minPriceCents"
+        ]
+      },
+      "preset": "budget"
+    },
+    {
+      "id": "cancel-price-02",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "不看价格了",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "maxPriceCents",
+          "minPriceCents"
+        ]
+      },
+      "preset": "budget"
+    },
+    {
+      "id": "cancel-price-03",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "多少钱都行",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "maxPriceCents",
+          "minPriceCents"
+        ]
+      },
+      "preset": "budget"
+    },
+    {
+      "id": "cancel-price-04",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "把价格上限去掉",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "maxPriceCents",
+          "minPriceCents"
+        ]
+      },
+      "preset": "budget"
+    },
+    {
+      "id": "cancel-quality-01",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "不限成色",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "condition"
+        ]
+      },
+      "preset": "quality"
+    },
+    {
+      "id": "cancel-quality-02",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "新旧都可以",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "condition"
+        ]
+      },
+      "preset": "quality"
+    },
+    {
+      "id": "cancel-campus-01",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "不限校区",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "campus",
+          "preferredCampus"
+        ]
+      },
+      "preset": "campus"
+    },
+    {
+      "id": "cancel-campus-02",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "在哪个校区都行",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "absentFilters": [
+          "campus",
+          "preferredCampus"
+        ]
+      },
+      "preset": "campus"
+    },
+    {
+      "id": "soften-campus",
+      "group": "取消条件",
+      "scope": "core",
+      "message": "江湾优先，其他校区也可以",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "preferredCampus": "江湾校区"
+        },
+        "absentFilters": [
+          "campus"
+        ]
+      },
+      "preset": "campus"
+    },
+    {
+      "id": "refine-price-01",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "再便宜20元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 8000
+        }
+      },
+      "preset": "budget100"
+    },
+    {
+      "id": "refine-price-02",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "我预算提高到100元",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 10000
+        }
+      },
+      "preset": "budget"
+    },
+    {
+      "id": "switch-subject-01",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "帮我找英语书",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_english_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      },
+      "preset": "math"
+    },
+    {
+      "id": "switch-subject-02",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "改找英语书",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_english_basic"
+        ],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      },
+      "preset": "math"
+    },
+    {
+      "id": "switch-category",
+      "group": "连续追问",
+      "scope": "core",
+      "message": "不买键盘了，改找耳机，预算仍然50元",
+      "expect": {
+        "status": "no_results",
+        "ids": [],
+        "filters": {
+          "maxPriceCents": 5000
+        }
+      },
+      "preset": "budget"
+    },
+    {
+      "id": "page-01",
+      "group": "翻页",
+      "scope": "core",
+      "message": "下一页",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_04",
+          "listing_pen_03",
+          "listing_pen_02",
+          "listing_pen_01"
+        ],
+        "page": 2
+      },
+      "preset": "pens"
+    },
+    {
+      "id": "page-02",
+      "group": "翻页",
+      "scope": "core",
+      "message": "换一批",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_04",
+          "listing_pen_03",
+          "listing_pen_02",
+          "listing_pen_01"
+        ],
+        "page": 2
+      },
+      "preset": "pens"
+    },
+    {
+      "id": "page-03",
+      "group": "翻页",
+      "scope": "core",
+      "message": "还有其他的吗？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_04",
+          "listing_pen_03",
+          "listing_pen_02",
+          "listing_pen_01"
+        ],
+        "page": 2
+      },
+      "preset": "pens"
+    },
+    {
+      "id": "page-04",
+      "group": "翻页",
+      "scope": "core",
+      "message": "继续",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_04",
+          "listing_pen_03",
+          "listing_pen_02",
+          "listing_pen_01"
+        ],
+        "page": 2
+      },
+      "preset": "pens"
+    },
+    {
+      "id": "page-05",
+      "group": "翻页",
+      "scope": "core",
+      "message": "第二页",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_pen_04",
+          "listing_pen_03",
+          "listing_pen_02",
+          "listing_pen_01"
+        ],
+        "page": 2
+      },
+      "preset": "pens"
+    },
+    {
+      "id": "reference-01",
+      "group": "指代和比较",
+      "scope": "core",
+      "message": "第二个怎么样？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "action": "detail"
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "reference-02",
+      "group": "指代和比较",
+      "scope": "core",
+      "message": "第2件的详情给我看看",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "action": "detail"
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "reference-03",
+      "group": "指代和比较",
+      "scope": "core",
+      "message": "排在中间的那个怎么样？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_mechanical"
+        ],
+        "action": "detail"
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "compare-01",
+      "group": "指代和比较",
+      "scope": "core",
+      "message": "比较第一和第二个",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical"
+        ],
+        "action": "compare"
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "reference-invalid",
+      "group": "指代和比较",
+      "scope": "core",
+      "message": "第十个怎么样？",
+      "expect": {
+        "status": "clarification",
+        "ids": [],
+        "noTools": true
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "empty-results",
+      "group": "空结果与边界",
+      "scope": "core",
+      "message": "帮我找台投影仪",
+      "expect": {
+        "status": "no_results",
+        "ids": []
+      }
+    },
+    {
+      "id": "negated-trade",
+      "group": "空结果与边界",
+      "scope": "core",
+      "message": "不用联系卖家，先找键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_basic"
+        ]
+      }
+    },
+    {
+      "id": "unsupported-trade",
+      "group": "空结果与边界",
+      "scope": "core",
+      "message": "帮我买下第二个",
+      "expect": {
+        "status": "completed",
+        "ids": [],
+        "noTools": true,
+        "replyPattern": "不能"
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "rank-01",
+      "group": "扩展能力",
+      "scope": "extension",
+      "message": "按价格从低到高排",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic",
+          "listing_keyboard_mechanical",
+          "listing_keyboard_new"
+        ],
+        "ordered": true
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "rank-02",
+      "group": "扩展能力",
+      "scope": "extension",
+      "message": "只给我最便宜的一个",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_basic"
+        ]
+      },
+      "preset": "keyboards"
+    },
+    {
+      "id": "exclude-01",
+      "group": "扩展能力",
+      "scope": "extension",
+      "message": "找键盘，不要机械的",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new",
+          "listing_keyboard_basic"
+        ]
+      }
+    },
+    {
+      "id": "purpose-01",
+      "group": "扩展能力",
+      "scope": "extension",
+      "message": "宿舍熄灯后想看书，有什么能照明的东西？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_lamp"
+        ]
+      }
+    },
+    {
+      "id": "named-reference",
+      "group": "扩展能力",
+      "scope": "extension",
+      "message": "罗技K380那款的详情",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard_new"
+        ],
+        "action": "detail"
+      },
+      "preset": "keyboards"
+    }
+  ]
+}

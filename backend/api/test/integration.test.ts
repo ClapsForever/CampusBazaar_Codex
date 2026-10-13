@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -169,6 +169,6 @@ test('本机业务闭环、越权、幂等、Agent 契约与重启持久化', as
   } finally {
     await app.close();
     await new Promise<void>(resolve => agent.close(() => resolve()));
-    rmSync(directory, { recursive: true, force: true });
+    console.log('Test data retained:', directory);
   }
 });

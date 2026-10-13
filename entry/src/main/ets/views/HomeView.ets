@@ -6,6 +6,7 @@ import { ProductGrid } from '../components/ProductGrid';
 import { StateView } from '../components/StateView';
 import { SearchSheetView } from './SearchSheetView';
 import { AgentSheetView } from './AgentSheetView';
+import { ProfileSettingsView } from './ProfileSettingsView';
 import { HOME_CATEGORIES, homeCategory } from '../common/MarketOptions';
 import {
   UI_RADIUS, UI_CORNERS, CIRCLE_RADIUS, FONT_TITLE, PAGE_PADDING, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY,
@@ -23,6 +24,7 @@ export struct HomeView {
   @Local category: string = '全部';
   @Local searchSheetVisible: boolean = false;
   @Local agentSheetVisible: boolean = false;
+  @Local profileSettingsVisible: boolean = false;
   private categories: string[] = HOME_CATEGORIES;
   private feedScroller: Scroller = new Scroller();
   private visibleProductId: string = '';
@@ -69,7 +71,7 @@ export struct HomeView {
     Column({ space: 14 }) {
       Row() {
         Column({ space: 2 }) {
-          Text('校园二手集市').fontSize(FONT_TITLE).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
+          Text('校园集市').fontSize(FONT_TITLE).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
           Text('同校好物 · 当面交易').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
         }
         .layoutWeight(1).alignItems(HorizontalAlign.Start);
@@ -222,7 +224,7 @@ export struct HomeView {
           Column({ space: 6 }) {
             Text(this.user === null ? '校园同学' : this.user.nickname)
               .fontSize('18fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
-            Text('欢迎来到校园二手集市').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
+            Text('欢迎来到校园集市').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
           }
           .alignItems(HorizontalAlign.Start).layoutWeight(1);
         }
@@ -231,6 +233,19 @@ export struct HomeView {
           .width('100%').margin({ top: 8 });
         this.profileLink('我发布的', '管理在售商品', ROUTE_SELLER_HOME);
         this.profileLink('我的交易', '查看预约与聊天消息', ROUTE_TRADE_LIST);
+        Row() {
+          Column({ space: 5 }) {
+            Text('个人设置').fontSize('15fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
+            Text('上传头像、修改昵称、设置或修改密码').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
+          }
+          .layoutWeight(1).alignItems(HorizontalAlign.Start);
+          Text('›').fontSize('24fp').fontColor(COLOR_TEXT_TERTIARY);
+        }
+        .width('100%').padding(18).backgroundColor(Color.White).borderRadius(UI_RADIUS)
+        .onClick(() => this.profileSettingsVisible = true)
+        .bindSheet($$this.profileSettingsVisible, this.profileSettingsContent(), {
+          radius: UI_CORNERS, detents: [SheetSize.LARGE], showClose: false
+        });
         Button('退出登录').type(ButtonType.Normal).width('100%').height(46).margin({ top: 12 })
           .fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
           .borderRadius(UI_RADIUS).onClick(async () => {
@@ -299,6 +314,14 @@ export struct HomeView {
       } else {
         this.user = authService.getCurrentUser();
       }
+    });
+  }
+
+  @Builder
+  profileSettingsContent(): void {
+    ProfileSettingsView({
+      onUserChanged: (user: User): void => { this.user = user; },
+      onClose: (): void => { this.profileSettingsVisible = false; }
     });
   }
 

@@ -27,7 +27,7 @@ export class HttpBusinessClient implements BusinessReadClient {
   async searchListings(input: SearchListingsInput, user: UserContext, signal?: AbortSignal): Promise<SearchListingsResult> {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(input)) {
-      if (value !== undefined) params.set(key, String(value));
+      if (value !== undefined) params.set(key, Array.isArray(value) ? JSON.stringify(value) : String(value));
     }
     return this.request<SearchListingsResult>(`${this.options.searchPath}?${params.toString()}`, user, signal, (body) => {
       if (!body || typeof body !== "object") throw new Error("searchListings 返回不是对象");

@@ -76,8 +76,15 @@ async function proxyAgent(req: IncomingMessage, store: Store, user: ReturnType<S
     typeof value.reply !== 'string' || !Array.isArray(value.recommendations) || !Array.isArray(value.relaxedConditions)) {
     throw new ApiError(502, 'AGENT_BAD_RESPONSE', 'Agent 响应字段错误', true);
   }
+  if (!/^session_[a-zA-Z0-9_-]{1,100}$/.test(value.sessionId) ||
+    value.relaxedConditions.some(condition => typeof condition !== 'string') ||
+    value.recommendations.some(item => !item || typeof item !== 'object' ||
+      typeof item.listingId !== 'string' || !item.listingId || !Array.isArray(item.reasons) ||
+      item.reasons.some((reason: unknown) => typeof reason !== 'string'))) {
+    throw new ApiError(502, 'AGENT_BAD_RESPONSE', 'Agent 推荐数据格式错误', true);
+  }
   if (sessionId && sessionId !== value.sessionId) throw new ApiError(502, 'AGENT_BAD_RESPONSE', 'Agent 会话 ID 异常', true);
-  store.rememberAgentSession(value.sessionId, user);
+  store.saveAgentTurn(value.sessionId, user, message, value);
   return { status: 200, body: value };
 }
 
@@ -92,6 +99,9 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'POST' && path === '/api/v1/auth/local/sessions') {
     send(res, 201, store.login(await readJson(req)), rid); return;
   }
+  if (method === 'POST' && path === '/api/v1/auth/password/sessions') {
+    send(res, 201, await store.loginWithPassword(await readJson(req)), rid); return;
+  }
   if (path.startsWith('/internal/')) {
     if (method !== 'GET') throw new ApiError(404, 'NOT_FOUND', '接口不存在');
     const user = internalIdentity(req, store);
@@ -104,7 +114,7 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   const signedImageMatch = /^\/api\/v1\/images\/(img_[a-f0-9]{32})$/.exec(path);
   if (method === 'GET' && signedImageMatch?.[1] && store.validImageSignature(signedImageMatch[1], url.searchParams)) {
     const image = store.image(signedImageMatch[1]);
-    if (!image?.product_id || !store.findProduct(image.product_id)) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
+    if (!image || !(image.product_id ? store.findProduct(image.product_id) : store.isAvatar(image.id))) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
     const filename = join(store.config.uploadDir, `${image.id}.${image.extension}`);
     if (!existsSync(filename)) throw new ApiError(404, 'NOT_FOUND', '图片文件不存在');
     res.writeHead(200, { 'Content-Type': image.mime, 'Content-Length': image.size_bytes, 'Cache-Control': 'private, max-age=300', 'X-Request-Id': rid });
@@ -115,7 +125,20 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'POST' && path === '/api/v1/auth/logout') {
     store.logout(token); send(res, 200, { ok: true }, rid); return;
   }
-  if (method === 'GET' && path === '/api/v1/me') { send(res, 200, store.user(user), rid); return; }
+  if (method === 'GET' && path === '/api/v1/me') { send(res, 200, store.user(user, true), rid); return; }
+  if ((method === 'PUT' || method === 'PATCH') && path === '/api/v1/me') {
+    send(res, 200, store.updateProfile(user, await readJson(req)), rid); return;
+  }
+  if (method === 'POST' && path === '/api/v1/me/password') {
+    send(res, 200, await store.changePassword(user, await readJson(req), token), rid); return;
+  }
+  if (method === 'GET' && path === '/api/v1/agent/conversations') {
+    send(res, 200, store.agentHistory(user, url.searchParams), rid); return;
+  }
+  const conversationMatch = /^\/api\/v1\/agent\/conversations\/(session_[a-zA-Z0-9_-]{1,100})$/.exec(path);
+  if (method === 'GET' && conversationMatch?.[1]) {
+    send(res, 200, store.agentHistoryTurns(user, conversationMatch[1], url.searchParams), rid); return;
+  }
   if (method === 'GET' && path === '/api/v1/products') { send(res, 200, store.products(user, url.searchParams), rid); return; }
   if (method === 'GET' && path === '/api/v1/me/products') { send(res, 200, store.products(user, url.searchParams, true), rid); return; }
   if (method === 'POST' && path === '/api/v1/products') { send(res, 201, store.publish(user, await readJson(req)), rid); return; }
@@ -145,7 +168,7 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
     const image = store.image(imageMatch[1]);
     if (!image) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
     if (image.product_id) store.publicProduct(image.product_id, user);
-    else if (image.owner_id !== user.id) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
+    else if (image.owner_id !== user.id && !store.isAvatar(image.id, user.school_id)) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
     const filename = join(store.config.uploadDir, `${image.id}.${image.extension}`);
     if (!existsSync(filename)) throw new ApiError(404, 'NOT_FOUND', '图片文件不存在');
     res.writeHead(200, { 'Content-Type': image.mime, 'Content-Length': image.size_bytes, 'Cache-Control': 'private, max-age=300', 'X-Request-Id': rid });

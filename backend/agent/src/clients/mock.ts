@@ -181,7 +181,13 @@ export class MockBusinessClient implements BusinessReadClient {
       (!input.campus || listing.campus === input.campus) &&
       matchesCondition(listing, input.condition) &&
       (!input.version || listing.version?.toLowerCase().includes(input.version.toLowerCase())),
-    );
+    ).filter(listing => !(input.excludeKeywords ?? []).some(keyword => matchesText(listing, keyword)));
+    if (input.sort || input.preferredCampus) matched.sort((a, b) => {
+      const price = input.sort === "price_asc" ? a.priceCents - b.priceCents : input.sort === "price_desc" ? b.priceCents - a.priceCents : 0;
+      if (price) return price;
+      const campus = Number(b.campus === input.preferredCampus) - Number(a.campus === input.preferredCampus);
+      return campus || Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || b.listingId.localeCompare(a.listingId);
+    });
 
     const page = input.page ?? 1;
     const pageSize = input.pageSize ?? 10;
@@ -194,6 +200,8 @@ export class MockBusinessClient implements BusinessReadClient {
         ...(input.minPriceCents !== undefined ? { minPriceCents: input.minPriceCents } : {}),
         ...(input.maxPriceCents !== undefined ? { maxPriceCents: input.maxPriceCents } : {}),
         ...(input.version ? { version: input.version } : {}),
+        ...(input.sort ? { sort: input.sort } : {}),
+        ...(input.excludeKeywords ? { excludeKeywords: input.excludeKeywords } : {}),
       },
       soft: input.preferredCampus ? { preferredCampus: input.preferredCampus } : {},
     };
