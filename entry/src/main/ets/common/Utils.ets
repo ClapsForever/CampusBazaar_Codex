@@ -28,12 +28,10 @@ export function formatCondition(condition: string | undefined): string {
   return '未注明';
 }
 
-export function isValidPhone(phone: string): boolean {
-  return new RegExp('^\\d{11}$').test(phone.trim());
-}
-
-export function isValidSmsCode(code: string): boolean {
-  return new RegExp('^\\d{6}$').test(code.trim());
+export function isValidEmail(value: string): boolean {
+  const email: string = value.trim();
+  return email.length <= 254 && /^[\x21-\x7e]+$/.test(email) &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.split('@')[0].length <= 64;
 }
 
 export function isValidPrice(text: string): boolean {

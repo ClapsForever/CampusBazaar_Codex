@@ -6,13 +6,14 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import type { Config } from '../src/config.js';
+import { provisionAccounts } from '../src/accounts.js';
 import { createApiApp } from '../src/server.js';
 import { openDatabase } from '../src/db.js';
 
 function configFor(directory: string): Config {
   return { mode: 'local', host: '127.0.0.1', port: 0, databasePath: join(directory, 'db.sqlite'),
     uploadDir: join(directory, 'uploads'), publicBaseUrl: 'http://127.0.0.1:0',
-    sessionSecret: 'this-is-a-long-test-only-session-secret', devLoginCode: '123456',
+    sessionSecret: 'this-is-a-long-test-only-session-secret',
     agentBaseUrl: 'http://127.0.0.1:1', agentServiceToken: 'test-agent-service-token-a',
     internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_demo' };
 }
@@ -28,7 +29,7 @@ test('v1 数据库升级保留旧用户与会话，且重复启动不会重复�
   old.close();
   for (let index = 0; index < 2; index++) {
     const db = openDatabase(config);
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 2);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 3);
     assert.equal(db.prepare('SELECT nickname FROM users').get()!.nickname, '旧昵称');
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, null);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM agent_sessions').get()!.count, 1);
@@ -69,12 +70,13 @@ test('头像昵称密码与对话历史：持久化、分页、越权、失败�
     }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
     return { status: response.status, body: await response.json() as any };
   }
-  const login = async (phone: string) => (await call('POST', '/api/v1/auth/local/sessions', undefined,
-    { phone, smsCode: '123456' })).body;
+  await provisionAccounts(app.db, config.schoolId, [1, 2].map(n => ({ email: `user${n}@example.com`, password: 'Campus123' })));
+  const login = async (email: string) => (await call('POST', '/api/v1/auth/password/sessions', undefined,
+    { email, password: 'Campus123' })).body;
   try {
-    const a = await login('13800000001'), b = await login('13800000002');
-    const otherSession = await login('13800000001');
-    assert.equal(a.user.hasPassword, false);
+    const a = await login('user1@example.com'), b = await login('user2@example.com');
+    const otherSession = await login('user1@example.com');
+    assert.equal(a.user.hasPassword, true);
     assert.equal((await call('PUT', '/api/v1/me', undefined, { nickname: '未登录' })).status, 401);
     assert.equal((await call('PUT', '/api/v1/me', a.token, { nickname: ' ' })).status, 400);
     assert.equal((await call('PUT', '/api/v1/me', a.token, { nickname: 'a'.repeat(25) })).status, 400);
@@ -90,24 +92,28 @@ test('头像昵称密码与对话历史：持久化、分页、越权、失败�
     assert.equal((await fetch(profile.body.avatar)).status, 200);
     assert.equal((await call('POST', '/api/v1/products', a.token, {
       title: '不能复用头像', description: '测试', price: 2, imageIds: [image.id] })).status, 403);
-    // Avatars older than a day must survive startup's abandoned-upload cleanup.
+    // Restarts and authentication migrations must preserve uploaded files.
     app.db.prepare('UPDATE product_images SET created_at=1 WHERE id=?').run(image.id);
+    const draftUpload = await fetch(base + '/api/v1/uploads', { method: 'POST', headers: {
+      authorization: `Bearer ${a.token}`, 'content-type': 'image/png' }, body: png });
+    const draftImage = await draftUpload.json() as any;
+    app.db.prepare('UPDATE product_images SET created_at=1 WHERE id=?').run(draftImage.id);
 
     assert.equal((await call('POST', '/api/v1/me/password', a.token, { newPassword: 'short', smsCode: '123456' })).status, 400);
     assert.equal((await call('POST', '/api/v1/me/password', a.token, { newPassword: 'Campus123', smsCode: '000000' })).status, 401);
-    const password = await call('POST', '/api/v1/me/password', a.token, { newPassword: 'Campus123', smsCode: '123456' });
+    const password = await call('POST', '/api/v1/me/password', a.token, { newPassword: 'Campus123', currentPassword: 'Campus123' });
     assert.equal(password.body.hasPassword, true);
     assert(!('password_hash' in password.body));
     assert.equal((await call('GET', '/api/v1/me', otherSession.token)).status, 401);
     const stored = app.db.prepare('SELECT password_hash FROM users WHERE id=?').get(a.user.id)!;
     assert.match(String(stored.password_hash), /^scrypt:/); assert(!String(stored.password_hash).includes('Campus123'));
-    assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined, { phone: '13800000001', password: 'wrong' })).status, 401);
-    const byPassword = await call('POST', '/api/v1/auth/password/sessions', undefined, { phone: '13800000001', password: 'Campus123' });
+    assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user1@example.com', password: 'wrong' })).status, 401);
+    const byPassword = await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user1@example.com', password: 'Campus123' });
     assert.equal(byPassword.status, 201);
     assert.equal((await call('POST', '/api/v1/me/password', a.token, { newPassword: 'Changed123', currentPassword: 'wrong' })).status, 401);
     assert.equal((await call('POST', '/api/v1/me/password', a.token, { newPassword: 'Changed123', currentPassword: 'Campus123' })).status, 200);
     assert.equal((await call('GET', '/api/v1/me', byPassword.body.token)).status, 401);
-    assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined, { phone: '13800000001', password: 'Campus123' })).status, 401);
+    assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user1@example.com', password: 'Campus123' })).status, 401);
 
     const chat = async (requestId: string, sessionId: string | null, message: string, token = a.token) =>
       call('POST', '/api/agent/chat', token, { requestId, sessionId, message });
@@ -140,16 +146,17 @@ test('头像昵称密码与对话历史：持久化、分页、越权、失败�
     const restored = await call('GET', '/api/v1/me', a.token);
     assert.equal(restored.body.nickname, '校园同学'); assert.equal(restored.body.hasPassword, true);
     assert.equal((await fetch(restored.body.avatar)).status, 200);
+    assert.equal((await fetch(base + `/api/v1/images/${draftImage.id}`, { headers: { authorization: `Bearer ${a.token}` } })).status, 200);
     assert.equal((await call('GET', `/api/v1/agent/conversations/${id}`, a.token)).body.items.length, 2);
     assert.equal((await call('GET', '/api/v1/agent/conversations', a.token)).body.items.length, 2);
-    assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined, { phone: '13800000001', password: 'Changed123' })).status, 201);
+    assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user1@example.com', password: 'Changed123' })).status, 201);
     for (let index = 0; index < 5; index++) {
       assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined,
-        { phone: '13800000001', password: 'wrong' })).status, 401);
+        { email: 'user1@example.com', password: 'wrong' })).status, 401);
     }
     assert.equal((await call('POST', '/api/v1/auth/password/sessions', undefined,
-      { phone: '13800000001', password: 'Changed123' })).status, 429);
-    assert.equal((await login('13800000001')).user.id, a.user.id);
+      { email: 'user1@example.com', password: 'Changed123' })).status, 429);
+    assert.equal((await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000001', smsCode: '123456' })).status, 404);
   } finally {
     await app.close(); await new Promise<void>(resolve => agent.close(() => resolve()));
     console.log('Profile/history test data retained:', directory);

@@ -4,27 +4,28 @@
 
 先运行 `ipconfig` 确认自己电脑的 IPv4 地址。前端配置在 `entry/src/main/ets/service/BackendRuntimeConfig.ets`，后端地址在 Git 忽略的 `backend/api/.env` 中；将前端 `BUSINESS_API_BASE_URL` 和后端 `PUBLIC_BASE_URL` 都设为 `http://电脑IPv4:8080`，并确保后端 `HOST` 监听该地址，然后重新运行 App。业务 API 的 `HOST=0.0.0.0` 仅用于可信的本机/局域网测试，防火墙应只允许模拟器访问 8080。Agent 只监听本机 `127.0.0.1:3000`，模拟器不直接访问它。
 
-后端 `.env` 中的 `DEV_LOGIN_CODE` 是本机随机六位码。测试时在电脑上查看它，不要放进 App 源码或 Git。两个账号可用 `13800000011`、`13800000012`；不会真正发送短信。账号只按手机号区分。
+测试账号使用邮箱和密码，须先按 [Demo 认证说明](../../docs/demo-auth.md) 导入账号文件。不发送验证码，固定验证码接口已经关闭。
 
 ```powershell
-# 当前目录：CampusBazaar_Codex/backend/api
-(Get-Content .env | Select-String '^DEV_LOGIN_CODE=').Line
+# 当前目录：CampusBazaar_Codex/backend/api，账号文件不要提交 Git
+npm run build
+npm run accounts:import -- .local-data/demo-accounts.json
 ```
 
 ## 1. 启动两个服务
 
-先确认 `node --version` 至少为 `v24.21.0`。首次安装或更新代码后，在下面两个目录分别运行 `npm ci` 和 `npm run build`；仓库根目录没有 Node lockfile，不要在根目录运行 `npm ci`。然后在两个独立的 PowerShell 窗口启动服务：
+先确认 `node --version` 至少为 `v24.21.0`。首次安装或更新代码后，在下面两个目录分别运行 `npm install --ignore-scripts --no-audit --no-fund` 和 `npm run build`；仓库根目录没有 Node lockfile，不要在根目录运行 `npm install --ignore-scripts --no-audit --no-fund`。然后在两个独立的 PowerShell 窗口启动服务：
 
 ```powershell
 # 当前目录：CampusBazaar_Codex/backend/api
-npm ci
+npm install --ignore-scripts --no-audit --no-fund
 npm run build
 npm start
 ```
 
 ```powershell
 # 当前目录：CampusBazaar_Codex/backend/agent
-npm ci
+npm install --ignore-scripts --no-audit --no-fund
 npm run build
 npm start
 ```
@@ -50,9 +51,9 @@ Invoke-RestMethod "http://${PcIpv4}:8080/health/ready"
 
 | 步骤 | 页面操作 | 期望结果 |
 | --- | --- | --- |
-| A 登录 | 手机号 `13800000011`，输入后端 `.env` 的 `DEV_LOGIN_CODE` | 显示 A 的用户主页；页面不提供短信发送与 CAS |
+| A 登录 | 输入预置账号 A 的邮箱和密码 | 显示 A 的用户主页；页面只提供邮箱密码登录 |
 | A 发布 | 我是卖家 → 新增商品；名称“高等数学教材”，价格 45 元，类别“教材”，校区“江湾校区”，成色“良好”，选择一张照片 | 发布成功；返回卖家列表后可看到商品和图片 |
-| B 登录 | 主页点击“退出”，用 `13800000012` 登录 | B 的用户 ID 与 A 不同；卖家列表不显示 A 的商品 |
+| B 登录 | 主页点击“退出”，用账号 B 的邮箱和密码登录 | B 的用户 ID 与 A 不同；卖家列表不显示 A 的商品 |
 | B 浏览 | 我是买家 → 商品流、搜索“高等数学” → 商品详情 | 能看到 A 的商品、45 元、图片和卖家昵称 |
 | B 找货 | 买家页点“智能助手”，输入“找 50 元以内的高等数学教材” | Agent 返回推荐商品卡片；点击进入同一个商品详情 |
 | B 下单聊天 | 在详情点“立即购买”；打开交易提醒和交易详情，发送一条消息 | 交易状态“待处理”；消息显示 B 发送者身份 |
@@ -64,7 +65,7 @@ Invoke-RestMethod "http://${PcIpv4}:8080/health/ready"
 
 ## 4. 再做一轮异常与重启检查
 
-- 用错误的本机验证码登录，应提示失败；换回正确验证码后可以登录。
+- 用错误密码和未预置邮箱登录，应提示“邮箱或密码错误”；正确密码可登录。连续失败 5 次后须等待 15 分钟；固定验证码接口应始终返回 404。
 - A 打开自己的商品详情，应看到不可点击的“自己的商品”购买按钮；后端直接购买自己的商品会返回 `403 OWN_PRODUCT`，可运行 `backend/api` 中的 `npm test` 验证该规则。
 - 另发布一件尚未售出的测试商品。B 在它的详情页首次购买后不要离开该页，再次点击“立即购买”，应提示商品已有进行中的交易；交易提醒中只能看到一笔有效交易。进行中的商品会从买家商品流隐藏。
 - 已完成交易的商品会从买家商品流隐藏；原交易详情仍可从“交易提醒”打开，其消息输入框应只读。后端对此商品再次下单会返回 `409 PRODUCT_SOLD`。

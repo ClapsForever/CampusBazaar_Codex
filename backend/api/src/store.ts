@@ -7,8 +7,9 @@ import { transaction } from './db.js';
 import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalText, positiveInt, text, tokenHash } from './http.js';
 import { categorySearchSpec, keywordGroups } from './search.js';
 import { hashPassword, validatePassword, verifyPassword } from './password.js';
+import { normalizeEmail } from './accounts.js';
 
-type UserRow = { id: string; phone: string; nickname: string; avatar: string; school_id: string; password_hash: string | null };
+type UserRow = { id: string; phone: string | null; email: string | null; enabled: number; nickname: string; avatar: string; school_id: string; password_hash: string | null };
 type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD'; published_at: number };
 type TransactionRow = { id: string; product_id: string; buyer_id: string; seller_id: string; school_id: string; create_time: number; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED'; price_cents: number; title_snapshot: string };
 type MessageRow = { id: string; transaction_id: string; sender_id: string; content: string; send_time: number };
@@ -18,7 +19,6 @@ const productIdPattern = /^listing_[a-z0-9_-]{1,64}$/;
 const conditions = ['new', 'like_new', 'good', 'fair', 'unknown'];
 
 export class Store {
-  private passwordFailures = new Map<string, { count: number; until: number }>();
   constructor(public db: DatabaseSync, public config: Config) {}
 
   cleanupAbandonedUploads(now = Date.now()): number {
@@ -38,30 +38,11 @@ export class Store {
   user(row: UserRow, own = false): Record<string, unknown> {
     return { id: row.id, nickname: row.nickname,
       avatar: /^img_[a-f0-9]{32}$/.test(row.avatar) ? this.imageUrl(row.avatar) : row.avatar,
-      phone: row.phone, ...(own ? { hasPassword: !!row.password_hash } : {}) };
+      ...(own ? { email: row.email, hasPassword: !!row.password_hash } : {}) };
   }
 
   findUser(id: string): UserRow | undefined {
     return this.db.prepare('SELECT * FROM users WHERE id=?').get(id) as UserRow | undefined;
-  }
-
-  login(body: Record<string, unknown>): { user: Record<string, unknown>; token: string; expiresAt: number } {
-    const phone = text(body.phone, '手机号', 11, 11);
-    if (!/^1\d{10}$/.test(phone)) throw new ApiError(400, 'BAD_REQUEST', '请输入 11 位手机号');
-    if (body.smsCode !== this.config.devLoginCode && body.code !== this.config.devLoginCode) {
-      throw new ApiError(401, 'INVALID_CODE', '验证码错误');
-    }
-    const now = Date.now();
-    return transaction(this.db, () => {
-      let row = this.db.prepare('SELECT * FROM users WHERE phone=?').get(phone) as UserRow | undefined;
-      if (!row) {
-        const id = `user_${randomUUID().replaceAll('-', '')}`;
-        this.db.prepare('INSERT INTO users(id,phone,nickname,avatar,school_id,created_at) VALUES(?,?,?,?,?,?)')
-          .run(id, phone, `同学${phone.slice(-4)}`, '', this.config.schoolId, now);
-        row = this.findUser(id)!;
-      }
-      return this.issueSession(row);
-    });
   }
 
   private issueSession(row: UserRow): { user: Record<string, unknown>; token: string; expiresAt: number } {
@@ -72,28 +53,34 @@ export class Store {
     return { user: this.user(row, true), token, expiresAt };
   }
 
-  async loginWithPassword(body: Record<string, unknown>) {
-    const phone = text(body.phone, '手机号', 11, 11);
-    if (!/^1\d{10}$/.test(phone)) throw new ApiError(400, 'BAD_REQUEST', '请输入 11 位手机号');
-    const failure = this.passwordFailures.get(phone);
-    if (failure && failure.until > Date.now() && failure.count >= 5) {
-      throw new ApiError(429, 'TOO_MANY_ATTEMPTS', '尝试次数过多，请 15 分钟后重试');
-    }
-    const row = this.db.prepare('SELECT * FROM users WHERE phone=?').get(phone) as UserRow | undefined;
+  async loginWithPassword(body: Record<string, unknown>, clientIp = 'local') {
+    const email = normalizeEmail(body.email);
+    const now = Date.now();
+    // Reserve attempts before asynchronous hashing: parallel requests cannot
+    // bypass the budget. Persist it so restarts do not reset the limits.
+    transaction(this.db, () => {
+      this.db.prepare('DELETE FROM auth_login_attempts WHERE until_at<=?').run(now);
+      for (const [scope, key, maximum] of [['email', email, 5], ['ip', clientIp, 100]] as const) {
+        const attempts = this.db.prepare('SELECT count FROM auth_login_attempts WHERE scope=? AND key=?').get(scope, key);
+        if (attempts && Number(attempts.count) >= maximum) {
+          throw new ApiError(429, 'TOO_MANY_ATTEMPTS', '尝试次数过多，请 15 分钟后重试');
+        }
+        this.db.prepare('INSERT INTO auth_login_attempts(scope,key,count,until_at) VALUES(?,?,1,?) ON CONFLICT(scope,key) DO UPDATE SET count=count+1')
+          .run(scope, key, now + 15 * 60_000);
+      }
+    });
+    const row = this.db.prepare('SELECT * FROM users WHERE email=?').get(email) as UserRow | undefined;
     // Derive a key for unknown accounts too; never reveal whether an account exists.
     const valid = await verifyPassword(body.password,
       row?.password_hash ?? `scrypt:${'0'.repeat(32)}:${'0'.repeat(128)}`);
-    if (!row?.password_hash || !valid) {
-      if (this.passwordFailures.size >= 10000) this.passwordFailures.delete(this.passwordFailures.keys().next().value!);
-      this.passwordFailures.set(phone, { count: failure && failure.until > Date.now() ? failure.count + 1 : 1,
-        until: Date.now() + 15 * 60_000 });
-      throw new ApiError(401, 'INVALID_CREDENTIALS', '手机号或密码错误');
+    if (!row?.password_hash || !row.enabled || !valid) {
+      throw new ApiError(401, 'INVALID_CREDENTIALS', '邮箱或密码错误');
     }
-    this.passwordFailures.delete(phone);
     // Do not issue a session if a concurrent password change revoked this credential.
     return transaction(this.db, () => {
       const fresh = this.findUser(row.id)!;
-      if (fresh.password_hash !== row.password_hash) throw new ApiError(401, 'INVALID_CREDENTIALS', '密码已变更，请重试');
+      if (!fresh || !fresh.enabled || fresh.email !== email || fresh.password_hash !== row.password_hash) throw new ApiError(401, 'INVALID_CREDENTIALS', '邮箱或密码错误');
+      this.db.prepare("DELETE FROM auth_login_attempts WHERE scope='email' AND key=?").run(email);
       return this.issueSession(fresh);
     });
   }
@@ -113,12 +100,8 @@ export class Store {
 
   async changePassword(user: UserRow, body: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
     const password = validatePassword(body.newPassword);
-    if (user.password_hash) {
-      if (!await verifyPassword(body.currentPassword, user.password_hash)) {
-        throw new ApiError(401, 'INVALID_PASSWORD', '当前密码不正确');
-      }
-    } else if (body.smsCode !== this.config.devLoginCode) {
-      throw new ApiError(401, 'INVALID_CODE', '验证码错误');
+    if (!user.password_hash || !await verifyPassword(body.currentPassword, user.password_hash)) {
+      throw new ApiError(401, 'INVALID_PASSWORD', '当前密码不正确');
     }
     const hash = await hashPassword(password);
     return transaction(this.db, () => {
@@ -139,7 +122,8 @@ export class Store {
 
   authenticate(token: string): UserRow {
     const row = this.db.prepare(`SELECT u.* FROM auth_sessions s JOIN users u ON u.id=s.user_id
-      WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>?`)
+      WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>?
+        AND u.enabled=1 AND u.email IS NOT NULL AND u.password_hash IS NOT NULL`)
       .get(tokenHash(token, this.config), Date.now()) as UserRow | undefined;
     if (!row) throw new ApiError(401, 'UNAUTHORIZED', '登录已失效，请重新登录');
     return row;

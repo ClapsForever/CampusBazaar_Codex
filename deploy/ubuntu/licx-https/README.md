@@ -31,7 +31,7 @@ systemctl status campusbazaar-licx-https.service --no-pager
 journalctl -u campusbazaar-licx-https.service -n 50 --no-pager
 ```
 
-验证成功后，将 API 的 `PUBLIC_BASE_URL` 和 App 的 `BUSINESS_API_BASE_URL` 更新为 `https://api.campusbazaar.cn`，重新构建安装 App。固定验证码登录仍属于测试机制，上线前需要完成真实注册、登录和找回密码。
+验证成功后，将 API 的 `PUBLIC_BASE_URL` 和 App 的 `BUSINESS_API_BASE_URL` 更新为 `https://api.campusbazaar.cn`，重新构建安装 App。当前已采用预置邮箱密码 Demo，固定验证码入口已关闭；自助注册、邮件验证码和找回密码后续接入。
 
 ## 2026-10-13 部署记录
 
@@ -42,3 +42,11 @@ journalctl -u campusbazaar-licx-https.service -n 50 --no-pager
 - 队友的 80 端口和独立 Agent 未改动。licx 的 Agent 进程未重启，原有 18080 测试入口继续存在。
 
 停用新增入口：`sudo systemctl disable --now campusbazaar-licx-https.service`。这不会停止原有的 18080 入口或队友服务。
+
+## 2026-10-14 邮箱 Demo 更新
+
+17:03（北京时间）已更新 licx 的 API 为邮箱密码登录，创建用户指定的三个测试账号，旧验证码路径返回 404。数据库升级到 v3，旧业务数据与图片保留，旧登录会话撤销。按用户要求保持全部原 IP 白名单、监听和云侧规则，仅重载自己的 Nginx 登录路由；Caddy、自己的 Agent 和队友服务的进程与启动时间保持原样。
+
+服务器端经正常域名证书校验的 HTTPS 登录、业务读取、签名图片与退出验证通过。当前 Mac 网络的公网 TLS 连接复核未通过，当前出口也不在原白名单；尚需在已放行网络进行模拟器联调。重新签名安装 `CampusBazaar_Codex` 新版 App 后，登录页填写邮箱和密码。
+
+完整发布、备份、回滚与验证记录见 [Demo 认证说明](../../../docs/demo-auth.md)。

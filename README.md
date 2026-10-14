@@ -1,8 +1,8 @@
 # 校园集市（CampusBazaar）
 
-校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持本机手机号登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；学校统一认证与真实短信尚未接入。
+校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持预置账号的邮箱密码登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；自助注册、找回密码与邮件验证码尚未接入。
 
-腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。licx 的独立测试后端现使用 `https://api.campusbazaar.cn`，健康检查为 `https://api.campusbazaar.cn/health/ready`；域名入口、证书自动续期与当前部署记录见 [HTTPS 说明](deploy/ubuntu/licx-https/README.md)。访问仍受服务器 IP 白名单限制，固定验证码登录只适用于受限测试；正式上线前须完成正式认证。
+腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。licx 的独立测试后端现使用 `https://api.campusbazaar.cn`，健康检查为 `https://api.campusbazaar.cn/health/ready`；域名入口、证书自动续期与当前部署记录见 [HTTPS 说明](deploy/ubuntu/licx-https/README.md)。licx 实例已部署邮箱密码 Demo，使用预置账号，访问仍受原 IP 白名单限制。认证升级与组员不限网络访问的步骤见 [Demo 认证说明](docs/demo-auth.md)。
 
 ## 目录与运行架构
 
@@ -31,7 +31,7 @@ git clone https://github.com/ClapsForever/CampusBazaar_Codex.git
 Set-Location .\CampusBazaar_Codex
 ```
 
-仓库根目录没有 Node lockfile，**不要在根目录运行 `npm ci`**。下面分别在两个服务目录安装依赖。
+仓库根目录没有 Node lockfile，**不要在根目录运行 `npm install --ignore-scripts --no-audit --no-fund`**。下面分别在两个服务目录安装依赖。
 
 ## 2. 配置业务 API
 
@@ -39,7 +39,7 @@ Set-Location .\CampusBazaar_Codex
 
 ```powershell
 Set-Location .\backend\api
-npm ci
+npm install --ignore-scripts --no-audit --no-fund
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
@@ -51,7 +51,6 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 | `PORT` | `8080` |
 | `PUBLIC_BASE_URL` | `http://电脑IPv4:8080`，用于生成模拟器可访问的图片 URL |
 | `SESSION_SECRET` | 至少 32 字符的随机值 |
-| `DEV_LOGIN_CODE` | 自设的 6 位数字；本机登录使用，不发送短信 |
 | `AGENT_BASE_URL` | `http://127.0.0.1:3000` |
 | `AGENT_SERVICE_TOKEN` | 随机令牌 A，至少 24 字符 |
 | `INTERNAL_AGENT_TOKEN` | 与 A 不同的随机令牌 B，至少 24 字符 |
@@ -59,7 +58,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 其余 SQLite 与上传目录可保持示例默认值。可在本机生成三条随机密钥，再分别填入 `.env`；输出不要发给他人或提交 Git：
 
 ```powershell
-node -e "const c=require('node:crypto'); for(const name of ['SESSION_SECRET','AGENT_SERVICE_TOKEN','INTERNAL_AGENT_TOKEN']) console.log(name+'='+c.randomBytes(32).toString('hex')); console.log('DEV_LOGIN_CODE='+c.randomInt(100000,1000000))"
+node -e "const c=require('node:crypto'); for(const name of ['SESSION_SECRET','AGENT_SERVICE_TOKEN','INTERNAL_AGENT_TOKEN']) console.log(name+'='+c.randomBytes(32).toString('hex'))"
 ```
 
 ## 3. 配置 Pi Agent 与 DeepSeek
@@ -68,7 +67,7 @@ node -e "const c=require('node:crypto'); for(const name of ['SESSION_SECRET','AG
 
 ```powershell
 Set-Location ..\agent
-npm ci
+npm install --ignore-scripts --no-audit --no-fund
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
@@ -120,7 +119,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `https://api.campusbazaar.cn`，并确认当前网络已加入服务器白名单。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
-首次登录在验证码模式填写有效的 11 位手机号及**自己 API `.env` 中的 `DEV_LOGIN_CODE`**；在“我的 → 个人设置”设置密码后，可切换到密码登录。例如 `13800000011` 和 `13800000012` 可模拟两名用户。
+启动前先按 [Demo 认证说明](docs/demo-auth.md) 导入邮箱密码账号。登录页只填写邮箱与密码；账号由项目组分配，暂不开放自助注册和邮件找回密码。
 
 ## 6. 验证完整流程
 
@@ -134,8 +133,8 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 
 - 业务数据在 `backend/api/.local-data/`。停止 API 后备份整个目录，可同时保存 SQLite 和图片。队友首次启动会得到自己的空数据库。
 - AI 对话每轮成功回复后自动保存在业务 SQLite，按账号隔离；“新对话”旁的“历史记录”可按时间分页查看，退出登录、重启 App 或服务不会丢失已保存内容。历史详情供回看；Agent 的续聊上下文仍存于内存，重启或过期后需新建对话。更新前已经丢失的内存对话无法补回。
-- “我的 → 个人设置”支持相册头像、昵称及登录密码。设置密码需开发验证码，修改密码需当前密码；密码以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
+- “我的 → 个人设置”支持相册头像、昵称及登录密码。修改密码需当前密码；演示密码为 6–64 位，以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
 - `.env`、DeepSeek Key、数据库、上传图片、`node_modules`、构建产物均已被 Git 忽略。只提交源码、两个 `package-lock.json`、`.env.example`、文档和测试。
-- 本机部署不包含学校统一认证、真实短信或公网服务。
+- Demo 不包含学校统一认证、自助注册或邮件验证码服务。
 
 业务 API 接口和备份说明见 [backend/api/README.md](backend/api/README.md)；Agent 内部接口见 [backend/agent/docs/api.md](backend/agent/docs/api.md)。

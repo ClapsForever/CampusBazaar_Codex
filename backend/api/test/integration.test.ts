@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { Config } from '../src/config.js';
+import { provisionAccounts } from '../src/accounts.js';
 import { createApiApp } from '../src/server.js';
 
 type Result = { status: number; body: any };
@@ -32,7 +33,7 @@ test('本机业务闭环、越权、幂等、Agent 契约与重启持久化', as
   const config: Config = {
     mode: 'local', host: '127.0.0.1', port: 0, databasePath: join(directory, 'database.sqlite'),
     uploadDir: join(directory, 'uploads'), publicBaseUrl: 'http://127.0.0.1:0',
-    sessionSecret: 'this-is-a-long-random-test-only-session-secret', devLoginCode: '123456',
+    sessionSecret: 'this-is-a-long-random-test-only-session-secret',
     agentBaseUrl: `http://127.0.0.1:${agentAddress.port}`, agentServiceToken: 'agent-service-token-test-a',
     internalAgentToken: 'business-backend-token-test-b', schoolId: 'school_demo'
   };
@@ -52,10 +53,11 @@ test('本机业务闭环、越权、幂等、Agent 契约与重启持久化', as
   }
   try {
     assert.equal((await call('GET', '/health/ready')).status, 200);
-    assert.equal((await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000001', smsCode: '000000' })).status, 401);
-    const loginA = await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000001', smsCode: '123456' });
-    const loginB = await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000002', smsCode: '123456' });
-    const loginC = await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000003', smsCode: '123456' });
+    assert.equal((await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000001', smsCode: '000000' })).status, 404);
+    await provisionAccounts(app.db, config.schoolId, [1, 2, 3].map(n => ({ email: `user${n}@example.com`, password: 'Campus123' })));
+    const loginA = await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user1@example.com', password: 'Campus123' });
+    const loginB = await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user2@example.com', password: 'Campus123' });
+    const loginC = await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user3@example.com', password: 'Campus123' });
     assert.equal(loginA.status, 201);
     assert.notEqual(loginA.body.user.id, loginB.body.user.id);
     const a = loginA.body.token as string;

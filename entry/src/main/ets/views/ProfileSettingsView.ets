@@ -50,7 +50,7 @@ export struct ProfileSettingsView {
               .height(48).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
               .enabled(!this.vm.loading && !this.vm.saving)
               .onChange((value: string) => { this.vm.nickname = value; this.vm.profileError = ''; this.vm.message = ''; });
-            Text(this.vm.user === null ? '' : `手机号：${this.vm.user.phone || ''}`)
+            Text(this.vm.user === null ? '' : `邮箱：${this.vm.user.email || ''}`)
               .fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).width('100%');
             if (this.vm.profileError !== '') {
               Text(this.vm.profileError).fontSize('12fp').fontColor(COLOR_ERROR).width('100%');
@@ -64,22 +64,13 @@ export struct ProfileSettingsView {
           .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS);
 
           Column({ space: 12 }) {
-            Text(this.vm.user?.hasPassword ? '修改密码' : '设置登录密码').fontSize('16fp')
+            Text('修改密码').fontSize('16fp')
               .fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY).width('100%');
-            Text('8–64 位，包含字母和数字').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
-            if (this.vm.user?.hasPassword) {
-              TextInput({ placeholder: '当前密码', text: this.vm.currentPassword }).type(InputType.Password).maxLength(64)
-                .height(48).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
-                .enabled(!this.vm.loading && !this.vm.saving)
-                .onChange((value: string) => { this.vm.currentPassword = value; this.vm.passwordError = ''; this.vm.message = ''; });
-            } else {
-              Text('首次设置需验证手机号，测试环境使用配置的验证码').fontSize('12fp')
-                .fontColor(COLOR_TEXT_SECONDARY).width('100%');
-              TextInput({ placeholder: '6 位数字验证码', text: this.vm.smsCode }).type(InputType.Number).maxLength(6)
-                .height(48).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
-                .enabled(!this.vm.loading && !this.vm.saving)
-                .onChange((value: string) => { this.vm.smsCode = value; this.vm.passwordError = ''; this.vm.message = ''; });
-            }
+            Text('6–64 位，不能全部为空白').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
+            TextInput({ placeholder: '当前密码', text: this.vm.currentPassword }).type(InputType.Password).maxLength(64)
+              .height(48).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
+              .enabled(!this.vm.loading && !this.vm.saving)
+              .onChange((value: string) => { this.vm.currentPassword = value; this.vm.passwordError = ''; this.vm.message = ''; });
             TextInput({ placeholder: '新密码', text: this.vm.newPassword }).type(InputType.Password).maxLength(64)
               .height(48).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
               .enabled(!this.vm.loading && !this.vm.saving)

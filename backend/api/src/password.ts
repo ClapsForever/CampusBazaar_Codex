@@ -5,9 +5,8 @@ import { ApiError } from './http.js';
 const deriveKey = promisify(scrypt);
 
 export function validatePassword(value: unknown): string {
-  if (typeof value !== 'string' || value.length < 8 || value.length > 64 ||
-    !/[a-zA-Z]/.test(value) || !/[0-9]/.test(value)) {
-    throw new ApiError(400, 'INVALID_PASSWORD', '密码须为 8–64 位，包含字母和数字');
+  if (typeof value !== 'string' || value.length < 6 || value.length > 64 || !value.trim()) {
+    throw new ApiError(400, 'INVALID_PASSWORD', '演示账号密码须为 6–64 位，不能全部为空白');
   }
   return value;
 }

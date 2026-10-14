@@ -3,19 +3,19 @@ import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
 
-export function openDatabase(config: Config): DatabaseSync {
+export function openDatabase(config: Pick<Config, 'databasePath' | 'uploadDir'>): DatabaseSync {
   mkdirSync(dirname(config.databasePath), { recursive: true });
   mkdirSync(config.uploadDir, { recursive: true });
   const db = new DatabaseSync(config.databasePath);
   db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;');
-  migrate(db);
+  try { migrate(db); } catch (error) { db.close(); throw error; }
   return db;
 }
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 2) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 2) return;
+  if (version.user_version > 3) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 3) return;
   if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -73,7 +73,7 @@ function migrate(db: DatabaseSync): void {
     PRAGMA user_version=1;
     COMMIT;
   `);
-  db.exec(`
+  if (version.user_version < 2) db.exec(`
     BEGIN IMMEDIATE;
     ALTER TABLE users ADD COLUMN password_hash TEXT;
     CREATE TABLE agent_turns (
@@ -87,6 +87,38 @@ function migrate(db: DatabaseSync): void {
     PRAGMA user_version=2;
     COMMIT;
   `);
+
+  // Keep every user ID and its business references; phone becomes optional.
+  // Foreign keys must be disabled outside the transaction while rebuilding users.
+  db.exec('PRAGMA foreign_keys=OFF');
+  try {
+    transaction(db, () => {
+      db.exec(`
+        CREATE TABLE users_v3 (
+          id TEXT PRIMARY KEY, phone TEXT UNIQUE, nickname TEXT NOT NULL,
+          avatar TEXT NOT NULL DEFAULT '', school_id TEXT NOT NULL, created_at INTEGER NOT NULL,
+          password_hash TEXT, email TEXT UNIQUE, email_verified_at INTEGER,
+          enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1))
+        );
+        INSERT INTO users_v3(id,phone,nickname,avatar,school_id,created_at,password_hash)
+          SELECT id,phone,nickname,avatar,school_id,created_at,password_hash FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_v3 RENAME TO users;
+        CREATE TABLE auth_login_attempts (
+          scope TEXT NOT NULL, key TEXT NOT NULL, count INTEGER NOT NULL, until_at INTEGER NOT NULL,
+          PRIMARY KEY(scope,key)
+        );
+        CREATE INDEX auth_login_attempts_expiry ON auth_login_attempts(until_at);
+      `);
+      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions'").get()) {
+        db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE revoked_at IS NULL').run(Date.now());
+      }
+      if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
+      db.exec('PRAGMA user_version=3');
+    });
+  } finally {
+    db.exec('PRAGMA foreign_keys=ON');
+  }
 }
 
 export function transaction<T>(db: DatabaseSync, action: () => T): T {

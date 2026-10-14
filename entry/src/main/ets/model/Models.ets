@@ -10,6 +10,7 @@ export interface User {
   id: string;
   nickname: string;
   avatar: string;
+  email?: string;
   phone?: string;
   studentId?: string;
   hasPassword?: boolean;

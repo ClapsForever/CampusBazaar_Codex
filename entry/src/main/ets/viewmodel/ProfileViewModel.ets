@@ -1,7 +1,6 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { User } from '../model/Models';
 import { authService } from '../service/AuthenticationService';
-import { isValidSmsCode } from '../common/Utils';
 
 @ObservedV2
 export class ProfileViewModel {
@@ -11,7 +10,6 @@ export class ProfileViewModel {
   @Trace currentPassword: string = '';
   @Trace newPassword: string = '';
   @Trace confirmPassword: string = '';
-  @Trace smsCode: string = '';
   @Trace loading: boolean = false;
   @Trace saving: boolean = false;
   @Trace profileError: string = '';
@@ -78,22 +76,19 @@ export class ProfileViewModel {
     if (this.saving || this.loading || this.user === null) return false;
     this.passwordError = '';
     this.message = '';
-    if (this.newPassword.length < 8 || this.newPassword.length > 64 ||
-      !/[a-zA-Z]/.test(this.newPassword) || !/[0-9]/.test(this.newPassword)) {
-      this.passwordError = '密码须为 8–64 位，包含字母和数字';
+    if (this.newPassword.length < 6 || this.newPassword.length > 64 || !this.newPassword.trim()) {
+      this.passwordError = '密码须为 6–64 位，不能全部为空白';
     } else if (this.newPassword !== this.confirmPassword) {
       this.passwordError = '两次输入的密码不一致';
-    } else if (this.user.hasPassword && this.currentPassword === '') {
+    } else if (this.currentPassword === '') {
       this.passwordError = '请输入当前密码';
-    } else if (!this.user.hasPassword && !isValidSmsCode(this.smsCode)) {
-      this.passwordError = '请输入 6 位数字验证码';
     }
     if (this.passwordError !== '') return false;
     this.saving = true;
     try {
-      this.user = await authService.changePassword(this.currentPassword, this.newPassword, this.smsCode);
+      this.user = await authService.changePassword(this.currentPassword, this.newPassword);
       this.clearPasswords();
-      this.message = '密码已保存，可使用手机号和密码登录';
+      this.message = '密码已保存，可使用邮箱和新密码登录';
       return true;
     } catch (error) {
       this.passwordError = (error as Error).message;
@@ -107,6 +102,5 @@ export class ProfileViewModel {
     this.currentPassword = '';
     this.newPassword = '';
     this.confirmPassword = '';
-    this.smsCode = '';
   }
 }

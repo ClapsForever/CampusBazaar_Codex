@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 
 export interface Config {
   mode: 'local'; host: string; port: number; databasePath: string; uploadDir: string;
-  publicBaseUrl: string; sessionSecret: string; devLoginCode: string;
+  publicBaseUrl: string; sessionSecret: string;
   agentBaseUrl: string; agentServiceToken: string; internalAgentToken: string; schoolId: string;
 }
 
@@ -20,8 +20,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const host = env.HOST?.trim() || '127.0.0.1';
   const sessionSecret = required(env, 'SESSION_SECRET');
   if (sessionSecret.length < 32 || sessionSecret.startsWith('replace-')) throw new Error('SESSION_SECRET must be a random value of at least 32 characters');
-  const devLoginCode = required(env, 'DEV_LOGIN_CODE');
-  if (!/^\d{6}$/.test(devLoginCode)) throw new Error('DEV_LOGIN_CODE must be six digits');
   const agentServiceToken = required(env, 'AGENT_SERVICE_TOKEN');
   const internalAgentToken = required(env, 'INTERNAL_AGENT_TOKEN');
   if (agentServiceToken.startsWith('replace-') || internalAgentToken.startsWith('replace-') ||
@@ -37,7 +35,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mode: 'local', host, port,
     databasePath: resolve(required(env, 'DATABASE_PATH')),
     uploadDir: resolve(required(env, 'UPLOAD_DIR')),
-    publicBaseUrl, sessionSecret, devLoginCode, agentBaseUrl, agentServiceToken, internalAgentToken,
+    publicBaseUrl, sessionSecret, agentBaseUrl, agentServiceToken, internalAgentToken,
     schoolId: env.AGENT_SCHOOL_ID?.trim() || 'school_demo'
   };
 }

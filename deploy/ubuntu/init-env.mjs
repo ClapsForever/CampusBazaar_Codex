@@ -1,4 +1,4 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -21,7 +21,6 @@ DATABASE_PATH=/var/lib/campusbazaar/campusbazaar.sqlite
 UPLOAD_DIR=/var/lib/campusbazaar/uploads
 PUBLIC_BASE_URL=http://YOUR_PUBLIC_IPV4
 SESSION_SECRET=${sessionSecret}
-DEV_LOGIN_CODE=${randomInt(100000, 1000000)}
 AGENT_BASE_URL=http://127.0.0.1:3000
 AGENT_SERVICE_TOKEN=${tokenA}
 INTERNAL_AGENT_TOKEN=${tokenB}

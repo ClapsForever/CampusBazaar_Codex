@@ -9,13 +9,13 @@ function fixture() {
   const config: Config = {
     mode: 'local', host: '127.0.0.1', port: 0, databasePath: ':memory:', uploadDir: tmpdir(),
     publicBaseUrl: 'http://127.0.0.1', sessionSecret: 'test-search-secret-longer-than-thirty-two-characters',
-    devLoginCode: '123456', agentBaseUrl: 'http://127.0.0.1:3000',
+    agentBaseUrl: 'http://127.0.0.1:3000',
     agentServiceToken: 'test-search-agent-service-token', internalAgentToken: 'test-search-internal-token', schoolId: 'school_demo'
   };
   const db = openDatabase(config);
   const store = new Store(db, config);
-  const session = store.login({ phone: '13800000001', smsCode: '123456' });
-  const user = store.authenticate(session.token);
+  db.prepare("INSERT INTO users(id,email,nickname,avatar,school_id,created_at) VALUES('user_search','search@example.com','搜索同学','','school_demo',1)").run();
+  const user = store.findUser('user_search')!;
   const insert = db.prepare(`INSERT INTO products
     (id,seller_id,school_id,title,description,price_cents,category,condition,campus,status,published_at)
     VALUES(?,?,?,?,'测试商品',?,'教材','like_new','邯郸校区',?,1)`);

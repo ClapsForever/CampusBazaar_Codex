@@ -3,13 +3,14 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { provisionAccounts } from '../src/accounts.js';
 import { createApiApp } from '../src/server.js';
 
 test('发布通用品类兼容具体物品搜索、预约移出及拒绝恢复、真实消息摘要', async () => {
   const data = mkdtempSync(join(tmpdir(), 'campus-ui-contract-'));
   const config = { mode: 'local', host: '127.0.0.1', port: 0, databasePath: join(data, 'db.sqlite'),
     uploadDir: join(data, 'uploads'), publicBaseUrl: 'http://127.0.0.1:0',
-    sessionSecret: 'this-is-a-long-test-only-session-secret', devLoginCode: '123456',
+    sessionSecret: 'this-is-a-long-test-only-session-secret',
     agentBaseUrl: 'http://127.0.0.1:1', agentServiceToken: 'test-agent-service-token-a',
     internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_demo' };
   const app = createApiApp(config);
@@ -23,8 +24,9 @@ test('发布通用品类兼容具体物品搜索、预约移出及拒绝恢复�
     return { status: response.status, body: await response.json() };
   };
   try {
-    const seller = (await call('POST', '/api/v1/auth/local/sessions', null, { phone: '13800000001', smsCode: '123456' })).body;
-    const buyer = (await call('POST', '/api/v1/auth/local/sessions', null, { phone: '13800000002', smsCode: '123456' })).body;
+    await provisionAccounts(app.db, config.schoolId, ['seller', 'buyer'].map(name => ({ email: `${name}@example.com`, password: 'Campus123' })));
+    const seller = (await call('POST', '/api/v1/auth/password/sessions', null, { email: 'seller@example.com', password: 'Campus123' })).body;
+    const buyer = (await call('POST', '/api/v1/auth/password/sessions', null, { email: 'buyer@example.com', password: 'Campus123' })).body;
     const draft = { title: '蓝牙耳机', description: '九成新\n见面地点：图书馆门口', price: 20.5,
       category: '外设', condition: 'like_new', campus: '江湾校区', imageIds: [] };
     const published = await call('POST', '/api/v1/products', seller.token, draft);

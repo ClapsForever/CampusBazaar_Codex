@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createReadStream, existsSync, writeFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
+import { isIP } from 'node:net';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
 import { openDatabase } from './db.js';
@@ -9,6 +10,15 @@ import { ApiError, bearer, equalToken, fail, readBytes, readJson, requestId, sen
 import { Store } from './store.js';
 
 export interface ApiApp { server: Server; db: DatabaseSync; close(): Promise<void> }
+
+function loginClientIp(req: IncomingMessage): string {
+  const remote = req.socket.remoteAddress ?? 'unknown';
+  const forwarded = req.headers['x-real-ip'];
+  // Only the local Nginx proxy can supply the client address. Nginx must replace
+  // this header, and the API remains bound to loopback in the shared deployment.
+  if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote) && typeof forwarded === 'string' && isIP(forwarded)) return forwarded;
+  return remote;
+}
 
 function idempotencyKey(req: IncomingMessage): string | undefined {
   const value = req.headers['idempotency-key'];
@@ -96,11 +106,9 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
     if (path.endsWith('ready')) store.db.prepare('SELECT 1').get();
     send(res, 200, { status: 'ok' }, rid); return;
   }
-  if (method === 'POST' && path === '/api/v1/auth/local/sessions') {
-    send(res, 201, store.login(await readJson(req)), rid); return;
-  }
+  if (path === '/api/v1/auth/local/sessions') throw new ApiError(404, 'NOT_FOUND', '接口不存在');
   if (method === 'POST' && path === '/api/v1/auth/password/sessions') {
-    send(res, 201, await store.loginWithPassword(await readJson(req)), rid); return;
+    send(res, 201, await store.loginWithPassword(await readJson(req), loginClientIp(req)), rid); return;
   }
   if (path.startsWith('/internal/')) {
     if (method !== 'GET') throw new ApiError(404, 'NOT_FOUND', '接口不存在');
@@ -199,7 +207,8 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
 export function createApiApp(config: Config): ApiApp {
   const db = openDatabase(config);
   const store = new Store(db, config);
-  store.cleanupAbandonedUploads();
+  // Authentication upgrades and service restarts must not delete upload files.
+  // Any storage maintenance is a separate, explicitly reviewed operation.
   const server = createServer((req, res) => {
     const rid = requestId(req);
     const started = Date.now();

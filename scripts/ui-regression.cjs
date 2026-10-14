@@ -172,24 +172,21 @@ test('个人资料保存失败保留昵称头像，保存成功同步用户，�
   assert.equal(model.nickname, '新昵称'); assert.equal(model.avatarUri, 'photo://selected'); assert.equal(model.profileError, '网络不可用');
 });
 
-test('首次密码设置与修改校验不同，成功后清空密码并更新用户', async () => {
+test('修改密码必须输入当前密码，成功后清空凭据并更新用户', async () => {
   let calls = 0, submitted;
-  const user = { id: 'user', nickname: '同学', hasPassword: false };
+  const user = { id: 'user', email: 'member@example.com', nickname: '同学', hasPassword: true };
   const load = harness({ 'service/AuthenticationService': { authService: {
     getCurrentUser: () => user, refreshUser: async () => user,
-    changePassword: async (...values) => { calls++; submitted = values; return { ...user, hasPassword: true }; }
+    changePassword: async (...values) => { calls++; submitted = values; return user; }
   } } });
   const model = new (load('viewmodel/ProfileViewModel').ProfileViewModel)(); await model.load();
   model.newPassword = 'short'; model.confirmPassword = 'short'; assert.equal(await model.savePassword(), false);
-  model.newPassword = 'Campus123'; model.confirmPassword = 'different'; assert.equal(await model.savePassword(), false);
-  model.confirmPassword = 'Campus123'; assert.equal(await model.savePassword(), false); assert.equal(calls, 0);
-  model.smsCode = '123456'; assert.equal(await model.savePassword(), true);
-  assert.equal(submitted.join(','), ',Campus123,123456'); assert.equal(model.user.hasPassword, true);
-  assert.equal(model.newPassword + model.confirmPassword + model.smsCode, '');
-  model.newPassword = 'Changed123'; model.confirmPassword = 'Changed123';
-  assert.equal(await model.savePassword(), false); assert.equal(calls, 1);
-  model.currentPassword = 'Campus123'; assert.equal(await model.savePassword(), true); assert.equal(calls, 2);
-  assert.equal(model.currentPassword, '');
+  model.newPassword = 'Demo12'; model.confirmPassword = 'different'; assert.equal(await model.savePassword(), false);
+  model.confirmPassword = 'Demo12'; assert.equal(await model.savePassword(), false); assert.equal(calls, 0);
+  model.currentPassword = 'Old123'; assert.equal(await model.savePassword(), true);
+  assert.equal(submitted.join(','), 'Old123,Demo12'); assert.equal(model.user.hasPassword, true);
+  assert.equal(model.currentPassword + model.newPassword + model.confirmPassword, '');
+  assert.match(model.message, /邮箱/);
 });
 
 test('资料保存成功使用返回头像与昵称，刷新失败后能重试加载', async () => {
@@ -208,19 +205,32 @@ test('资料保存成功使用返回头像与昵称，刷新失败后能重试�
   assert.equal(model.user.avatar, 'https://test/avatar'); assert.equal(model.avatarUri, ''); assert.equal(model.profileError, '');
 });
 
-test('密码登录与验证码登录切换清空凭据，提交时禁止重复登录', async () => {
-  const response = deferred(); let calls = 0;
+test('邮箱登录校验输入并规范化邮箱，提交时禁止重复登录', async () => {
+  const response = deferred(); let calls = 0, submitted;
   const load = harness({ 'service/AuthenticationService': { authService: {
-    loginByPassword: () => { calls++; return response.promise; }
+    loginByPassword: (...values) => { calls++; submitted = values; return response.promise; }
   } } });
   const model = new (load('viewmodel/AuthViewModel').AuthViewModel)();
-  model.phone = '13800000001'; model.smsCode = '123456'; model.switchMode();
-  assert.equal(model.smsCode, ''); assert.equal(model.passwordMode, true);
-  assert.equal(await model.login(), false);
-  model.password = 'Campus123'; const first = model.login();
+  model.email = '13800000001'; model.password = 'Demo12';
+  assert.equal(await model.login(), false); assert(model.emailError); assert.equal(calls, 0);
+  model.email = ' Member@Example.com '; model.password = '';
+  assert.equal(await model.login(), false); assert(model.passwordError);
+  model.password = 'Demo12'; const first = model.login();
   assert.equal(await model.login(), false); assert.equal(calls, 1);
-  model.switchMode(); assert.equal(model.passwordMode, true);
+  assert.equal(submitted.join(','), 'member@example.com,Demo12');
   response.resolve({ id: 'user' }); assert.equal(await first, true); assert.equal(model.password, '');
+});
+
+test('邮箱登录失败保留输入并支持重试', async () => {
+  let failed = true;
+  const load = harness({ 'service/AuthenticationService': { authService: {
+    loginByPassword: async () => { if (failed) throw new Error('邮箱或密码错误'); return { id: 'user' }; }
+  } } });
+  const model = new (load('viewmodel/AuthViewModel').AuthViewModel)();
+  model.email = 'member@example.com'; model.password = 'Demo12';
+  assert.equal(await model.login(), false); assert.equal(model.formError, '邮箱或密码错误');
+  assert.equal(model.email, 'member@example.com'); assert.equal(model.password, 'Demo12'); assert.equal(model.loggingIn, false);
+  failed = false; assert.equal(await model.login(), true); assert.equal(model.formError, '');
 });
 
 test('成色和交易状态文案覆盖接口值', () => {

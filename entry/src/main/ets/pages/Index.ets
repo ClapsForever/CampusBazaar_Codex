@@ -22,22 +22,19 @@ struct Index {
           }
           .width('100%').margin({ top: 64, bottom: 22 });
 
-          Text(this.vm.passwordMode ? '密码登录' : '验证码登录').fontSize(20).fontWeight(FontWeight.Bold)
+          Text('邮箱登录').fontSize(20).fontWeight(FontWeight.Bold)
             .fontColor(COLOR_TEXT_PRIMARY).width('100%');
           Text('登录后发现同校同学发布的闲置好物')
             .fontSize(13).fontColor(COLOR_TEXT_TERTIARY).width('100%');
 
           Column({ space: 12 }) {
-            this.phoneForm();
+            this.loginForm();
             if (this.vm.formError !== '') {
               Text(this.vm.formError).fontSize(12).fontColor(COLOR_ERROR).width('100%');
             }
           }
           .width('100%').padding(18).backgroundColor(Color.White).borderRadius(UI_RADIUS);
-          Button(this.vm.passwordMode ? '切换到验证码登录' : '切换到密码登录').type(ButtonType.Normal)
-            .height(44).fontColor(COLOR_PRIMARY).backgroundColor(Color.White).borderRadius(UI_RADIUS)
-            .enabled(!this.vm.loggingIn).onClick(() => this.vm.switchMode());
-          Text(this.vm.passwordMode ? '首次登录请使用验证码，在个人设置中设置密码' : '当前测试环境请使用项目配置的验证码')
+          Text('演示账号由项目组提供，忘记密码请联系管理员')
             .fontSize(11).fontColor(COLOR_TEXT_TERTIARY).width('100%');
         }
         .width('100%').padding({ left: 24, right: 24, bottom: 24 });
@@ -63,40 +60,27 @@ struct Index {
   }
 
   @Builder
-  phoneForm(): void {
+  loginForm(): void {
     Column({ space: 8 }) {
-      TextInput({ placeholder: '请输入 11 位手机号', text: this.vm.phone })
-        .type(InputType.PhoneNumber).maxLength(11).height(48).fontSize(15)
+      TextInput({ placeholder: '请输入邮箱地址', text: this.vm.email })
+        .type(InputType.Email).maxLength(254).height(48).fontSize(15)
+        .enabled(!this.vm.loggingIn)
         .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS).padding({ left: 14, right: 14 })
         .onChange((value: string) => {
-          this.vm.phone = value;
-          this.vm.phoneError = '';
+          this.vm.email = value;
+          this.vm.emailError = '';
+          this.vm.formError = '';
         });
-      if (this.vm.phoneError !== '') {
-        Text(this.vm.phoneError).fontSize(12).fontColor(COLOR_ERROR);
+      if (this.vm.emailError !== '') {
+        Text(this.vm.emailError).fontSize(12).fontColor(COLOR_ERROR);
       }
-      if (this.vm.passwordMode) {
-        TextInput({ placeholder: '请输入密码', text: this.vm.password }).type(InputType.Password).maxLength(64)
-          .height(48).width('100%').fontSize(15).backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
-          .padding({ left: 14, right: 14 })
-          .onChange((value: string) => { this.vm.password = value; this.vm.passwordError = ''; });
-        if (this.vm.passwordError !== '') {
-          Text(this.vm.passwordError).fontSize(12).fontColor(COLOR_ERROR);
-        }
-      } else {
-        Row({ space: 10 }) {
-          TextInput({ placeholder: '请输入 6 位数字验证码', text: this.vm.smsCode })
-            .type(InputType.Number).maxLength(6).height(48).layoutWeight(1).fontSize(15)
-            .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS).padding({ left: 14, right: 14 })
-            .onChange((value: string) => {
-              this.vm.smsCode = value;
-              this.vm.smsCodeError = '';
-            });
-        }
-        .width('100%');
-        if (this.vm.smsCodeError !== '') {
-          Text(this.vm.smsCodeError).fontSize(12).fontColor(COLOR_ERROR);
-        }
+      TextInput({ placeholder: '请输入密码', text: this.vm.password }).type(InputType.Password).maxLength(64)
+        .enabled(!this.vm.loggingIn)
+        .height(48).width('100%').fontSize(15).backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
+        .padding({ left: 14, right: 14 })
+        .onChange((value: string) => { this.vm.password = value; this.vm.passwordError = ''; this.vm.formError = ''; });
+      if (this.vm.passwordError !== '') {
+        Text(this.vm.passwordError).fontSize(12).fontColor(COLOR_ERROR);
       }
     }
     .width('100%');

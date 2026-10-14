@@ -1,8 +1,10 @@
 # 腾讯云 Ubuntu 24.04 部署指南
 
-适用：一台 Ubuntu 24.04 LTS、2 核 4 GB、公网 IPv4，无域名，CampusBazaar 小组共同测试。以当前 `CampusBazaar_Codex` 为版本基准；`CampusBazaar_UI` 的业务 API 相同，但 Agent 实现较旧。
+适用：一台 Ubuntu 24.04 LTS、2 核 4 GB、公网 IPv4，无域名，CampusBazaar 小组共同测试。以当前 `CampusBazaar_Codex` 为版本基准；`CampusBazaar_UI` 为历史参考版本，本次邮箱认证修改仅应用到 `CampusBazaar_Codex`。
 
 本目录提供配置模板，并未自动连接或更改你的云服务器。下面命令以首次部署、SSH 用户具有 sudo 权限为前提。所有 `user`、`YOUR_PUBLIC_IPV4`、`YOUR_ADMIN_PUBLIC_IPV4`、`YOUR_MEMBER_PUBLIC_IPV4` 都要替换为实际值。公网访问地址不带 `:8080`。
+
+当前邮箱 Demo 的部署应结合 [Demo 认证说明](../../docs/demo-auth.md) 与 [域名 HTTPS 说明](licx-https/README.md)。本文的 HTTP 初始部署模板仅供受限局域网/运维检查；对小组开放前须采用 HTTPS。
 
 ## 1. 项目实际结构与部署边界
 
@@ -24,7 +26,7 @@ Pi Agent 127.0.0.1:3000 ─── HTTPS ─── DeepSeek API
 - 2 核 4 GB 可作为少量同学测试的起点；模型在 DeepSeek 运行。这不是并发容量保证，后续应根据 CPU、内存、响应时间和磁盘占用压测。
 - 200 Mbps 是带宽峰值，不能直接换算并发人数；检查套餐的月流量、持续带宽规则和系统盘容量。商品图片、备份与日志会持续占用磁盘。
 - API 当前只接受 `APP_MODE=local`。不能直接改成 `production`，否则启动失败。systemd 使用 `NODE_ENV=production`，不改变现有登录机制。
-- `DEV_LOGIN_CODE` 是全局固定验证码。知道它的人可以用任意符合格式的手机号登录，包括其他测试用户。当前阶段只使用测试身份和测试数据，并限制访问者。
+- Demo 仅允许管理员预置的邮箱密码账号，固定验证码登录入口已关闭；自助注册和邮件找回密码后续接入。
 - HTTP 会明文传输登录令牌和内容，IP 白名单不能提供传输加密。要测试真实资料，先配置 HTTPS，或通过可信 VPN / 加密隧道访问。正式上线采用域名和 HTTPS。
 
 参考：[Node 官方下载](https://nodejs.org/en/download)、[腾讯云安全组规则](https://cloud.tencent.com/document/product/213/112614/)、[Ubuntu 防火墙](https://ubuntu.com/server/docs/firewalls/)。
@@ -40,7 +42,7 @@ Pi Agent 127.0.0.1:3000 ─── HTTPS ─── DeepSeek API
 | 443 | 本次无需开放；配置 HTTPS 时再开放 | 后续 HTTPS |
 | 8080、3000 | 不开放 | 两个进程仅监听回环地址 |
 
-“成员公网 IP”是成员所在网络的公网出口，不是电脑上的 `192.168.*`。校园网可能共用出口，切换 Wi-Fi / 手机热点可能改变 IP。IP 经常变化时可选择 VPN，不要为方便测试将固定验证码登录长期向所有公网地址开放。
+“成员公网 IP”是成员所在网络的公网出口，不是电脑上的 `192.168.*`。校园网可能共用出口，切换 Wi-Fi / 手机热点可能改变 IP。IP 经常变化时可选择 VPN，采用域名 HTTPS 并确认预置账号认证生效后，可取消业务入口来源 IP 限制；SSH 与内部端口保持限制。
 
 出站需允许 DNS 和 HTTPS，以便安装依赖、访问 DeepSeek。云防火墙和 Ubuntu 防火墙都必须放行正确的入站来源。
 
@@ -135,15 +137,15 @@ rsync -av \
 ```bash
 export PATH="/opt/campusbazaar-node/bin:$PATH"
 cd /srv/campusbazaar/releases/v1/backend/api
-npm ci --include=dev
+npm install --ignore-scripts --no-audit --no-fund --include=dev
 npm run build
 
 cd /srv/campusbazaar/releases/v1/backend/agent
-npm ci --include=dev
+npm install --ignore-scripts --no-audit --no-fund --include=dev
 npm run build
 ```
 
-两次构建都成功后继续。不要在项目根目录运行 `npm ci`。每次更新都创建新的发布目录，不在运行中的依赖目录内重新安装。
+两次构建都成功后继续。不要在项目根目录运行 `npm install --ignore-scripts --no-audit --no-fund`。每次更新都创建新的发布目录，不在运行中的依赖目录内重新安装。
 
 ## 5. 生成服务器专用配置
 
@@ -154,7 +156,7 @@ sudo /opt/campusbazaar-node/bin/node /srv/campusbazaar/releases/v1/deploy/ubuntu
 sudo nano /etc/campusbazaar/api.env
 ```
 
-生成器会自动生成独立的会话密钥、两枚配对的服务令牌和六位测试验证码。已有配置时拒绝覆盖；源码更新不要重新运行生成器。
+生成器会自动生成独立的会话密钥、两枚配对的服务令牌。已有配置时拒绝覆盖；源码更新不要重新运行生成器。
 
 在 `api.env` 中将这一行替换为实际服务器公网地址：
 
@@ -179,11 +181,7 @@ sudo nano /etc/campusbazaar/agent.env
 | `AGENT_SERVICE_TOKEN` | `SERVICE_AUTH_TOKEN` |
 | `INTERNAL_AGENT_TOKEN` | `BUSINESS_BACKEND_TOKEN` |
 
-配置文件只允许 root 读取，systemd 启动时将它们注入环境。不要把服务器 env 文件上传 Git、复制进 App 或发到群里。需要给测试同学的只有 API 地址和测试验证码：
-
-```bash
-sudo sed -n '/^DEV_LOGIN_CODE=/p' /etc/campusbazaar/api.env
-```
+配置文件只允许 root 读取，systemd 启动时将它们注入环境。不要把服务器 env 文件上传 Git、复制进 App 或发到群里。给测试同学分配各自邮箱、密码和 HTTPS API 地址。启动前按 [Demo 认证说明](../../docs/demo-auth.md) 在服务身份下导入账号；源码不携带账号凭据。
 
 ## 6. 启用 systemd 两个服务
 
@@ -275,7 +273,7 @@ curl -i http://YOUR_PUBLIC_IPV4/internal/listings/search
 
 分别应为健康 JSON、HTTP 404。直接从公网访问 `:8080`、`:3000` 应失败。
 
-用两个测试手机号和生成的开发验证码完成：
+用两个预置邮箱密码账号完成：
 
 1. A 登录，发布包含图片的商品；B 登录，浏览、搜索、查看详情及图片。
 2. B 通过 AI 搜索该商品并追问，确认 DeepSeek 实际请求成功，推荐使用云端商品数据。
@@ -336,7 +334,7 @@ curl --fail --show-error http://127.0.0.1:3000/health
 
 先完成以下实际功能和运维准备，再对不特定用户开放：
 
-1. 实现真实短信/学校认证或其他正式身份认证，取消公网固定验证码登录。增加验证码时效、一次性消费、错误次数限制与滥用防护；校验学校归属，而非所有用户默认进入 `school_demo`。
+1. 实现邮箱验证、自助注册及找回密码。增加验证码时效、一次性消费、错误次数限制与滥用防护；校验学校归属，而非所有用户默认进入 `school_demo`。
 2. 配置域名、DNS 和自动续期的 HTTPS，将 API `PUBLIC_BASE_URL` 与 App 地址一起改成 `https://...`，重新构建 App。HTTPS IP 证书是否适用需结合签发方及客户端支持评估，本指南采用域名方案。
 3. 实现 Agent 会话持久化和过期会话清理，明确模型请求并发与预算限制；接入失败告警、磁盘告警、备份恢复演练。
 4. 保持单个业务 API 实例、单个 Agent 实例。当前同步 SQLite 和内存会话不适合直接套用多进程负载均衡；并发写入成为瓶颈时再设计数据库与会话存储迁移。
