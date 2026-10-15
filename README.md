@@ -141,7 +141,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 
 ## 8. 项目整理与回归
 
-前后端整理说明及需手动删除的历史文件见 [2026-10-15 清理清单](docs/cleanup-2026-10-15.md)。安装 `backend/api` 的开发依赖后，可直接在仓库根目录运行以下回归，无需指定 DevEco 内部 TypeScript 路径：
+前后端整理说明、已删除文件和本地构建输出的重建方法见 [2026-10-15 清理记录](docs/cleanup-2026-10-15.md)。安装 `backend/api` 的开发依赖后，可直接在仓库根目录运行以下回归，无需指定 DevEco 内部 TypeScript 路径：
 
 ```sh
 node --test scripts/ui-regression.cjs
