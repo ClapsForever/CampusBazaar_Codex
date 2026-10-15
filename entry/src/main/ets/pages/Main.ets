@@ -1,3 +1,4 @@
+import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { HomeView } from '../views/HomeView';
 import { BuyerHomeView } from '../views/BuyerHomeView';
 import { ProductDetailView } from '../views/ProductDetailView';
@@ -19,6 +20,10 @@ struct Main {
   @Local agentVm: AgentViewModel = new AgentViewModel();
   @Local feedVm: BuyerHomeViewModel = new BuyerHomeViewModel();
   private navWasHidden: boolean = false;
+
+  onPageShow(): void {
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
+  }
 
   aboutToAppear(): void {
     this.feedVm.ensureFeedLoaded();

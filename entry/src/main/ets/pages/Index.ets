@@ -1,3 +1,4 @@
+import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AuthViewModel } from '../viewmodel/AuthViewModel';
 import {
   UI_RADIUS, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
@@ -8,6 +9,11 @@ import {
 @ComponentV2
 struct Index {
   @Local vm: AuthViewModel = new AuthViewModel();
+
+  onPageShow(): void {
+    // Use the page's UI context after it is attached to the UI instance.
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
+  }
 
   build() {
     Column() {
