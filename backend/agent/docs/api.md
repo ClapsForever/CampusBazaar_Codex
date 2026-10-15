@@ -55,7 +55,9 @@ x-school-id: school_demo
 }
 ```
 
-当前使用的主要错误码包括 `UNAUTHORIZED`、`BAD_REQUEST`、`SESSION_NOT_FOUND`、`SESSION_FORBIDDEN`、`SESSION_BUSY`、`BACKEND_TIMEOUT`、`MODEL_API_KEY_MISSING`、`MODEL_UNAVAILABLE` 和 `AGENT_TIMEOUT`。
+当前使用的主要错误码包括 `UNAUTHORIZED`、`BAD_REQUEST`、`SESSION_NOT_FOUND`、`SESSION_FORBIDDEN`、`SESSION_BUSY`、`IDEMPOTENCY_CONFLICT`、`BACKEND_TIMEOUT`、`MODEL_API_KEY_MISSING`、`MODEL_UNAVAILABLE` 和 `AGENT_TIMEOUT`。
+
+重试须保留原来的 `requestId`、`sessionId` 和 `message`。相同用户的同一请求在缓存有效期内重放原响应；重用请求编号但更改问题或会话返回 HTTP 409 / `IDEMPOTENCY_CONFLICT`。同一请求仍在处理时返回 HTTP 409 / `SESSION_BUSY`，包括 `sessionId=null` 的首轮请求；失败后释放占用，允许重试。会话和响应缓存按 `SESSION_TTL_MS` 到期，在后续请求中定期回收，处理中会话不被回收。
 
 ## 只读工具
 

@@ -76,30 +76,34 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   app.post("/internal/agent/chat", async (request, reply) => {
     const body = parseChatBody(request.body, config.maxMessageChars);
     const user = trustedUser(request, config);
-    const cached = sessionStore.readIdempotentResponse(body.requestId, user);
+    const cached = sessionStore.claimRequest(body, user);
     if (cached) return reply.code(200).send(cached);
 
-    const session = body.sessionId ? sessionStore.get(body.sessionId, user) : sessionStore.create(user);
-    sessionStore.claim(session);
     try {
-      const result = await runAgentTurn(body.message, {
-        config,
-        client,
-        session,
-        user,
-        requestId: body.requestId,
-        log: (event, payload) => app.log.info({ event, ...payload }, "agent event"),
-      });
-      session.messages = result.messages;
-      session.filters = result.filters;
-      session.displayedListingIds = result.displayedListingIds;
-      session.displayedProducts = result.displayedProducts;
-      session.searchPage = result.searchPage;
-      sessionStore.save(session);
-      sessionStore.saveIdempotentResponse(body.requestId, user, result.response);
-      return reply.code(200).send(result.response);
+      const session = body.sessionId ? sessionStore.get(body.sessionId, user) : sessionStore.create(user);
+      sessionStore.claim(session);
+      try {
+        const result = await runAgentTurn(body.message, {
+          config,
+          client,
+          session,
+          user,
+          requestId: body.requestId,
+          log: (event, payload) => app.log.info({ event, ...payload }, "agent event"),
+        });
+        session.messages = result.messages;
+        session.filters = result.filters;
+        session.displayedListingIds = result.displayedListingIds;
+        session.displayedProducts = result.displayedProducts;
+        session.searchPage = result.searchPage;
+        sessionStore.save(session);
+        sessionStore.saveIdempotentResponse(body, user, result.response);
+        return reply.code(200).send(result.response);
+      } finally {
+        sessionStore.release(session);
+      }
     } finally {
-      sessionStore.release(session);
+      sessionStore.releaseRequest(body.requestId);
     }
   });
 

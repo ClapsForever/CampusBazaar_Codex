@@ -215,7 +215,7 @@ export class MockBusinessClient implements BusinessReadClient {
     return listing;
   }
 
-  async getUserPreferences(user: UserContext, signal?: AbortSignal): Promise<UserPreferences> {
+  async getUserPreferences(_user: UserContext, signal?: AbortSignal): Promise<UserPreferences> {
     signal?.throwIfAborted();
     return {
       favoriteCategories: ["教材", "键盘"],

@@ -18,6 +18,10 @@ export struct TradeListView {
     TradeStatusUI.text(TransactionStatus.REJECTED)];
   private firstShow: boolean = true;
 
+  aboutToDisappear(): void {
+    this.vm.dispose();
+  }
+
   build() {
     NavDestination() {
       Column() {

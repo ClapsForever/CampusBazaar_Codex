@@ -138,3 +138,14 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 - Demo 不包含学校统一认证、自助注册或邮件验证码服务。
 
 业务 API 接口和备份说明见 [backend/api/README.md](backend/api/README.md)；Agent 内部接口见 [backend/agent/docs/api.md](backend/agent/docs/api.md)。
+
+## 8. 项目整理与回归
+
+前后端整理说明及需手动删除的历史文件见 [2026-10-15 清理清单](docs/cleanup-2026-10-15.md)。安装 `backend/api` 的开发依赖后，可直接在仓库根目录运行以下回归，无需指定 DevEco 内部 TypeScript 路径：
+
+```sh
+node --test scripts/ui-regression.cjs
+node scripts/ui-api-regression.cjs
+```
+
+前者使用服务替身执行实际前端逻辑，后者运行全部 API 测试和 UI 契约，使用本机随机端口及临时数据库，保留测试数据。它们不代替模拟器或真机验收。

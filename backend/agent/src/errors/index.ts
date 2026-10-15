@@ -4,6 +4,7 @@ export type ErrorCode =
   | "SESSION_NOT_FOUND"
   | "SESSION_FORBIDDEN"
   | "SESSION_BUSY"
+  | "IDEMPOTENCY_CONFLICT"
   | "TOOL_INPUT_INVALID"
   | "LISTING_NOT_FOUND"
   | "BACKEND_TIMEOUT"
@@ -41,6 +42,7 @@ function statusFor(code: ErrorCode): number {
     case "SESSION_FORBIDDEN":
       return 403;
     case "SESSION_BUSY":
+    case "IDEMPOTENCY_CONFLICT":
       return 409;
     case "MODEL_API_KEY_MISSING":
       return 503;

@@ -13,6 +13,7 @@
 
 # Dependencies and local environment files
 **/node_modules/
+**/oh_modules/
 **/dist/
 **/coverage/
 backend/api/.local-data/
@@ -30,6 +31,7 @@ backend/api/.local-data/
 *.keystore
 *.pem
 *.key
+*.csr
 
 # Local release certificates and generated filing details
 /CampusBazaar-release.cer
@@ -40,3 +42,5 @@ backend/api/.local-data/
 .DS_Store
 Thumbs.db
 Desktop.ini
+local.properties
+.vscode/

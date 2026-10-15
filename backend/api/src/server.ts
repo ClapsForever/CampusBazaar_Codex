@@ -44,7 +44,7 @@ function internalIdentity(req: IncomingMessage, store: Store) {
   return store.internalUser(userId, schoolId);
 }
 
-async function proxyAgent(req: IncomingMessage, store: Store, user: ReturnType<Store['authenticate']>, body: Record<string, unknown>, rid: string): Promise<{ status: number; body: unknown }> {
+async function proxyAgent(store: Store, user: ReturnType<Store['authenticate']>, body: Record<string, unknown>): Promise<{ status: number; body: unknown }> {
   const agentRequestId = text(body.requestId, 'requestId', 1, 100);
   const message = text(body.message, 'message', 1, 2000);
   const sessionId = body.sessionId === null || body.sessionId === undefined ? null : text(body.sessionId, 'sessionId', 1, 150);
@@ -100,7 +100,9 @@ async function proxyAgent(req: IncomingMessage, store: Store, user: ReturnType<S
 
 async function route(req: IncomingMessage, res: ServerResponse, store: Store, rid: string): Promise<void> {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-  const path = decodeURIComponent(url.pathname);
+  let path: string;
+  try { path = decodeURIComponent(url.pathname); }
+  catch { throw new ApiError(400, 'BAD_REQUEST', '请求路径编码不正确'); }
   const method = req.method || 'GET';
   if (method === 'GET' && (path === '/health/live' || path === '/health/ready')) {
     if (path.endsWith('ready')) store.db.prepare('SELECT 1').get();
@@ -198,7 +200,7 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
     send(res, 201, store.sendMessage(messagesMatch[1], user, await readJson(req), idempotencyKey(req)), rid); return;
   }
   if (method === 'POST' && path === '/api/agent/chat') {
-    const outcome = await proxyAgent(req, store, user, await readJson(req), rid);
+    const outcome = await proxyAgent(store, user, await readJson(req));
     send(res, outcome.status, outcome.body, rid); return;
   }
   throw new ApiError(404, 'NOT_FOUND', '接口不存在');

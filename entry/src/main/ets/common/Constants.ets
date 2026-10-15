@@ -1,6 +1,5 @@
 import { TransactionStatus } from '../model/Models';
 
-export const ROUTE_BUYER_HOME: string = 'BuyerHome';
 export const ROUTE_SELLER_HOME: string = 'SellerHome';
 export const ROUTE_PUBLISH_PAGE: string = 'PublishPage';
 export const ROUTE_PRODUCT_DETAIL: string = 'ProductDetail';

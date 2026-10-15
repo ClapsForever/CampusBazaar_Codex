@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
-const ts = require(process.env.ARK_TYPESCRIPT || 'typescript');
+const ts = require(process.env.ARK_TYPESCRIPT || require.resolve('typescript', { paths: [path.join(__dirname, '../backend/api')] }));
 const root = path.resolve(__dirname, '../entry/src/main/ets');
-function harness(overrides = {}) {
+function harness(overrides = {}, runtime = {}) {
   const cache = new Map();
   function load(name) {
     if (overrides[name]) return overrides[name];
@@ -18,9 +18,10 @@ function harness(overrides = {}) {
     const source = fs.readFileSync(filename, 'utf8').replace(/@ObservedV2\s*/g, '').replace(/@Trace\s*/g, '');
     const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     vm.runInNewContext(output, { exports, require: dependency => {
+      if (overrides[dependency]) return overrides[dependency];
       if (dependency.startsWith('@kit.')) return {};
       return load(path.posix.normalize(path.posix.join(path.posix.dirname(name), dependency)));
-    }, setTimeout, clearTimeout, console }, { filename });
+    }, setTimeout, clearTimeout, setInterval, clearInterval, console, ...runtime }, { filename });
     return exports;
   }
   return load;
@@ -31,6 +32,159 @@ function deferred() {
   return { promise, resolve, reject };
 }
 const product = { id: 'listing_1', title: '蓝牙耳机', category: '耳机', campus: '江湾校区', images: [], price: 20 };
+
+function tradeDetail(id = 'trade_a') {
+  return { transaction: { id, status: 'PENDING' }, product,
+    buyer: { id: 'buyer' }, seller: { id: 'seller' } };
+}
+
+test('交易列表忽略旧响应，静默失败保留列表，重试清除错误', async () => {
+  const old = deferred(), fresh = deferred(); let count = 0, fails = false;
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'buyer' }) } },
+    'service/TransactionService': { transactionService: { getTransactionsForUser: () => {
+      if (fails) throw new Error('offline');
+      return (++count === 1 ? old : fresh).promise;
+    } } }
+  });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  const a = model.loadList(), b = model.loadList(true);
+  fresh.resolve([{ transaction: { id: 'fresh' } }]); await b;
+  old.resolve([]); await a;
+  assert.equal(model.items[0].transaction.id, 'fresh');
+  fails = true; await model.loadList(true);
+  assert.equal(model.listState, load('common/Constants').LoadState.CONTENT);
+  assert.equal(model.lastError, 'offline');
+  fails = false; await model.loadList(true); assert.equal(model.lastError, '');
+});
+
+test('交易列表退出页面或切换账号后丢弃在途结果', async () => {
+  let current = { id: 'buyer' }, pending = deferred();
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => current } },
+    'service/TransactionService': { transactionService: { getTransactionsForUser: () => pending.promise } }
+  });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  const first = model.loadList(); model.dispose(); pending.resolve([tradeDetail()]); await first;
+  assert.equal(model.items.length, 0);
+  pending = deferred(); const second = model.loadList(); current = { id: 'other' };
+  pending.resolve([tradeDetail()]); await second; assert.equal(model.items.length, 0);
+});
+
+test('旧交易发送完成不能清空新交易草稿或修改新请求的发送状态', async () => {
+  const old = deferred(), fresh = deferred(); let count = 0;
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'buyer' }) } },
+    'service/TransactionService': { transactionService: { getTransactionDetail: async id => tradeDetail(id) } },
+    'service/MessageService': { messageService: { getMessages: async () => [],
+      sendMessage: () => (++count === 1 ? old : fresh).promise } }
+  }, { setTimeout: () => 0 });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  await model.loadDetail('trade_a'); model.chatText = '旧消息'; const first = model.send();
+  await model.loadDetail('trade_b'); model.chatText = '新消息'; const second = model.send();
+  old.resolve(); assert.equal(await first, false);
+  assert.equal(model.chatText, '新消息'); assert.equal(model.sending, true);
+  fresh.resolve(); assert.equal(await second, true); assert.equal(model.sending, false);
+});
+
+test('发送中编辑的下一条草稿保留，较旧消息请求不能覆盖新消息', async () => {
+  const oldMessages = deferred(), send = deferred(), entered = deferred(); let count = 0;
+  const freshMessages = [{ id: 'msg_new', content: '新消息' }];
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'buyer' }) } },
+    'service/TransactionService': { transactionService: { getTransactionDetail: async id => tradeDetail(id) } },
+    'service/MessageService': { messageService: {
+      getMessages: () => {
+        if (++count === 1) { entered.resolve(); return oldMessages.promise; }
+        return Promise.resolve(freshMessages);
+      }, sendMessage: () => send.promise
+    } }
+  }, { setTimeout: () => 0 });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  const loading = model.loadDetail('trade_a'); await entered.promise;
+  model.chatText = '发出'; const sending = model.send(); model.chatText = '下一条';
+  send.resolve(); assert.equal(await sending, true); assert.equal(model.chatText, '下一条');
+  oldMessages.resolve([]); await loading; assert.equal(model.messages[0].id, 'msg_new');
+});
+
+test('卖家状态操作返回时不能覆盖已切换的交易', async () => {
+  const action = deferred();
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'seller' }) } },
+    'service/TransactionService': { transactionService: { getTransactionDetail: async id => tradeDetail(id),
+      acceptTransaction: () => action.promise } },
+    'service/MessageService': { messageService: { getMessages: async () => [] } }
+  });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  await model.loadDetail('trade_a'); const pending = model.accept();
+  await model.loadDetail('trade_b'); action.resolve({ id: 'trade_a', status: 'ACCEPTED' });
+  assert.equal(await pending, false); assert.equal(model.detail.transaction.id, 'trade_b');
+  assert.equal(model.detail.transaction.status, 'PENDING');
+});
+
+test('慢轮询不重复发起，旧轮询不会回退刚接受的交易状态', async () => {
+  const response = deferred(); let poll, count = 0;
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'seller' }) } },
+    'service/TransactionService': { transactionService: {
+      getTransactionDetail: async id => (++count === 1 ? tradeDetail(id) : response.promise),
+      acceptTransaction: async id => ({ id, status: 'ACCEPTED' })
+    } },
+    'service/MessageService': { messageService: { getMessages: async () => [] } }
+  }, { setInterval: callback => { poll = callback; return 1; }, clearInterval: () => {} });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  await model.loadDetail('trade_a'); model.startPolling('trade_a');
+  const pending = poll(); await poll(); assert.equal(count, 2);
+  assert.equal(await model.accept(), true);
+  response.resolve(tradeDetail()); await pending;
+  assert.equal(model.detail.transaction.status, 'ACCEPTED'); model.dispose();
+});
+
+test('较早的登录响应不能替换较新的登录，也不能在退出后恢复身份', async () => {
+  const first = deferred(), second = deferred(), third = deferred(); let count = 0;
+  const tokens = [];
+  const load = harness({
+    '@kit.NetworkKit': { http: { RequestMethod: { POST: 'POST' } } },
+    'service/ImageUpload': {},
+    'service/BusinessApiClient': { businessApiClient: {
+      request: (_method, path) => path.endsWith('/logout') ? Promise.resolve({ ok: true }) : [first, second, third][count++].promise,
+      setToken: value => tokens.push(value), clearToken: () => tokens.push('')
+    } }
+  });
+  const service = new (load('service/AuthenticationService').HttpAuthenticationService)();
+  const a = service.loginByPassword('a@example.com', 'Campus123');
+  const rejectedA = assert.rejects(a, /登录状态已改变/);
+  const b = service.loginByPassword('b@example.com', 'Campus123');
+  second.resolve({ user: { id: 'b' }, token: 'b-token' }); await b;
+  first.resolve({ user: { id: 'a' }, token: 'a-token' }); await rejectedA;
+  assert.equal(service.getCurrentUser().id, 'b'); assert.equal(tokens.join(','), 'b-token');
+  const c = service.loginByPassword('c@example.com', 'Campus123');
+  const rejectedC = assert.rejects(c, /登录状态已改变/);
+  await service.logout(); third.resolve({ user: { id: 'c' }, token: 'c-token' }); await rejectedC;
+  assert.equal(service.getCurrentUser(), null);
+});
+
+test('较早的退出请求完成或失败均不能清除新账号登录状态', async () => {
+  for (const fails of [false, true]) {
+    const logout = deferred(); let token = '';
+    const load = harness({
+      '@kit.NetworkKit': { http: { RequestMethod: { POST: 'POST' } } }, 'service/ImageUpload': {},
+      'service/BusinessApiClient': { businessApiClient: {
+        request: async (_method, path, body) => path.endsWith('/logout') ? logout.promise :
+          { user: { id: JSON.parse(body).email }, token: 'new-token' },
+        setToken: value => { token = value; }, clearToken: () => { token = ''; }
+      } }
+    });
+    const service = new (load('service/AuthenticationService').HttpAuthenticationService)();
+    await service.loginByPassword('old@example.com', 'Campus123');
+    const pending = service.logout();
+    const checked = fails ? assert.rejects(pending, /offline/) : pending;
+    assert.equal(service.getCurrentUser(), null); assert.equal(token, '');
+    await service.loginByPassword('new@example.com', 'Campus123');
+    if (fails) logout.reject(new Error('offline')); else logout.resolve({ ok: true });
+    await checked; assert.equal(service.getCurrentUser().id, 'new@example.com'); assert.equal(token, 'new-token');
+  }
+});
 
 test('发布与首页共用六类，兼容旧小类和大类别名', () => {
   const { homeCategory, HOME_CATEGORIES, PRODUCT_CATEGORIES, CAMPUS_OPTIONS } = harness()('common/MarketOptions');

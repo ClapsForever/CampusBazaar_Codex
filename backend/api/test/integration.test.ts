@@ -53,6 +53,9 @@ test('本机业务闭环、越权、幂等、Agent 契约与重启持久化', as
   }
   try {
     assert.equal((await call('GET', '/health/ready')).status, 200);
+    const malformedPath = await call('GET', '/api/v1/%ZZ');
+    assert.equal(malformedPath.status, 400);
+    assert.equal(malformedPath.body.code, 'BAD_REQUEST');
     assert.equal((await call('POST', '/api/v1/auth/local/sessions', undefined, { phone: '13800000001', smsCode: '000000' })).status, 404);
     await provisionAccounts(app.db, config.schoolId, [1, 2, 3].map(n => ({ email: `user${n}@example.com`, password: 'Campus123' })));
     const loginA = await call('POST', '/api/v1/auth/password/sessions', undefined, { email: 'user1@example.com', password: 'Campus123' });

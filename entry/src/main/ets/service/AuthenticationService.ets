@@ -40,11 +40,12 @@ export class HttpAuthenticationService implements AuthenticationService {
     if (!isValidEmail(email) || password.length === 0 || password.length > 64) {
       throw new Error('请输入正确的邮箱和密码');
     }
+    const revision: number = ++this.revision;
     const response = await businessApiClient.request<LoginResponse>(http.RequestMethod.POST,
       '/api/v1/auth/password/sessions', JSON.stringify({ email: email.trim().toLowerCase(), password: password }), false);
+    if (revision !== this.revision) throw new Error('登录状态已改变，请重新登录');
     if (!response.user || !response.token) throw new Error('登录响应格式不正确');
     businessApiClient.setToken(response.token);
-    this.revision += 1;
     this.current = response.user;
     return response.user;
   }
@@ -84,12 +85,10 @@ export class HttpAuthenticationService implements AuthenticationService {
 
   async logout(): Promise<void> {
     this.revision += 1;
-    try {
-      await businessApiClient.request<LogoutResponse>(http.RequestMethod.POST, '/api/v1/auth/logout');
-    } finally {
-      businessApiClient.clearToken();
-      this.current = null;
-    }
+    const pending: Promise<LogoutResponse> = businessApiClient.request<LogoutResponse>(http.RequestMethod.POST, '/api/v1/auth/logout');
+    businessApiClient.clearToken();
+    this.current = null;
+    await pending;
   }
 }
 

@@ -1,6 +1,4 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { existsSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
 import { transaction } from './db.js';
@@ -20,20 +18,6 @@ const conditions = ['new', 'like_new', 'good', 'fair', 'unknown'];
 
 export class Store {
   constructor(public db: DatabaseSync, public config: Config) {}
-
-  cleanupAbandonedUploads(now = Date.now()): number {
-    const rows = this.db.prepare('SELECT id,extension FROM product_images WHERE product_id IS NULL AND NOT EXISTS (SELECT 1 FROM users WHERE avatar=product_images.id) AND created_at<?')
-      .all(now - 86_400_000) as { id: string; extension: string }[];
-    let removed = 0;
-    for (const row of rows) {
-      if (!/^img_[a-f0-9]{32}$/.test(row.id) || !['jpg', 'png', 'webp'].includes(row.extension)) continue;
-      const filename = join(this.config.uploadDir, `${row.id}.${row.extension}`);
-      if (existsSync(filename)) unlinkSync(filename);
-      this.db.prepare('DELETE FROM product_images WHERE id=? AND product_id IS NULL').run(row.id);
-      removed++;
-    }
-    return removed;
-  }
 
   user(row: UserRow, own = false): Record<string, unknown> {
     return { id: row.id, nickname: row.nickname,

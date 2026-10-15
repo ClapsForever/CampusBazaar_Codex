@@ -1,5 +1,4 @@
 import { HomeView } from '../views/HomeView';
-import { BuyerHomeView } from '../views/BuyerHomeView';
 import { ProductDetailView } from '../views/ProductDetailView';
 import { SellerHomeView } from '../views/SellerHomeView';
 import { PublishProductView } from '../views/PublishProductView';
@@ -8,7 +7,7 @@ import { TradeDetailView } from '../views/TradeDetailView';
 import { AgentViewModel } from '../viewmodel/AgentViewModel';
 import { BuyerHomeViewModel } from '../viewmodel/BuyerHomeViewModel';
 import {
-  ROUTE_BUYER_HOME, ROUTE_PRODUCT_DETAIL, ROUTE_SELLER_HOME, ROUTE_PUBLISH_PAGE,
+  ROUTE_PRODUCT_DETAIL, ROUTE_SELLER_HOME, ROUTE_PUBLISH_PAGE,
   ROUTE_TRADE_LIST, ROUTE_TRADE_DETAIL
 } from '../common/Constants';
 
@@ -26,9 +25,7 @@ struct Main {
 
   @Builder
   pageMap(name: string): void {
-    if (name === ROUTE_BUYER_HOME) {
-      BuyerHomeView({ agentVm: this.agentVm });
-    } else if (name === ROUTE_SELLER_HOME) {
+    if (name === ROUTE_SELLER_HOME) {
       SellerHomeView();
     } else if (name === ROUTE_PRODUCT_DETAIL) {
       ProductDetailView();

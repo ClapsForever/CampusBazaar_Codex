@@ -1,10 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MockBusinessClient } from "../../src/clients/mock.js";
+import { HttpBusinessClient } from "../../src/clients/http.js";
 import { AppError } from "../../src/errors/index.js";
 import { matchesCategory } from "../../src/intent/categories.js";
 import { searchKeywordGroups } from "../../src/intent/parser.js";
 
 const user = { userId: "user_001", schoolId: "school_demo" };
+
+it("does not contact the backend when the caller has already cancelled", async () => {
+  const fetch = vi.spyOn(globalThis, "fetch");
+  try {
+    const client = new HttpBusinessClient({ baseUrl: "http://127.0.0.1:1", searchPath: "/search",
+      detailPath: "/listings/{listingId}", preferencesPath: "/preferences", timeoutMs: 1000 });
+    await expect(client.searchListings({}, user, AbortSignal.abort())).rejects.toMatchObject({ code: "BACKEND_TIMEOUT" });
+    expect(fetch).not.toHaveBeenCalled();
+  } finally { fetch.mockRestore(); }
+});
 
 describe("MockBusinessClient", () => {
   it("browses broad categories but keeps a concrete object search narrow", async () => {

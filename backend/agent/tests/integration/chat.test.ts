@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildApp } from "../../src/app.js";
 import { loadConfig } from "../../src/config/index.js";
+import { MockBusinessClient } from "../../src/clients/mock.js";
 
 const config = loadConfig({
   NODE_ENV: "test",
@@ -60,6 +61,47 @@ describe("POST /internal/agent/chat", () => {
     const second = await app.inject({ method: "POST", url: "/internal/agent/chat", headers: headers(), payload });
     expect(second.json()).toEqual(first.json());
     await app.close();
+  });
+
+  it("rejects reuse of a requestId with a different question or session", async () => {
+    const app = buildApp({ config });
+    try {
+      const payload = { requestId: "req_conflict", sessionId: null, message: "找键盘" };
+      const first = await app.inject({ method: "POST", url: "/internal/agent/chat", headers: headers(), payload });
+      for (const changed of [{ ...payload, message: "找耳机" }, { ...payload, sessionId: first.json().sessionId }]) {
+        const result = await app.inject({ method: "POST", url: "/internal/agent/chat", headers: headers(), payload: changed });
+        expect(result.statusCode).toBe(409);
+        expect(result.json().code).toBe("IDEMPOTENCY_CONFLICT");
+      }
+    } finally { await app.close(); }
+  });
+
+  it("does not run concurrent initial requests twice and permits retry after a failure", async () => {
+    const client = new MockBusinessClient();
+    let started!: () => void;
+    let release!: () => void;
+    const entered = new Promise<void>(resolve => { started = resolve; });
+    const blocked = new Promise<void>(resolve => { release = resolve; });
+    const search = vi.spyOn(client, "searchListings").mockImplementationOnce(async () => {
+      started();
+      await blocked;
+      throw new Error("test backend failed");
+    });
+    const app = buildApp({ config: { ...config, logLevel: "silent" }, client });
+    const options = { method: "POST" as const, url: "/internal/agent/chat", headers: headers(),
+      payload: { requestId: "req_parallel", sessionId: null, message: "找键盘" } };
+    const first = app.inject(options).then(value => value);
+    try {
+      await entered;
+      const duplicate = await app.inject(options);
+      expect(duplicate.statusCode).toBe(409);
+      expect(duplicate.json().code).toBe("SESSION_BUSY");
+      expect(search).toHaveBeenCalledTimes(1);
+      release();
+      expect((await first).statusCode).toBe(500);
+      expect((await app.inject(options)).statusCode).toBe(200);
+      expect(search).toHaveBeenCalledTimes(2);
+    } finally { release(); await first; await app.close(); }
   });
 
   it("rejects a sessionId belonging to another user", async () => {

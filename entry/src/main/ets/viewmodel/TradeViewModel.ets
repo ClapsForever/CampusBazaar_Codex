@@ -19,6 +19,11 @@ export class TradeViewModel {
   private generation: number = 0;
   private invalidated: boolean = false;
   private pollId: number = -1;
+  private listRequestSeq: number = 0;
+  private messageRequestSeq: number = 0;
+  private activeUserId: string = '';
+  private polling: boolean = false;
+  private statusRevision: number = 0;
 
   get currentUser(): User | null {
     return authService.getCurrentUser();
@@ -44,22 +49,29 @@ export class TradeViewModel {
   }
 
   async loadList(silent: boolean = false): Promise<void> {
+    this.invalidated = false;
+    const seq: number = ++this.listRequestSeq;
     const current: User | null = this.currentUser;
     if (current === null) {
+      this.items = [];
       this.listState = LoadState.ERROR;
       this.lastError = '请先登录';
       return;
     }
+    this.lastError = '';
     if (!silent) {
       this.listState = LoadState.LOADING;
     }
     try {
       const result: TransactionListItem[] = await transactionService.getTransactionsForUser(current.id);
+      if (this.invalidated || seq !== this.listRequestSeq || this.currentUser?.id !== current.id) return;
       this.items = result;
       this.listState = result.length > 0 ? LoadState.CONTENT : LoadState.EMPTY;
     } catch (error) {
-      this.listState = LoadState.ERROR;
-      this.lastError = (error as Error).message;
+      if (!this.invalidated && seq === this.listRequestSeq && this.currentUser?.id === current.id) {
+        this.listState = silent && this.items.length > 0 ? LoadState.CONTENT : LoadState.ERROR;
+        this.lastError = (error as Error).message;
+      }
     }
   }
 
@@ -68,6 +80,11 @@ export class TradeViewModel {
     this.generation += 1;
     const currentGeneration: number = this.generation;
     this.activeId = transactionId;
+    this.activeUserId = this.currentUser?.id ?? '';
+    this.polling = false;
+    this.sending = false;
+    this.actioning = false;
+    this.chatText = '';
     this.detailState = LoadState.LOADING;
     this.detail = null;
     this.messages = [];
@@ -126,23 +143,26 @@ export class TradeViewModel {
     this.lastError = '';
     try {
       await messageService.sendMessage(transactionId, current.id, content);
-      this.chatText = '';
+      if (!this.isActive(transactionId, currentGeneration)) return false;
+      if (this.chatText.trim() === content) this.chatText = '';
       await this.refreshMessages(transactionId, currentGeneration);
       setTimeout(() => {
         this.refreshMessages(transactionId, currentGeneration);
       }, CHAT_REFRESH_DELAY_MS);
       return true;
     } catch (error) {
-      this.lastError = (error as Error).message;
+      if (this.isActive(transactionId, currentGeneration)) this.lastError = (error as Error).message;
       return false;
     } finally {
-      this.sending = false;
+      if (this.isActive(transactionId, currentGeneration)) this.sending = false;
     }
   }
 
   dispose(): void {
     this.invalidated = true;
     this.generation += 1;
+    this.listRequestSeq += 1;
+    this.polling = false;
     if (this.pollId >= 0) {
       clearInterval(this.pollId);
       this.pollId = -1;
@@ -154,17 +174,22 @@ export class TradeViewModel {
       clearInterval(this.pollId);
     }
     this.pollId = setInterval(async () => {
-      if (this.invalidated || this.activeId !== transactionId || this.detail === null) {
+      if (this.invalidated || this.activeId !== transactionId || this.detail === null || this.polling || this.actioning) {
         return;
       }
       const currentGeneration: number = this.generation;
+      if (!this.isActive(transactionId, currentGeneration)) return;
+      const revision: number = this.statusRevision;
+      this.polling = true;
       try {
         const updated: TransactionDetail | null = await transactionService.getTransactionDetail(transactionId);
-        if (updated !== null && this.isActive(transactionId, currentGeneration)) {
+        if (updated !== null && this.isActive(transactionId, currentGeneration) && revision === this.statusRevision) {
           this.detail = updated;
         }
         await this.refreshMessages(transactionId, currentGeneration);
       } catch (_error) {
+      } finally {
+        if (this.isActive(transactionId, currentGeneration)) this.polling = false;
       }
     }, 3000);
   }
@@ -181,6 +206,9 @@ export class TradeViewModel {
       return false;
     }
     this.actioning = true;
+    const transactionId: string = detail.transaction.id;
+    const currentGeneration: number = this.generation;
+    this.statusRevision += 1;
     this.lastError = '';
     try {
       let updated: Transaction;
@@ -191,6 +219,7 @@ export class TradeViewModel {
       } else {
         updated = await transactionService.completeTransaction(detail.transaction.id, current.id);
       }
+      if (!this.isActive(transactionId, currentGeneration)) return false;
       this.detail = {
         transaction: updated,
         product: detail.product,
@@ -199,27 +228,30 @@ export class TradeViewModel {
       };
       return true;
     } catch (error) {
-      this.lastError = (error as Error).message;
+      if (this.isActive(transactionId, currentGeneration)) this.lastError = (error as Error).message;
       return false;
     } finally {
-      this.actioning = false;
+      if (this.isActive(transactionId, currentGeneration)) this.actioning = false;
     }
   }
 
   private async refreshMessages(transactionId: string, currentGeneration: number): Promise<void> {
+    if (!this.isActive(transactionId, currentGeneration)) return;
+    const seq: number = ++this.messageRequestSeq;
     try {
       const result: Message[] = await messageService.getMessages(transactionId);
-      if (this.isActive(transactionId, currentGeneration)) {
+      if (this.isActive(transactionId, currentGeneration) && seq === this.messageRequestSeq) {
         this.messages = result;
       }
     } catch (error) {
-      if (this.isActive(transactionId, currentGeneration)) {
+      if (this.isActive(transactionId, currentGeneration) && seq === this.messageRequestSeq) {
         this.lastError = (error as Error).message || '加载聊天记录失败';
       }
     }
   }
 
   private isActive(transactionId: string, currentGeneration: number): boolean {
-    return !this.invalidated && this.activeId === transactionId && this.generation === currentGeneration;
+    return !this.invalidated && this.activeId === transactionId && this.generation === currentGeneration &&
+      this.currentUser?.id === this.activeUserId;
   }
 }

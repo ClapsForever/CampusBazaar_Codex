@@ -64,6 +64,8 @@ export class HttpBusinessClient implements BusinessReadClient {
     const abort = () => controller.abort();
     signal?.addEventListener("abort", abort, { once: true });
     try {
+      if (signal?.aborted) controller.abort();
+      controller.signal.throwIfAborted();
       const response = await fetch(new URL(path, this.options.baseUrl), {
         method: "GET",
         headers: {
