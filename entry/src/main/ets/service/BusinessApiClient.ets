@@ -63,7 +63,7 @@ export class BusinessApiClient {
         }
         response = await client.request(`${this.baseUrl}${path}`, options);
       } catch (_error) {
-        throw new Error('无法连接本机业务 API，请检查电脑地址、端口和网络');
+        throw new Error('无法连接后端服务，请检查服务器地址、端口和网络');
       }
       const raw: string = response.result as string;
       if (response.responseCode < 200 || response.responseCode >= 300) {
@@ -104,7 +104,7 @@ export class BusinessApiClient {
           expectDataType: http.HttpDataType.STRING
         });
       } catch (_error) {
-        throw new Error('图片上传失败，请检查本机服务连接');
+        throw new Error('图片上传失败，请检查后端服务连接');
       }
       const raw: string = response.result as string;
       if (response.responseCode !== 201) {

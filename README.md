@@ -2,7 +2,7 @@
 
 校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持预置账号的邮箱密码登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；自助注册、找回密码与邮件验证码尚未接入。
 
-腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。licx 的独立测试后端现使用 `https://api.campusbazaar.cn`，健康检查为 `https://api.campusbazaar.cn/health/ready`；域名入口、证书自动续期与当前部署记录见 [HTTPS 说明](deploy/ubuntu/licx-https/README.md)。licx 实例已部署邮箱密码 Demo，使用预置账号，访问仍受原 IP 白名单限制。认证升级与组员不限网络访问的步骤见 [Demo 认证说明](docs/demo-auth.md)。
+腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。licx 的测试入口现为 `http://101.35.53.59:18080`，健康检查为 `http://101.35.53.59:18080/health/ready`，使用预置邮箱密码账号，按用户要求保留全部 IP 白名单；组员接入、验证范围及云防火墙设置见 [IP 直连测试说明](docs/ip-direct-testing.md)。HTTP 会明文传输密码和登录令牌，仅使用测试账号；正式发布前恢复 HTTPS。域名入口与证书配置保留，见 [HTTPS 说明](deploy/ubuntu/licx-https/README.md)。
 
 ## 目录与运行架构
 
@@ -116,7 +116,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 ## 5. 在 DevEco Studio 运行 App
 
 1. 打开本仓库根目录，等待工程与 OHPM 同步；选择匹配的 HarmonyOS SDK 和模拟器。
-2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `https://api.campusbazaar.cn`，并确认当前网络已加入服务器白名单。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
+2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `http://101.35.53.59:18080`，确认实际出口 IP 在服务器白名单和腾讯云 18080 入站规则中，再在模拟器浏览器打开该地址的 `/health/ready` 确认返回 `{"status":"ok"}`。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
 启动前先按 [Demo 认证说明](docs/demo-auth.md) 导入邮箱密码账号。登录页只填写邮箱与密码；账号由项目组分配，暂不开放自助注册和邮件找回密码。
