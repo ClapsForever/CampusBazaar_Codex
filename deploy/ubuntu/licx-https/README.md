@@ -1,6 +1,6 @@
 # licx 的域名 HTTPS 入口
 
-2026-10-16 当前测试入口已按用户选择改为 `http://101.35.53.59:18080`，保留全部 IP 白名单。前端和 API 的图片公网地址已同步；本页记录的 Caddy 域名入口及证书配置仍保留，但当前 App 不依赖该入口。组员接入与验证范围见 [IP 直连测试说明](../../../docs/ip-direct-testing.md)。
+2026-10-17 当前测试入口为 `http://101.35.53.59:18080`，已取消来源 IP 白名单，通过预置邮箱密码登录。前端和 API 的图片公网地址一致；本页记录的 Caddy 域名入口及证书配置仍保留，但当前 App 不依赖该入口。组员接入与验证范围见 [IP 直连测试说明](../../../docs/ip-direct-testing.md)。以下白名单说明记录最初的 HTTPS 部署，不代表当前准入策略。
 
 此配置用于 `api.campusbazaar.cn` → `101.35.53.59` 的独立后端。Caddy 仅监听 TCP 443，自动申请和续期 Let's Encrypt 证书，转发到 licx 的 Nginx `127.0.0.1:18080`，最终由业务 API `127.0.0.1:18081` 处理。它不使用 80 端口，不修改队友的入口。
 
@@ -15,7 +15,7 @@ map "$realip_remote_addr:$http_x_forwarded_proto" $cb_forwarded_proto {
 }
 ```
 
-保留原有 `allow` 和 `deny all`，校验配置后只重载 licx 的 Nginx 用户服务。
+最初部署保留了 `allow` 和 `deny all`；当前已按用户要求取消这些规则，恢复 HTTPS 时不应重新添加。校验配置后只重载 licx 的 Nginx 用户服务，并保留最新的 licx 自有临时目录设置。
 
 准备文件与校验过的 Caddy 放在服务器 `/home/licx/campusbazaar/ops/licx-https/`，其中 `caddy.sha256` 记录二进制摘要。检查文件后，在本机终端执行：
 

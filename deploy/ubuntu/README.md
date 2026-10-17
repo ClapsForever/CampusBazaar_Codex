@@ -1,5 +1,7 @@
 # 腾讯云 Ubuntu 24.04 部署指南
 
+2026-10-17 licx 现有实例已采用 IP:18080、预置邮箱密码登录、不限来源 IP 的小组测试配置，见 [当前接入与部署记录](../../docs/ip-direct-testing.md) 及 [实际 Nginx 配置](licx-ip-test/nginx.conf)。下文是通用的首次部署指南，其中成员 IP 限制不代表该实例当前策略。
+
 适用：一台 Ubuntu 24.04 LTS、2 核 4 GB、公网 IPv4，无域名，CampusBazaar 小组共同测试。以当前 `CampusBazaar_Codex` 为版本基准；`CampusBazaar_UI` 为历史参考版本，本次邮箱认证修改仅应用到 `CampusBazaar_Codex`。
 
 本目录提供配置模板，并未自动连接或更改你的云服务器。下面命令以首次部署、SSH 用户具有 sudo 权限为前提。所有 `user`、`YOUR_PUBLIC_IPV4`、`YOUR_ADMIN_PUBLIC_IPV4`、`YOUR_MEMBER_PUBLIC_IPV4` 都要替换为实际值。公网访问地址不带 `:8080`。
