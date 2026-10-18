@@ -1,4 +1,5 @@
 import { User } from '../model/Models';
+import { LEGAL_VERSION } from '../common/LegalDocuments';
 import { isValidEmail } from '../common/Utils';
 import { http } from '@kit.NetworkKit';
 import { businessApiClient } from './BusinessApiClient';
@@ -6,6 +7,7 @@ import { readPhoto, UploadBytes } from './ImageUpload';
 
 export interface AuthenticationService {
   loginByPassword(email: string, password: string): Promise<User>;
+  registerByPassword(email: string, password: string): Promise<User>;
   refreshUser(): Promise<User>;
   updateProfile(nickname: string, avatarUri: string): Promise<User>;
   changePassword(currentPassword: string, newPassword: string): Promise<User>;
@@ -45,6 +47,18 @@ export class HttpAuthenticationService implements AuthenticationService {
       '/api/v1/auth/password/sessions', JSON.stringify({ email: email.trim().toLowerCase(), password: password }), false);
     if (revision !== this.revision) throw new Error('登录状态已改变，请重新登录');
     if (!response.user || !response.token) throw new Error('登录响应格式不正确');
+    businessApiClient.setToken(response.token);
+    this.current = response.user;
+    return response.user;
+  }
+
+  async registerByPassword(email: string, password: string): Promise<User> {
+    const revision: number = ++this.revision;
+    const response = await businessApiClient.request<LoginResponse>(http.RequestMethod.POST,
+      '/api/v1/auth/registrations', JSON.stringify({ email: email.trim().toLowerCase(), password: password,
+        agreementVersion: LEGAL_VERSION, privacyVersion: LEGAL_VERSION }), false);
+    if (revision !== this.revision) throw new Error('登录状态已改变，请重新登录');
+    if (!response.user || !response.token) throw new Error('注册响应格式不正确');
     businessApiClient.setToken(response.token);
     this.current = response.user;
     return response.user;

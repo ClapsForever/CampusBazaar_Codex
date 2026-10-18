@@ -6,6 +6,7 @@ import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalT
 import { categorySearchSpec, keywordGroups } from './search.js';
 import { hashPassword, validatePassword, verifyPassword } from './password.js';
 import { normalizeEmail } from './accounts.js';
+import { AGREEMENT_VERSION, PRIVACY_VERSION, RegistrationProtection } from './registration.js';
 
 type UserRow = { id: string; phone: string | null; email: string | null; enabled: number; nickname: string; avatar: string; school_id: string; password_hash: string | null };
 type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD'; published_at: number };
@@ -17,7 +18,34 @@ const productIdPattern = /^listing_[a-z0-9_-]{1,64}$/;
 const conditions = ['new', 'like_new', 'good', 'fair', 'unknown'];
 
 export class Store {
-  constructor(public db: DatabaseSync, public config: Config) {}
+  readonly registrationProtection: RegistrationProtection;
+  constructor(public db: DatabaseSync, public config: Config) {
+    this.registrationProtection = new RegistrationProtection(db, config);
+  }
+
+  async register(body: Record<string, unknown>, clientIp: string) {
+    this.registrationProtection.reserveRegistration(clientIp);
+    const email = normalizeEmail(body.email);
+    const password = validatePassword(body.password);
+    if (body.agreementVersion !== AGREEMENT_VERSION || body.privacyVersion !== PRIVACY_VERSION) {
+      throw new ApiError(400, 'AGREEMENT_REQUIRED', '请阅读并同意当前版本的用户协议与隐私政策');
+    }
+    const passwordHash = await hashPassword(password);
+    // Check and insert under the same write transaction after asynchronous hashing.
+    // A concurrent request cannot create a second canonical email or partial account.
+    return transaction(this.db, () => {
+      if (this.db.prepare('SELECT 1 FROM users WHERE email=?').get(email)) {
+        throw new ApiError(409, 'EMAIL_EXISTS', '该邮箱已注册，请登录');
+      }
+      const id = `user_${randomUUID().replaceAll('-', '')}`, now = Date.now();
+      const nickname = `校园用户${randomBytes(3).toString('hex')}`;
+      this.db.prepare('INSERT INTO users(id,email,nickname,avatar,school_id,created_at,password_hash) VALUES(?,?,?,?,?,?,?)')
+        .run(id, email, nickname, '', this.config.schoolId, now, passwordHash);
+      this.db.prepare('INSERT INTO registration_consents(user_id,agreement_version,privacy_version,accepted_at) VALUES(?,?,?,?)')
+        .run(id, AGREEMENT_VERSION, PRIVACY_VERSION, now);
+      return this.issueSession(this.findUser(id)!);
+    });
+  }
 
   user(row: UserRow, own = false): Record<string, unknown> {
     return { id: row.id, nickname: row.nickname,

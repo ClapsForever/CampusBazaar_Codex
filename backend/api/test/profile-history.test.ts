@@ -29,7 +29,7 @@ test('v1 数据库升级保留旧用户与会话，且重复启动不会重复�
   old.close();
   for (let index = 0; index < 2; index++) {
     const db = openDatabase(config);
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 3);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 4);
     assert.equal(db.prepare('SELECT nickname FROM users').get()!.nickname, '旧昵称');
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, null);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM agent_sessions').get()!.count, 1);

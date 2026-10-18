@@ -1,3 +1,3 @@
 {
-  "src": ["pages/Index", "pages/Main"]
+  "src": ["pages/Index", "pages/Main", "pages/LegalDocument"]
 }

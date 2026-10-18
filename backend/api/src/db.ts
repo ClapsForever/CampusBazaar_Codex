@@ -14,8 +14,8 @@ export function openDatabase(config: Pick<Config, 'databasePath' | 'uploadDir'>)
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 3) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 3) return;
+  if (version.user_version > 4) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 4) return;
   if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -88,12 +88,13 @@ function migrate(db: DatabaseSync): void {
     COMMIT;
   `);
 
-  // Keep every user ID and its business references; phone becomes optional.
-  // Foreign keys must be disabled outside the transaction while rebuilding users.
-  db.exec('PRAGMA foreign_keys=OFF');
-  try {
-    transaction(db, () => {
-      db.exec(`
+  if (version.user_version < 3) {
+    // Keep every user ID and its business references; phone becomes optional.
+    // Foreign keys must be disabled outside the transaction while rebuilding users.
+    db.exec('PRAGMA foreign_keys=OFF');
+    try {
+      transaction(db, () => {
+        db.exec(`
         CREATE TABLE users_v3 (
           id TEXT PRIMARY KEY, phone TEXT UNIQUE, nickname TEXT NOT NULL,
           avatar TEXT NOT NULL DEFAULT '', school_id TEXT NOT NULL, created_at INTEGER NOT NULL,
@@ -109,16 +110,37 @@ function migrate(db: DatabaseSync): void {
           PRIMARY KEY(scope,key)
         );
         CREATE INDEX auth_login_attempts_expiry ON auth_login_attempts(until_at);
-      `);
-      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions'").get()) {
-        db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE revoked_at IS NULL').run(Date.now());
-      }
-      if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
-      db.exec('PRAGMA user_version=3');
-    });
-  } finally {
-    db.exec('PRAGMA foreign_keys=ON');
+        `);
+        if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions'").get()) {
+          db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE revoked_at IS NULL').run(Date.now());
+        }
+        if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
+        db.exec('PRAGMA user_version=3');
+      });
+    } finally {
+      db.exec('PRAGMA foreign_keys=ON');
+    }
   }
+
+  transaction(db, () => {
+    db.exec(`
+      CREATE TABLE auth_captchas (
+        id TEXT PRIMARY KEY, client_ip TEXT NOT NULL, code_hash TEXT NOT NULL,
+        expires_at INTEGER NOT NULL
+      );
+      CREATE INDEX auth_captchas_expiry ON auth_captchas(expires_at);
+      CREATE TABLE auth_registration_limits (
+        scope TEXT NOT NULL, key TEXT NOT NULL, count INTEGER NOT NULL,
+        until_at INTEGER NOT NULL, PRIMARY KEY(scope,key)
+      );
+      CREATE INDEX auth_registration_limits_expiry ON auth_registration_limits(until_at);
+      CREATE TABLE registration_consents (
+        user_id TEXT PRIMARY KEY REFERENCES users(id), agreement_version TEXT NOT NULL,
+        privacy_version TEXT NOT NULL, accepted_at INTEGER NOT NULL
+      );
+      PRAGMA user_version=4;
+    `);
+  });
 }
 
 export function transaction<T>(db: DatabaseSync, action: () => T): T {
