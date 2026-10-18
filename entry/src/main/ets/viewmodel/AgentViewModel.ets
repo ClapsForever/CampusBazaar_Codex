@@ -94,6 +94,7 @@ export class AgentViewModel {
   @Trace selectedHistory: AgentConversationSummary | null = null;
   @Trace historyTurns: AgentConversationTurn[] = [];
   @Trace historyTurnCursor: string | null = null;
+  @Trace deletingHistoryId: string = '';
   private requestSeq: number = 0;
   private historySeq: number = 0;
 
@@ -211,6 +212,37 @@ export class AgentViewModel {
       if (currentSeq === this.requestSeq) {
         this.loading = false;
       }
+    }
+  }
+
+  async deleteHistory(item: AgentConversationSummary): Promise<boolean> {
+    if (this.deletingHistoryId !== '' || this.loading) {
+      return false;
+    }
+    this.deletingHistoryId = item.sessionId;
+    this.historyError = '';
+    try {
+      await agentService.deleteHistory(item.sessionId);
+      this.history = this.history.filter((entry: AgentConversationSummary): boolean =>
+        entry.sessionId !== item.sessionId);
+      if (this.selectedHistory !== null && this.selectedHistory.sessionId === item.sessionId) {
+        this.selectedHistory = null;
+        this.historyTurns = [];
+        this.historyTurnCursor = null;
+      }
+      if (this.sessionId === item.sessionId) {
+        this.requestSeq += 1;
+        this.sessionId = null;
+        this.turns = [];
+        this.query = '';
+        this.error = '';
+      }
+      return true;
+    } catch (error) {
+      this.historyError = (error as Error).message || '删除失败，请稍后重试';
+      return false;
+    } finally {
+      this.deletingHistoryId = '';
     }
   }
 }

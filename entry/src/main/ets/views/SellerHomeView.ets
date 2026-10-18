@@ -4,7 +4,7 @@ import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../common/Utils';
 import {
   UI_RADIUS, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY, LoadState,
-  ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE
+  COLOR_TEXT_SECONDARY, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE
 } from '../common/Constants';
 
 @ComponentV2
@@ -37,28 +37,42 @@ export struct SellerHomeView {
           List({ space: 10 }) {
             ForEach(this.vm.products, (item: Product) => {
               ListItem() {
-                Row({ space: 12 }) {
-                  if (item.images.length > 0) {
-                    Image(item.images[0]).width(72).height(72).borderRadius(UI_RADIUS)
-                      .objectFit(ImageFit.Cover);
-                  } else {
-                    Text('📷').fontSize('26fp').width(72).height(72).textAlign(TextAlign.Center)
-                      .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
-                  }
-                  Column({ space: 6 }) {
-                    Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium)
-                      .fontColor(COLOR_TEXT_PRIMARY).maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis });
-                    Column({ space: 4 }) {
-                      Text(formatPrice(item.price)).fontSize('17fp').fontWeight(FontWeight.Bold).fontColor(COLOR_PRICE);
-                      Text(formatTime(item.publishTime)).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
+                Row({ space: 10 }) {
+                  Row({ space: 12 }) {
+                    if (item.images.length > 0) {
+                      Image(item.images[0]).width(72).height(72).borderRadius(UI_RADIUS)
+                        .objectFit(ImageFit.Cover);
+                    } else {
+                      Text('📷').fontSize('26fp').width(72).height(72).textAlign(TextAlign.Center)
+                        .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
                     }
-                    .alignItems(HorizontalAlign.Start);
+                    Column({ space: 5 }) {
+                      Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium)
+                        .fontColor(COLOR_TEXT_PRIMARY).maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis });
+                      Text(this.statusText(item)).fontSize('11fp')
+                        .fontColor(this.statusColor(item)).backgroundColor(this.statusBackground(item))
+                        .borderRadius(UI_RADIUS).padding({ left: 7, right: 7, top: 2, bottom: 2 });
+                      Column({ space: 4 }) {
+                        Text(formatPrice(item.price)).fontSize('17fp').fontWeight(FontWeight.Bold).fontColor(COLOR_PRICE);
+                        Text(formatTime(item.publishTime)).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
+                      }
+                      .alignItems(HorizontalAlign.Start);
+                    }
+                    .layoutWeight(1).alignItems(HorizontalAlign.Start);
                   }
-                  .layoutWeight(1).alignItems(HorizontalAlign.Start);
+                  .layoutWeight(1)
+                  .onClick(() => this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, item.id));
+                  if (item.status === 'ACTIVE') {
+                    Button(this.vm.delistingId === item.id ? '…' : '下架').type(ButtonType.Normal)
+                      .height(38).fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY)
+                      .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
+                      .enabled(this.vm.delistingId === '')
+                      .onClick(() => this.showDelistDialog(item));
+                  }
                 }
                 .width('100%').padding(12).backgroundColor(Color.White).borderRadius(UI_RADIUS)
-                .onClick(() => this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, item.id));
+                .alignItems(VerticalAlign.Center);
               }
             }, (item: Product): string => item.id);
           }
@@ -91,6 +105,43 @@ export struct SellerHomeView {
       } else {
         this.vm.loadMyProducts(true);
       }
+    });
+  }
+
+  private statusText(item: Product): string {
+    if (item.status === 'DELISTED') return '已下架';
+    if (item.status === 'SOLD') return '已售出';
+    return '在售';
+  }
+
+  private statusColor(item: Product): string {
+    return item.status === 'ACTIVE' ? '#2E9E5B' : COLOR_TEXT_TERTIARY;
+  }
+
+  private statusBackground(item: Product): string {
+    return item.status === 'ACTIVE' ? '#EAF6ED' : COLOR_PAGE_BG;
+  }
+
+  private showDelistDialog(item: Product): void {
+    this.getUIContext().showAlertDialog({
+      title: '下架商品',
+      cornerRadius: UI_RADIUS,
+      message: `确定下架「${item.title}」吗？下架后不会出现在商品列表中。`,
+      primaryButton: {
+        value: '确认下架',
+        action: (): void => {
+          this.confirmDelist(item);
+        }
+      },
+      secondaryButton: { value: '取消', action: (): void => { } }
+    });
+  }
+
+  private async confirmDelist(item: Product): Promise<void> {
+    const success: boolean = await this.vm.delist(item.id);
+    this.getUIContext().getPromptAction().showToast({
+      message: success ? '商品已下架' : (this.vm.actionError || '下架失败，请稍后重试'),
+      duration: 1600
     });
   }
 }

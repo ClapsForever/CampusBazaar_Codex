@@ -170,18 +170,31 @@ export struct AgentSheetView {
   @Builder
   historyContent(): void {
     if (this.vm.selectedHistory === null) {
-      Text('按开始时间排列，最近的对话在前').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).width('100%');
+      Row() {
+        Text('最多保留 10 条 · 最近的对话在前').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).layoutWeight(1);
+        Text(`${this.vm.history.length}/10`).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
+      }
+      .width('100%');
       List({ space: 10 }) {
         ForEach(this.vm.history, (item: AgentConversationSummary) => {
           ListItem() {
-            Column({ space: 8 }) {
-              Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
-                .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%');
-              Text(`${this.historyTime(item.createdAt)} · ${item.turnCount} 轮对话`)
-                .fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
+            Row({ space: 10 }) {
+              Column({ space: 8 }) {
+                Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
+                  .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%');
+                Text(`${this.historyTime(item.createdAt)} · ${item.turnCount} 轮对话`)
+                  .fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
+              }
+              .layoutWeight(1).alignItems(HorizontalAlign.Start)
+              .onClick(() => this.vm.viewHistory(item));
+              Button(this.vm.deletingHistoryId === item.sessionId ? '…' : '删除')
+                .type(ButtonType.Normal).height(36).fontSize('12fp')
+                .fontColor(COLOR_ERROR).backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
+                .enabled(this.vm.deletingHistoryId === '' && !this.vm.historyLoading)
+                .onClick(() => this.showDeleteHistoryDialog(item));
             }
             .width('100%').padding(14).backgroundColor(Color.White).borderRadius(UI_RADIUS)
-            .onClick(() => this.vm.viewHistory(item));
+            .alignItems(VerticalAlign.Center);
           }
         }, (item: AgentConversationSummary): string => item.sessionId);
         if (!this.vm.historyLoading && this.vm.history.length === 0 && this.vm.historyError === '') {
@@ -202,6 +215,11 @@ export struct AgentSheetView {
           .fontColor(COLOR_PRIMARY).backgroundColor(COLOR_PRIMARY_SOFT).onClick(() => this.vm.openHistory());
         Text(this.vm.selectedHistory.title).fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY)
           .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+        Button(this.vm.deletingHistoryId === this.selectedSessionId() ? '…' : '删除')
+          .type(ButtonType.Normal).height(40).fontSize('12fp')
+          .fontColor(COLOR_ERROR).backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
+          .enabled(this.vm.deletingHistoryId === '' && !this.vm.historyLoading)
+          .onClick(() => this.deleteSelectedHistory());
       }
       .width('100%');
       List({ space: 14 }) {
@@ -240,6 +258,39 @@ export struct AgentSheetView {
 
   private twoDigits(value: number): string {
     return value < 10 ? `0${value}` : `${value}`;
+  }
+
+  private selectedSessionId(): string {
+    return this.vm.selectedHistory === null ? '' : this.vm.selectedHistory.sessionId;
+  }
+
+  private deleteSelectedHistory(): void {
+    if (this.vm.selectedHistory !== null) {
+      this.showDeleteHistoryDialog(this.vm.selectedHistory);
+    }
+  }
+
+  private showDeleteHistoryDialog(item: AgentConversationSummary): void {
+    this.getUIContext().showAlertDialog({
+      title: '删除对话记录',
+      cornerRadius: UI_RADIUS,
+      message: `确定删除「${item.title}」吗？删除后无法恢复。`,
+      primaryButton: {
+        value: '删除',
+        action: (): void => {
+          this.confirmDeleteHistory(item);
+        }
+      },
+      secondaryButton: { value: '取消', action: (): void => { } }
+    });
+  }
+
+  private async confirmDeleteHistory(item: AgentConversationSummary): Promise<void> {
+    const success: boolean = await this.vm.deleteHistory(item);
+    this.getUIContext().getPromptAction().showToast({
+      message: success ? '对话记录已删除' : (this.vm.historyError || '删除失败，请稍后重试'),
+      duration: 1600
+    });
   }
 
   private async sendMessage(): Promise<void> {

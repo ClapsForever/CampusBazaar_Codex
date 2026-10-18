@@ -4,12 +4,21 @@ import { readPhoto, UploadBytes } from './ImageUpload';
 import { http } from '@kit.NetworkKit';
 import { businessApiClient, BusinessApiError } from './BusinessApiClient';
 
+export interface ProductSearchQuery {
+  keyword: string;
+  categories: string[];
+  campuses: string[];
+  priceRanges: string[];
+}
+
 export interface ProductService {
   getProductFeed(): Promise<Product[]>;
   searchByKeyword(keyword: string): Promise<Product[]>;
+  searchProducts(query: ProductSearchQuery): Promise<Product[]>;
   getProductsBySeller(sellerId: string): Promise<Product[]>;
   getProductDetail(productId: string): Promise<ProductDetail | null>;
   publishProduct(draft: PublishDraft): Promise<Product>;
+  delistProduct(productId: string): Promise<Product>;
 }
 
 interface ProductListResponse {
@@ -40,10 +49,28 @@ export class HttpProductService implements ProductService {
   }
 
   async searchByKeyword(keyword: string): Promise<Product[]> {
-    if (keyword.trim() === '') {
+    return this.searchProducts({ keyword: keyword, categories: [], campuses: [], priceRanges: [] });
+  }
+
+  async searchProducts(query: ProductSearchQuery): Promise<Product[]> {
+    const params: string[] = [];
+    const keyword: string = query.keyword.trim();
+    if (keyword !== '') {
+      params.push(`q=${encodeURIComponent(keyword)}`);
+    }
+    if (query.categories.length > 0) {
+      params.push(`categories=${encodeURIComponent(query.categories.join(','))}`);
+    }
+    if (query.campuses.length > 0) {
+      params.push(`campuses=${encodeURIComponent(query.campuses.join(','))}`);
+    }
+    if (query.priceRanges.length > 0) {
+      params.push(`priceRanges=${encodeURIComponent(query.priceRanges.join(','))}`);
+    }
+    if (params.length === 0) {
       return [];
     }
-    return this.list(`/api/v1/products?q=${encodeURIComponent(keyword.trim())}`);
+    return this.list(`/api/v1/products?${params.join('&')}`);
   }
 
   async getProductsBySeller(_sellerId: string): Promise<Product[]> {
@@ -73,6 +100,11 @@ export class HttpProductService implements ProductService {
       imageIds: imageIds, category: draft.category || '其他', condition: draft.condition || 'unknown',
       campus: draft.campus || '未填写校区'
     }));
+  }
+
+  async delistProduct(productId: string): Promise<Product> {
+    return await businessApiClient.request<Product>(http.RequestMethod.POST,
+      `/api/v1/products/${encodeURIComponent(productId)}/delist`);
   }
 }
 

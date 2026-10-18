@@ -23,13 +23,22 @@ test('v1 数据库升级保留旧用户与会话，且重复启动不会重复�
   const config = configFor(directory);
   const old = new DatabaseSync(config.databasePath);
   old.exec(`CREATE TABLE users(id TEXT PRIMARY KEY, phone TEXT, nickname TEXT, avatar TEXT, school_id TEXT, created_at INTEGER);
+    CREATE TABLE products(id TEXT PRIMARY KEY,seller_id TEXT NOT NULL REFERENCES users(id),school_id TEXT NOT NULL,
+      title TEXT NOT NULL,description TEXT NOT NULL,price_cents INTEGER NOT NULL CHECK(price_cents > 0),
+      category TEXT NOT NULL,condition TEXT NOT NULL,campus TEXT NOT NULL,version TEXT,
+      status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE','SOLD')),published_at INTEGER NOT NULL);
+    CREATE TABLE transactions(id TEXT PRIMARY KEY,product_id TEXT NOT NULL REFERENCES products(id),
+      buyer_id TEXT NOT NULL REFERENCES users(id),seller_id TEXT NOT NULL REFERENCES users(id),
+      school_id TEXT NOT NULL,create_time INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('PENDING','ACCEPTED','REJECTED','COMPLETED')),
+      price_cents INTEGER NOT NULL,title_snapshot TEXT NOT NULL);
     CREATE TABLE agent_sessions(session_id TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),created_at INTEGER);
     INSERT INTO users VALUES('user_old','13800000001','旧昵称','','school_demo',1);
     INSERT INTO agent_sessions VALUES('session_old','user_old',1); PRAGMA user_version=1;`);
   old.close();
   for (let index = 0; index < 2; index++) {
     const db = openDatabase(config);
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 3);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 4);
     assert.equal(db.prepare('SELECT nickname FROM users').get()!.nickname, '旧昵称');
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, null);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM agent_sessions').get()!.count, 1);

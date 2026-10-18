@@ -15,7 +15,7 @@ export struct TradeListView {
   @Local filterIndex: number = 0;
   private filters: string[] = ['全部', TradeStatusUI.text(TransactionStatus.PENDING),
     TradeStatusUI.text(TransactionStatus.ACCEPTED), TradeStatusUI.text(TransactionStatus.COMPLETED),
-    TradeStatusUI.text(TransactionStatus.REJECTED)];
+    TradeStatusUI.text(TransactionStatus.CANCELLED), TradeStatusUI.text(TransactionStatus.REJECTED)];
   private firstShow: boolean = true;
 
   aboutToDisappear(): void {
@@ -130,7 +130,8 @@ export struct TradeListView {
     }
     const status: TransactionStatus = this.filterIndex === 1 ? TransactionStatus.PENDING :
       this.filterIndex === 2 ? TransactionStatus.ACCEPTED :
-      this.filterIndex === 3 ? TransactionStatus.COMPLETED : TransactionStatus.REJECTED;
+      this.filterIndex === 3 ? TransactionStatus.COMPLETED :
+      this.filterIndex === 4 ? TransactionStatus.CANCELLED : TransactionStatus.REJECTED;
     return this.vm.items.filter((item: TransactionListItem): boolean => item.transaction.status === status);
   }
 }

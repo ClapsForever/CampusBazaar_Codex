@@ -14,6 +14,11 @@ export interface AgentService {
   queryByNaturalLanguage(query: string, sessionId: string | null): Promise<AgentResult>;
   getHistory(cursor: string | null): Promise<AgentHistoryPage>;
   getHistoryTurns(sessionId: string, cursor: string | null): Promise<AgentHistoryTurnPage>;
+  deleteHistory(sessionId: string): Promise<void>;
+}
+
+interface DeleteHistoryResponse {
+  ok: boolean;
 }
 
 let requestSequence: number = 0;
@@ -55,7 +60,7 @@ function validateAgentResponse(response: AgentChatResponse): void {
 export class BusinessAgentService implements AgentService {
   async getHistory(cursor: string | null): Promise<AgentHistoryPage> {
     return businessApiClient.request<AgentHistoryPage>(http.RequestMethod.GET,
-      `/api/v1/agent/conversations?limit=20${cursor === null ? '' : `&cursor=${encodeURIComponent(cursor)}`}`);
+      `/api/v1/agent/conversations?limit=10${cursor === null ? '' : `&cursor=${encodeURIComponent(cursor)}`}`);
   }
 
   async getHistoryTurns(sessionId: string, cursor: string | null): Promise<AgentHistoryTurnPage> {
@@ -63,6 +68,11 @@ export class BusinessAgentService implements AgentService {
       `/api/v1/agent/conversations/${encodeURIComponent(sessionId)}?limit=50${cursor === null ? '' : `&cursor=${encodeURIComponent(cursor)}`}`);
     for (const turn of page.items) validateAgentResponse(turn.response);
     return page;
+  }
+
+  async deleteHistory(sessionId: string): Promise<void> {
+    await businessApiClient.request<DeleteHistoryResponse>(http.RequestMethod.DELETE,
+      `/api/v1/agent/conversations/${encodeURIComponent(sessionId)}`);
   }
 
   async queryByNaturalLanguage(query: string, sessionId: string | null): Promise<AgentResult> {

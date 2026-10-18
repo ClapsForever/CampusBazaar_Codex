@@ -1,4 +1,4 @@
-import { ProductDetail, User } from '../model/Models';
+import { Product, ProductDetail, User } from '../model/Models';
 import { productService } from '../service/ProductService';
 import { transactionService } from '../service/TransactionService';
 import { authService } from '../service/AuthenticationService';
@@ -10,6 +10,7 @@ export class ProductDetailViewModel {
   @Trace state: LoadState = LoadState.LOADING;
   @Trace purchasing: boolean = false;
   @Trace reserved: boolean = false;
+  @Trace delisting: boolean = false;
   @Trace lastErrorMessage: string = '';
 
   get productTitle(): string {
@@ -45,7 +46,7 @@ export class ProductDetailViewModel {
 
   async purchase(): Promise<boolean> {
     if (this.detail === null || this.purchasing || this.reserved || this.isOwnProduct ||
-      this.detail.product.status === 'SOLD') {
+      this.detail.product.status !== 'ACTIVE') {
       return false;
     }
     const current: User | null = authService.getCurrentUser();
@@ -63,6 +64,25 @@ export class ProductDetailViewModel {
       return false;
     } finally {
       this.purchasing = false;
+    }
+  }
+
+  async delist(): Promise<boolean> {
+    if (this.detail === null || this.delisting || !this.isOwnProduct ||
+      this.detail.product.status !== 'ACTIVE') {
+      return false;
+    }
+    this.delisting = true;
+    this.lastErrorMessage = '';
+    try {
+      const updated: Product = await productService.delistProduct(this.detail.product.id);
+      this.detail = { product: updated, seller: this.detail.seller };
+      return true;
+    } catch (error) {
+      this.lastErrorMessage = (error as Error).message;
+      return false;
+    } finally {
+      this.delisting = false;
     }
   }
 }

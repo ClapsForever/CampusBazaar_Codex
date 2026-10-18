@@ -67,17 +67,20 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 | 密码登录 | `POST /api/v1/auth/password/sessions` | `email,password`，返回 `{user,token,expiresAt}`；仅允许预置账号，邮箱统一去首尾空白并转小写；每邮箱连续失败 5 次后限流 15 分钟，来源 IP 也有限额，服务重启保留限制 |
 | 更新个人资料 | `PUT /api/v1/me`（也支持 PATCH） | `nickname`（1–24 字），可选 `avatarId`（当前账号的未绑定商品图片）；返回当前用户 |
 | 修改密码 | `POST /api/v1/me/password` | `newPassword`（6–64 位且非全空白）和 `currentPassword`；撤销其他会话 |
-| 对话历史列表 | `GET /api/v1/agent/conversations?limit=20&cursor=...` | 当前账号按开始时间倒序；每项 `sessionId,title,createdAt,updatedAt,turnCount` |
+| 对话历史列表 | `GET /api/v1/agent/conversations?limit=10&cursor=...` | 每个账号最多保留 10 条对话，超出后自动删除最早记录；每项 `sessionId,title,createdAt,updatedAt,turnCount` |
 | 历史对话详情 | `GET /api/v1/agent/conversations/{sessionId}?limit=50&cursor=...` | 时间正序的 `{question,createdAt,response}`；仅归属用户可读 |
+| 删除对话记录 | `DELETE /api/v1/agent/conversations/{sessionId}` | 仅归属用户可删；会话与其全部轮次一并删除 |
 | 当前用户、退出 | `GET /api/v1/me`、`POST /api/v1/auth/logout` | 退出后令牌失效 |
-| 商品流、搜索 | `GET /api/v1/products?q=...&limit=20&cursor=...` | 只显示本校可购买商品 |
+| 商品流、搜索 | `GET /api/v1/products?q=...&categories=教材,数码&campuses=江湾校区&priceRanges=0-100,100-1000&limit=20&cursor=...` | 只显示本校可购买商品；三个筛选参数都可多选，同维度取并集、不同维度取交集；价格区间单位为分，上界不含，留空表示无上限 |
 | 商品详情、我的商品 | `GET /api/v1/products/{id}`、`GET /api/v1/me/products` | 商品包含 ArkTS `Product` 字段及分类、成色、校区 |
 | 上传图片 | `POST /api/v1/uploads` | 原始 JPEG/PNG/WebP 字节，`Content-Type` 与文件一致，最多 5 MB；返回图片 ID |
 | 读取图片 | `GET /api/v1/images/{id}` | Bearer 令牌可读取；商品响应中的图片 URL 另带 24 小时签名，供原生 `Image` 组件直接显示 |
 | 发布商品 | `POST /api/v1/products` | `title,description,price,imageIds`；可选 `category,condition,campus,version`；图片最多三张 |
+| 下架商品 | `POST /api/v1/products/{id}/delist` | 仅卖家可操作；只能下架在售商品，有进行中交易时返回 409；重复下架幂等 |
 | 创建交易 | `POST /api/v1/transactions` | `{"productId":"listing_..."}`；可带 `Idempotency-Key` |
 | 交易列表、详情 | `GET /api/v1/transactions`、`GET /api/v1/transactions/{id}` | 仅买卖双方可访问 |
 | 卖家处理 | `POST /api/v1/transactions/{id}/accept\|reject\|complete` | 按状态机执行 |
+| 取消交易 | `POST /api/v1/transactions/{id}/cancel` | 买卖双方都可调用；仅待确认或待交易状态可取消，商品自动恢复上架 |
 | 消息 | `GET/POST /api/v1/transactions/{id}/messages` | 发送体 `{"content":"..."}`，可带 `Idempotency-Key` |
 | Agent | `POST /api/agent/chat` | `{"requestId":"req_1","sessionId":null,"message":"找教材"}` |
 
@@ -93,7 +96,7 @@ npm test
 
 测试会在系统临时目录创建独立数据库和模拟 Agent，不调用 DeepSeek，也不读取本机 `.env`；保留临时数据，不递归删除目录。真实 DeepSeek 与模拟器联调需在两个服务启动后单独验证。
 
-本版启动会自动把数据库 schema 从 v1/v2 升级到 v3（增加邮箱、验证时间、账号停用状态与持久化登录限流；手机号改为可选），保留用户 ID 与业务数据，撤销升级前全部登录会话。旧手机号账号须由管理员确认归属后绑定邮箱才能登录。更新前备份数据库与图片；旧 API 无法直接打开 v3 数据库，回滚须同时恢复升级前数据库。
+本版启动会自动把数据库 schema 从 v1/v2/v3 升级到 v4：v3 增加邮箱、验证时间、账号停用状态与持久化登录限流，并把手机号改为可选；v4 为商品增加 `DELISTED`、为交易增加 `CANCELLED` 状态。升级保留用户 ID 与业务数据，撤销 v3 升级前全部登录会话。旧手机号账号须由管理员确认归属后绑定邮箱才能登录。更新前备份数据库与图片；旧 API 无法直接打开 v4 数据库，回滚须同时恢复升级前数据库。
 
 停止业务 API 后，将整个 `.local-data` 目录复制到安全位置即可同时备份 SQLite 和图片。恢复时停止 API，用备份覆盖该目录再启动。若在 API 运行期间备份，请先使用 SQLite 的在线备份机制，避免只复制主数据库文件而遗漏 WAL 数据。
 

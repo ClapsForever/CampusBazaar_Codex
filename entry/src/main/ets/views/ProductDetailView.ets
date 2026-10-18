@@ -3,7 +3,7 @@ import { StateView } from '../components/StateView';
 import { formatCondition, formatPrice } from '../common/Utils';
 import {
   UI_RADIUS, CIRCLE_RADIUS, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
-  COLOR_TEXT_TERTIARY, LoadState, OWN_PRODUCT_HINT
+  COLOR_TEXT_TERTIARY, COLOR_DIVIDER, LoadState
 } from '../common/Constants';
 
 @ComponentV2
@@ -38,10 +38,9 @@ export struct ProductDetailView {
                 Text(formatPrice(this.vm.detail.product.price)).fontSize('26fp').fontWeight(FontWeight.Bold)
                   .fontColor(COLOR_PRICE).width('100%');
                 Row({ space: 8 }) {
-                  Text(this.vm.detail.product.status === 'SOLD' ? '已售出' :
-                    (this.vm.reserved ? '已预约' : '在售'))
-                    .fontSize('12fp').fontColor('#2E9E5B')
-                    .backgroundColor('#EAF6ED').borderRadius(UI_RADIUS)
+                  Text(this.statusText())
+                    .fontSize('12fp').fontColor(this.statusColor())
+                    .backgroundColor(this.statusBackground()).borderRadius(UI_RADIUS)
                     .padding({ left: 10, right: 10, top: 5, bottom: 5 });
                   Text('同校当面交易').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY)
                     .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
@@ -100,8 +99,17 @@ export struct ProductDetailView {
           .layoutWeight(1).width('100%').scrollBar(BarState.Off);
           Row() {
             if (this.vm.isOwnProduct) {
-              Button(OWN_PRODUCT_HINT).type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
-                .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(UI_RADIUS);
+              if (this.vm.detail.product.status === 'ACTIVE') {
+                Button(this.vm.delisting ? '下架中…' : '下架商品').type(ButtonType.Normal)
+                  .enabled(!this.vm.delisting).width('100%').height(48).fontSize('16fp')
+                  .fontColor(COLOR_TEXT_PRIMARY).backgroundColor(COLOR_PAGE_BG)
+                  .border({ width: 1, color: COLOR_DIVIDER }).borderRadius(UI_RADIUS)
+                  .onClick(() => this.showDelistDialog());
+              } else {
+                Button(this.vm.detail.product.status === 'DELISTED' ? '该商品已下架' : '该商品已售出')
+                  .type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
+                  .fontColor(COLOR_TEXT_SECONDARY).backgroundColor('#F1F0ED').borderRadius(UI_RADIUS);
+              }
             } else if (this.vm.detail.product.status === 'SOLD') {
               Button('已售出').type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
                 .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(UI_RADIUS);
@@ -167,6 +175,46 @@ export struct ProductDetailView {
     const success: boolean = await this.vm.purchase();
     this.getUIContext().getPromptAction().showToast({
       message: success ? '预约成功，等待卖家确认' : (this.vm.lastErrorMessage || '预约失败，请稍后重试'),
+      duration: 1800
+    });
+  }
+
+  private statusText(): string {
+    if (this.vm.detail === null) return '';
+    if (this.vm.detail.product.status === 'DELISTED') return '已下架';
+    if (this.vm.detail.product.status === 'SOLD') return '已售出';
+    return this.vm.reserved ? '已预约' : '在售';
+  }
+
+  private statusColor(): string {
+    if (this.vm.detail !== null && this.vm.detail.product.status !== 'ACTIVE') return COLOR_TEXT_TERTIARY;
+    return '#2E9E5B';
+  }
+
+  private statusBackground(): string {
+    if (this.vm.detail !== null && this.vm.detail.product.status !== 'ACTIVE') return COLOR_PAGE_BG;
+    return '#EAF6ED';
+  }
+
+  private showDelistDialog(): void {
+    this.getUIContext().showAlertDialog({
+      title: '下架商品',
+      cornerRadius: UI_RADIUS,
+      message: `确定下架「${this.vm.productTitle}」吗？下架后不会出现在商品列表中。`,
+      primaryButton: {
+        value: '确认下架',
+        action: (): void => {
+          this.confirmDelist();
+        }
+      },
+      secondaryButton: { value: '取消', action: (): void => { } }
+    });
+  }
+
+  private async confirmDelist(): Promise<void> {
+    const success: boolean = await this.vm.delist();
+    this.getUIContext().getPromptAction().showToast({
+      message: success ? '商品已下架' : (this.vm.lastErrorMessage || '下架失败，请稍后重试'),
       duration: 1800
     });
   }

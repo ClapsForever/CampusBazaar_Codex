@@ -84,9 +84,9 @@ export struct TradeDetailView {
 
   @Builder
   actionBar(): void {
-    if (this.vm.isSeller && this.vm.detail !== null) {
+    if (this.vm.detail !== null && (this.vm.isSeller || this.vm.isBuyer)) {
       Row({ space: 10 }) {
-        if (this.vm.detail.transaction.status === TransactionStatus.PENDING) {
+        if (this.vm.isSeller && this.vm.detail.transaction.status === TransactionStatus.PENDING) {
           Button('接受').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(STATUS_ACCEPTED_TEXT_COLOR)
             .borderRadius(UI_RADIUS).enabled(!this.vm.actioning).onClick(async () => {
               const success: boolean = await this.vm.accept();
@@ -97,16 +97,26 @@ export struct TradeDetailView {
               const success: boolean = await this.vm.reject();
               this.showActionToast(success, '交易已拒绝');
             });
-        } else if (this.vm.detail.transaction.status === TransactionStatus.ACCEPTED) {
+        } else if (this.vm.isSeller && this.vm.detail.transaction.status === TransactionStatus.ACCEPTED) {
           Button('标记完成').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(COLOR_PRIMARY)
             .borderRadius(UI_RADIUS).enabled(!this.vm.actioning).onClick(async () => {
               const success: boolean = await this.vm.complete();
               this.showActionToast(success, '交易已完成');
             });
+          this.cancelButton('取消交易');
+        } else if (this.vm.isBuyer && this.vm.canCancel) {
+          this.cancelButton(this.vm.detail.transaction.status === TransactionStatus.PENDING ? '取消预约' : '取消交易');
         }
       }
       .width('100%').padding({ left: 16, right: 16, top: 8 });
     }
+  }
+
+  @Builder
+  cancelButton(label: string): void {
+    Button(label).type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White)
+      .backgroundColor(STATUS_REJECTED_TEXT_COLOR).borderRadius(UI_RADIUS)
+      .enabled(!this.vm.actioning).onClick(() => this.showCancelDialog());
   }
 
   @Builder
@@ -175,5 +185,25 @@ export struct TradeDetailView {
       message: success ? successText : (this.vm.lastError || '操作失败，请稍后重试'),
       duration: 1500
     });
+  }
+
+  private showCancelDialog(): void {
+    this.getUIContext().showAlertDialog({
+      title: '取消交易',
+      cornerRadius: UI_RADIUS,
+      message: '取消后该商品会重新上架，确定取消这笔交易吗？',
+      primaryButton: {
+        value: '确认取消',
+        action: (): void => {
+          this.confirmCancel();
+        }
+      },
+      secondaryButton: { value: '再想想', action: (): void => { } }
+    });
+  }
+
+  private async confirmCancel(): Promise<void> {
+    const success: boolean = await this.vm.cancel();
+    this.showActionToast(success, '交易已取消');
   }
 }
