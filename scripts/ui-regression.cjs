@@ -311,6 +311,84 @@ test('退出和快速切换历史时忽略旧请求，历史加载失败可重�
   fails = false; await model.viewHistory(summary); assert.equal(model.historyError, '');
 });
 
+test('删除 AI 对话记录后列表移除，删除当前会话时清空对话', async () => {
+  const summary = { sessionId: 'session_a', title: '找教材', createdAt: 1, updatedAt: 2, turnCount: 1 };
+  let deleted = '';
+  const load = harness({ 'service/AgentService': { agentService: {
+    getHistory: async () => ({ items: [summary], nextCursor: null }),
+    deleteHistory: async sessionId => { deleted = sessionId; }
+  } } });
+  const model = new (load('viewmodel/AgentViewModel').AgentViewModel)();
+  model.sessionId = 'session_a';
+  model.turns = [{ id: 'turn_1', question: '找教材' }];
+  await model.openHistory();
+  assert.equal(await model.deleteHistory(summary), true);
+  assert.equal(deleted, 'session_a');
+  assert.equal(model.history.length, 0);
+  assert.equal(model.sessionId, null);
+  assert.equal(model.turns.length, 0);
+  assert.equal(model.deletingHistoryId, '');
+});
+
+test('删除 AI 记录失败时保留列表，进行中不能重复删除', async () => {
+  const summary = { sessionId: 'session_a', title: '找教材', createdAt: 1, updatedAt: 2, turnCount: 1 };
+  const pending = deferred(); let calls = 0;
+  const load = harness({ 'service/AgentService': { agentService: {
+    getHistory: async () => ({ items: [summary], nextCursor: null }),
+    deleteHistory: () => { calls++; return pending.promise; }
+  } } });
+  const model = new (load('viewmodel/AgentViewModel').AgentViewModel)();
+  await model.openHistory();
+  const first = model.deleteHistory(summary);
+  assert.equal(await model.deleteHistory(summary), false);
+  assert.equal(calls, 1);
+  pending.reject(new Error('offline'));
+  assert.equal(await first, false);
+  assert.equal(model.history.length, 1);
+  assert.equal(model.historyError, 'offline');
+});
+
+test('删除中不能续聊，退出重置后旧删除响应不影响新的账号和对话', async () => {
+  const pending = deferred(); let chatCalls = 0;
+  const load = harness({ 'service/AgentService': { agentService: {
+    deleteHistory: () => pending.promise,
+    queryByNaturalLanguage: async () => { chatCalls++; }
+  } } });
+  const model = new (load('viewmodel/AgentViewModel').AgentViewModel)();
+  const summary = { sessionId: 'old_session', title: '旧记录' };
+  model.history = [summary]; model.sessionId = summary.sessionId;
+  const deleting = model.deleteHistory(summary);
+  model.query = '删除中续聊';
+  assert.equal(await model.send(), false); assert.equal(chatCalls, 0);
+  model.resetConversation(true);
+  model.sessionId = 'new_session'; model.turns = [{ id: 'new_turn' }];
+  model.history = [{ sessionId: 'new_session', title: '新账号记录' }];
+  pending.resolve(); assert.equal(await deleting, false);
+  assert.equal(model.sessionId, 'new_session');
+  assert.equal(model.history.length, 1); assert.equal(model.turns.length, 1);
+  assert.equal(model.deletingHistoryId, '');
+});
+
+test('卖家下架使旧商品列表响应失效，切换账号后不应用下架响应', async () => {
+  const list = deferred(), action = deferred(); let current = { id: 'seller' };
+  const ownProduct = { ...product, status: 'ACTIVE', sellerId: 'seller' };
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => current } },
+    'service/ProductService': { productService: {
+      getProductsBySeller: () => list.promise,
+      delistProduct: () => action.promise
+    } }
+  });
+  const model = new (load('viewmodel/SellerHomeViewModel').SellerHomeViewModel)();
+  model.products = [ownProduct];
+  const loading = model.loadMyProducts(true), delisting = model.delist(ownProduct.id);
+  list.resolve([ownProduct]); await loading;
+  current = { id: 'other' }; model.products = [];
+  action.resolve({ ...ownProduct, status: 'DELISTED' });
+  assert.equal(await delisting, false); assert.equal(model.products.length, 0);
+  assert.equal(model.actionError, '');
+});
+
 test('个人资料保存失败保留昵称头像，保存成功同步用户，禁止重复提交', async () => {
   const response = deferred(); let calls = 0;
   const load = harness({ 'service/AuthenticationService': { authService: {
@@ -390,7 +468,83 @@ test('邮箱登录失败保留输入并支持重试', async () => {
 test('成色和交易状态文案覆盖接口值', () => {
   const load = harness(); const { formatCondition } = load('common/Utils');
   assert.equal(['new','like_new','good','fair','unknown'].map(formatCondition).join(','), '全新,近乎全新,成色良好,有使用痕迹,未注明');
-  assert.equal(['PENDING','ACCEPTED','COMPLETED','REJECTED'].map(load('common/Constants').TradeStatusUI.text).join(','), '待确认,待交易,已完成,已关闭');
+  assert.equal(['PENDING','ACCEPTED','COMPLETED','REJECTED','CANCELLED'].map(load('common/Constants').TradeStatusUI.text).join(','), '待确认,待交易,已完成,已关闭,已取消');
+});
+
+test('买卖双方都能取消交易，取消后不能继续聊天', async () => {
+  for (const [role, status] of [['buyer', 'PENDING'], ['seller', 'ACCEPTED'], ['buyer', 'ACCEPTED']]) {
+    let calls = 0;
+    const load = harness({
+      'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: role }) } },
+      'service/TransactionService': { transactionService: {
+        getTransactionDetail: async id => ({ ...tradeDetail(id), transaction: { id, status } }),
+        cancelTransaction: async id => { calls++; return { id, status: 'CANCELLED' }; }
+      } },
+      'service/MessageService': { messageService: { getMessages: async () => [] } }
+    });
+    const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+    await model.loadDetail('trade_a');
+    assert.equal(model.canCancel, true);
+    assert.equal(await model.cancel(), true);
+    assert.equal(model.detail.transaction.status, 'CANCELLED');
+    assert.equal(model.canChat, false);
+    assert.equal(calls, 1);
+  }
+});
+
+test('只有卖家能接受交易，买家不能推进状态', async () => {
+  let calls = 0;
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'buyer' }) } },
+    'service/TransactionService': { transactionService: {
+      getTransactionDetail: async id => tradeDetail(id),
+      acceptTransaction: async id => { calls++; return { id, status: 'ACCEPTED' }; }
+    } },
+    'service/MessageService': { messageService: { getMessages: async () => [] } }
+  });
+  const model = new (load('viewmodel/TradeViewModel').TradeViewModel)();
+  await model.loadDetail('trade_a');
+  assert.equal(await model.accept(), false);
+  assert.equal(calls, 0);
+  assert.match(model.lastError, /卖家/);
+});
+
+test('卖家下架自己的在售商品后详情状态更新，非本人不可下架', async () => {
+  let current = { id: 'seller' }, calls = 0;
+  const load = harness({
+    'service/AuthenticationService': { authService: { getCurrentUser: () => current } },
+    'service/ProductService': { productService: {
+      delistProduct: async id => { calls++; return { ...product, id, status: 'DELISTED' }; }
+    } }
+  });
+  const model = new (load('viewmodel/ProductDetailViewModel').ProductDetailViewModel)();
+  model.detail = { product: { ...product, sellerId: 'seller', status: 'ACTIVE' }, seller: { id: 'seller' } };
+  assert.equal(await model.delist(), true);
+  assert.equal(model.detail.product.status, 'DELISTED');
+  current = { id: 'buyer' };
+  assert.equal(await model.delist(), false);
+  assert.equal(calls, 1);
+});
+
+test('商品搜索把关键词、多选价格、大类与校区组合成一次请求', async () => {
+  let path = '';
+  const load = harness({
+    '@kit.NetworkKit': { http: { RequestMethod: { GET: 'GET', POST: 'POST' } } },
+    'service/ImageUpload': {},
+    'service/BusinessApiClient': { businessApiClient: {
+      request: async (_method, requestPath) => { path = requestPath; return { items: [], nextCursor: null }; }
+    } }
+  });
+  const service = new (load('service/ProductService').HttpProductService)();
+  const result = await service.searchProducts({ keyword: '耳机', categories: ['外设', '数码'],
+    campuses: ['江湾校区'], priceRanges: ['1000-5000', '5000-10000'] });
+  assert.equal(result.length, 0);
+  assert.match(path, /q=%E8%80%B3%E6%9C%BA/);
+  assert.match(path, /categories=%E5%A4%96%E8%AE%BE%2C%E6%95%B0%E7%A0%81/);
+  assert.match(path, /campuses=%E6%B1%9F%E6%B9%BE%E6%A0%A1%E5%8C%BA/);
+  assert.match(path, /priceRanges=1000-5000%2C5000-10000/);
+  assert.match(path, /limit=100/);
+  assert.equal((await service.searchProducts({ keyword: '', categories: [], campuses: [], priceRanges: [] })).length, 0);
 });
 
 test('自己的商品和已售出商品不预约，成功后不重复提交', async () => {

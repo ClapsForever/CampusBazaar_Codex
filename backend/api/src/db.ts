@@ -14,8 +14,8 @@ export function openDatabase(config: Pick<Config, 'databasePath' | 'uploadDir'>)
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 3) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 3) return;
+  if (version.user_version > 4) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 4) return;
   if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -88,36 +88,83 @@ function migrate(db: DatabaseSync): void {
     COMMIT;
   `);
 
-  // Keep every user ID and its business references; phone becomes optional.
-  // Foreign keys must be disabled outside the transaction while rebuilding users.
-  db.exec('PRAGMA foreign_keys=OFF');
-  try {
-    transaction(db, () => {
-      db.exec(`
-        CREATE TABLE users_v3 (
-          id TEXT PRIMARY KEY, phone TEXT UNIQUE, nickname TEXT NOT NULL,
-          avatar TEXT NOT NULL DEFAULT '', school_id TEXT NOT NULL, created_at INTEGER NOT NULL,
-          password_hash TEXT, email TEXT UNIQUE, email_verified_at INTEGER,
-          enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1))
-        );
-        INSERT INTO users_v3(id,phone,nickname,avatar,school_id,created_at,password_hash)
-          SELECT id,phone,nickname,avatar,school_id,created_at,password_hash FROM users;
-        DROP TABLE users;
-        ALTER TABLE users_v3 RENAME TO users;
-        CREATE TABLE auth_login_attempts (
-          scope TEXT NOT NULL, key TEXT NOT NULL, count INTEGER NOT NULL, until_at INTEGER NOT NULL,
-          PRIMARY KEY(scope,key)
-        );
-        CREATE INDEX auth_login_attempts_expiry ON auth_login_attempts(until_at);
-      `);
-      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions'").get()) {
-        db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE revoked_at IS NULL').run(Date.now());
-      }
-      if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
-      db.exec('PRAGMA user_version=3');
-    });
-  } finally {
-    db.exec('PRAGMA foreign_keys=ON');
+  if (version.user_version < 3) {
+    // Keep every user ID and its business references; phone becomes optional.
+    // Foreign keys must be disabled outside the transaction while rebuilding users.
+    db.exec('PRAGMA foreign_keys=OFF');
+    try {
+      transaction(db, () => {
+        db.exec(`
+          CREATE TABLE users_v3 (
+            id TEXT PRIMARY KEY, phone TEXT UNIQUE, nickname TEXT NOT NULL,
+            avatar TEXT NOT NULL DEFAULT '', school_id TEXT NOT NULL, created_at INTEGER NOT NULL,
+            password_hash TEXT, email TEXT UNIQUE, email_verified_at INTEGER,
+            enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1))
+          );
+          INSERT INTO users_v3(id,phone,nickname,avatar,school_id,created_at,password_hash)
+            SELECT id,phone,nickname,avatar,school_id,created_at,password_hash FROM users;
+          DROP TABLE users;
+          ALTER TABLE users_v3 RENAME TO users;
+          CREATE TABLE auth_login_attempts (
+            scope TEXT NOT NULL, key TEXT NOT NULL, count INTEGER NOT NULL, until_at INTEGER NOT NULL,
+            PRIMARY KEY(scope,key)
+          );
+          CREATE INDEX auth_login_attempts_expiry ON auth_login_attempts(until_at);
+        `);
+        if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions'").get()) {
+          db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE revoked_at IS NULL').run(Date.now());
+        }
+        if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
+        db.exec('PRAGMA user_version=3');
+      });
+    } finally {
+      db.exec('PRAGMA foreign_keys=ON');
+    }
+  }
+
+  if (version.user_version < 4) {
+    // SQLite cannot widen a CHECK constraint in place, so rebuild the two
+    // tables that gain new lifecycle states while preserving every reference.
+    db.exec('PRAGMA foreign_keys=OFF');
+    try {
+      transaction(db, () => {
+        db.exec(`
+          CREATE TABLE products_v4 (
+            id TEXT PRIMARY KEY, seller_id TEXT NOT NULL REFERENCES users(id), school_id TEXT NOT NULL,
+            title TEXT NOT NULL, description TEXT NOT NULL, price_cents INTEGER NOT NULL CHECK(price_cents > 0),
+            category TEXT NOT NULL, condition TEXT NOT NULL, campus TEXT NOT NULL, version TEXT,
+            status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE','SOLD','DELISTED')),
+            published_at INTEGER NOT NULL
+          );
+          INSERT INTO products_v4(id,seller_id,school_id,title,description,price_cents,category,condition,campus,version,status,published_at)
+            SELECT id,seller_id,school_id,title,description,price_cents,category,condition,campus,version,status,published_at FROM products;
+          DROP TABLE products;
+          ALTER TABLE products_v4 RENAME TO products;
+          CREATE INDEX products_feed ON products(school_id,status,published_at DESC,id DESC);
+          CREATE INDEX products_seller ON products(seller_id,published_at DESC,id DESC);
+
+          CREATE TABLE transactions_v4 (
+            id TEXT PRIMARY KEY, product_id TEXT NOT NULL REFERENCES products(id),
+            buyer_id TEXT NOT NULL REFERENCES users(id), seller_id TEXT NOT NULL REFERENCES users(id),
+            school_id TEXT NOT NULL, create_time INTEGER NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('PENDING','ACCEPTED','REJECTED','COMPLETED','CANCELLED')),
+            price_cents INTEGER NOT NULL, title_snapshot TEXT NOT NULL
+          );
+          INSERT INTO transactions_v4(id,product_id,buyer_id,seller_id,school_id,create_time,status,price_cents,title_snapshot)
+            SELECT id,product_id,buyer_id,seller_id,school_id,create_time,status,price_cents,title_snapshot FROM transactions;
+          DROP TABLE transactions;
+          ALTER TABLE transactions_v4 RENAME TO transactions;
+          CREATE UNIQUE INDEX one_active_transaction_per_product ON transactions(product_id)
+            WHERE status IN ('PENDING','ACCEPTED');
+          CREATE INDEX transactions_buyer ON transactions(buyer_id,create_time DESC,id DESC);
+          CREATE INDEX transactions_seller ON transactions(seller_id,create_time DESC,id DESC);
+        `);
+        if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
+        db.exec('PRAGMA user_version=4');
+      });
+    } finally {
+      db.exec('PRAGMA foreign_keys=ON');
+    }
   }
 }
 

@@ -94,8 +94,10 @@ export class AgentViewModel {
   @Trace selectedHistory: AgentConversationSummary | null = null;
   @Trace historyTurns: AgentConversationTurn[] = [];
   @Trace historyTurnCursor: string | null = null;
+  @Trace deletingHistoryId: string = '';
   private requestSeq: number = 0;
   private historySeq: number = 0;
+  private deletionSeq: number = 0;
 
   resetConversation(force: boolean = false): void {
     if (this.loading && !force) {
@@ -108,7 +110,11 @@ export class AgentViewModel {
     this.error = '';
     this.sessionId = null;
     this.closeHistory();
-    if (force) this.history = [];
+    if (force) {
+      this.history = [];
+      this.deletionSeq += 1;
+      this.deletingHistoryId = '';
+    }
   }
 
   closeHistory(): void {
@@ -123,6 +129,7 @@ export class AgentViewModel {
   }
 
   async openHistory(more: boolean = false): Promise<void> {
+    if (this.deletingHistoryId !== '') return;
     if (more && (this.historyLoading || this.historyCursor === null)) return;
     this.historyVisible = true;
     this.selectedHistory = null;
@@ -144,6 +151,7 @@ export class AgentViewModel {
   }
 
   async viewHistory(item: AgentConversationSummary, more: boolean = false): Promise<void> {
+    if (this.deletingHistoryId !== '') return;
     if (more && (this.historyLoading || this.historyTurnCursor === null)) return;
     this.selectedHistory = item;
     this.historyVisible = true;
@@ -175,7 +183,7 @@ export class AgentViewModel {
   }
 
   async send(): Promise<boolean> {
-    if (this.loading) {
+    if (this.loading || this.deletingHistoryId !== '') {
       return false;
     }
     const question: string = this.query.trim();
@@ -211,6 +219,42 @@ export class AgentViewModel {
       if (currentSeq === this.requestSeq) {
         this.loading = false;
       }
+    }
+  }
+
+  async deleteHistory(item: AgentConversationSummary): Promise<boolean> {
+    if (this.deletingHistoryId !== '' || this.loading || this.historyLoading) {
+      return false;
+    }
+    this.deletingHistoryId = item.sessionId;
+    this.historyError = '';
+    const seq: number = ++this.deletionSeq;
+    this.historySeq += 1;
+    try {
+      await agentService.deleteHistory(item.sessionId);
+      if (seq !== this.deletionSeq) return false;
+      this.history = this.history.filter((entry: AgentConversationSummary): boolean =>
+        entry.sessionId !== item.sessionId);
+      if (this.selectedHistory !== null && this.selectedHistory.sessionId === item.sessionId) {
+        this.selectedHistory = null;
+        this.historyTurns = [];
+        this.historyTurnCursor = null;
+      }
+      if (this.sessionId === item.sessionId) {
+        this.requestSeq += 1;
+        this.sessionId = null;
+        this.turns = [];
+        this.query = '';
+        this.error = '';
+      }
+      return true;
+    } catch (error) {
+      if (seq === this.deletionSeq) {
+        this.historyError = (error as Error).message || '删除失败，请稍后重试';
+      }
+      return false;
+    } finally {
+      if (seq === this.deletionSeq) this.deletingHistoryId = '';
     }
   }
 }

@@ -109,14 +109,22 @@ test('v2 迁移保留用户、商品、交易、消息与历史引用，撤销�
     PRAGMA foreign_keys=OFF;
     CREATE TABLE users(id TEXT PRIMARY KEY,phone TEXT NOT NULL UNIQUE,nickname TEXT NOT NULL,avatar TEXT NOT NULL,school_id TEXT NOT NULL,created_at INTEGER NOT NULL,password_hash TEXT);
     CREATE TABLE auth_sessions(id TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),token_hash TEXT,expires_at INTEGER,revoked_at INTEGER);
-    CREATE TABLE products(id TEXT PRIMARY KEY,seller_id TEXT REFERENCES users(id));
-    CREATE TABLE transactions(id TEXT PRIMARY KEY,product_id TEXT REFERENCES products(id),buyer_id TEXT REFERENCES users(id),seller_id TEXT REFERENCES users(id));
-    CREATE TABLE messages(id TEXT PRIMARY KEY,transaction_id TEXT REFERENCES transactions(id),sender_id TEXT REFERENCES users(id));
+    CREATE TABLE products(id TEXT PRIMARY KEY,seller_id TEXT NOT NULL REFERENCES users(id),school_id TEXT NOT NULL,
+      title TEXT NOT NULL,description TEXT NOT NULL,price_cents INTEGER NOT NULL CHECK(price_cents > 0),
+      category TEXT NOT NULL,condition TEXT NOT NULL,campus TEXT NOT NULL,version TEXT,
+      status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE','SOLD')),published_at INTEGER NOT NULL);
+    CREATE TABLE transactions(id TEXT PRIMARY KEY,product_id TEXT NOT NULL REFERENCES products(id),
+      buyer_id TEXT NOT NULL REFERENCES users(id),seller_id TEXT NOT NULL REFERENCES users(id),
+      school_id TEXT NOT NULL,create_time INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('PENDING','ACCEPTED','REJECTED','COMPLETED')),
+      price_cents INTEGER NOT NULL,title_snapshot TEXT NOT NULL);
+    CREATE TABLE messages(id TEXT PRIMARY KEY,transaction_id TEXT NOT NULL REFERENCES transactions(id),
+      sender_id TEXT NOT NULL REFERENCES users(id),content TEXT NOT NULL,send_time INTEGER NOT NULL);
     CREATE TABLE agent_sessions(session_id TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),created_at INTEGER);
     CREATE TABLE agent_turns(id INTEGER PRIMARY KEY,session_id TEXT REFERENCES agent_sessions(session_id),question TEXT);
-    INSERT INTO products VALUES('listing_old','user_old');
-    INSERT INTO transactions VALUES('trade_old','listing_old','user_old','user_old');
-    INSERT INTO messages VALUES('message_old','trade_old','user_old');
+    INSERT INTO products VALUES('listing_old','user_old','school_demo','旧商品','测试',100,'其他','good','江湾校区',NULL,'ACTIVE',1);
+    INSERT INTO transactions VALUES('trade_old','listing_old','user_old','user_old','school_demo',1,'PENDING',100,'旧商品');
+    INSERT INTO messages VALUES('message_old','trade_old','user_old','你好',1);
     INSERT INTO agent_sessions VALUES('session_old','user_old',1);
     INSERT INTO agent_turns VALUES(1,'session_old','找教材');
     PRAGMA user_version=2;
@@ -126,7 +134,7 @@ test('v2 迁移保留用户、商品、交易、消息与历史引用，撤销�
   old.close();
   const db = openDatabase(config);
   try {
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 3);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 4);
     assert.equal(db.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
     assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, hash);

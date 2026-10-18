@@ -15,6 +15,22 @@ export const PRODUCT_CATEGORIES: CategoryOption[] = [
 ];
 export const CAMPUS_OPTIONS: string[] = ['江湾校区', '邯郸校区', '张江校区', '枫林校区'];
 export const CONDITION_OPTIONS: string[] = ['new', 'like_new', 'good', 'fair', 'unknown'];
+export const QUICK_CATEGORIES: string[] = ['教材', '数码', '外设', '日用', '运动', '其他'];
+
+export interface PriceRangeOption {
+  label: string;
+  /** Inclusive lower bound and exclusive upper bound in cents; empty upper bound means no limit. */
+  value: string;
+}
+
+export const PRICE_RANGE_OPTIONS: PriceRangeOption[] = [
+  { label: '<1', value: '0-100' },
+  { label: '1-10', value: '100-1000' },
+  { label: '10-50', value: '1000-5000' },
+  { label: '50-100', value: '5000-10000' },
+  { label: '100-300', value: '10000-30000' },
+  { label: '300+', value: '30000-' }
+];
 
 export function homeCategory(category: string | undefined): string {
   const value: string = (category || '').trim();
