@@ -1,3 +1,4 @@
+import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AuthViewModel } from '../viewmodel/AuthViewModel';
 import { PAGE_LEGAL } from '../common/LegalDocuments';
 import {
@@ -9,6 +10,11 @@ import {
 @ComponentV2
 struct Index {
   @Local vm: AuthViewModel = new AuthViewModel();
+
+  onPageShow(): void {
+    // Use the page's UI context after it is attached to the UI instance.
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
+  }
 
   build() {
     Column() {
