@@ -14,8 +14,8 @@ export function openDatabase(config: Pick<Config, 'databasePath' | 'uploadDir'>)
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 4) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 4) return;
+  if (version.user_version > 5) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 5) return;
   if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -122,7 +122,11 @@ function migrate(db: DatabaseSync): void {
     }
   }
 
-  if (version.user_version < 4) {
+  // v4 was used independently by the marketplace and registration branches.
+  // Inspect the actual constraints so either v4 layout can upgrade safely.
+  const productSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='products'").get();
+  const transactionSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='transactions'").get();
+  if (!String(productSchema?.sql).includes("'DELISTED'") || !String(transactionSchema?.sql).includes("'CANCELLED'")) {
     // SQLite cannot widen a CHECK constraint in place, so rebuild the two
     // tables that gain new lifecycle states while preserving every reference.
     db.exec('PRAGMA foreign_keys=OFF');
@@ -166,6 +170,27 @@ function migrate(db: DatabaseSync): void {
       db.exec('PRAGMA foreign_keys=ON');
     }
   }
+
+  transaction(db, () => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS auth_captchas (
+        id TEXT PRIMARY KEY, client_ip TEXT NOT NULL, code_hash TEXT NOT NULL,
+        expires_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS auth_captchas_expiry ON auth_captchas(expires_at);
+      CREATE TABLE IF NOT EXISTS auth_registration_limits (
+        scope TEXT NOT NULL, key TEXT NOT NULL, count INTEGER NOT NULL,
+        until_at INTEGER NOT NULL, PRIMARY KEY(scope,key)
+      );
+      CREATE INDEX IF NOT EXISTS auth_registration_limits_expiry ON auth_registration_limits(until_at);
+      CREATE TABLE IF NOT EXISTS registration_consents (
+        user_id TEXT PRIMARY KEY REFERENCES users(id), agreement_version TEXT NOT NULL,
+        privacy_version TEXT NOT NULL, accepted_at INTEGER NOT NULL
+      );
+    `);
+    if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
+    db.exec('PRAGMA user_version=5');
+  });
 }
 
 export function transaction<T>(db: DatabaseSync, action: () => T): T {

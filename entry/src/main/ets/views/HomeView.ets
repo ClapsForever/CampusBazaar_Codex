@@ -8,6 +8,7 @@ import { SearchSheetView } from './SearchSheetView';
 import { AgentSheetView } from './AgentSheetView';
 import { ProfileSettingsView } from './ProfileSettingsView';
 import { HOME_CATEGORIES, homeCategory } from '../common/MarketOptions';
+import { PAGE_LEGAL } from '../common/LegalDocuments';
 import {
   UI_RADIUS, UI_CORNERS, CIRCLE_RADIUS, FONT_TITLE, PAGE_PADDING, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY,
   COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, LoadState,
@@ -246,6 +247,9 @@ export struct HomeView {
         .bindSheet($$this.profileSettingsVisible, this.profileSettingsContent(), {
           radius: UI_CORNERS, detents: [SheetSize.LARGE], showClose: false
         });
+        this.legalLink('用户协议（草案）', 'user-agreement');
+        this.legalLink('隐私政策（草案）', 'privacy-policy');
+        this.legalLink('社区与交易规则（草案）', 'community-rules');
         Button('退出登录').type(ButtonType.Normal).width('100%').height(46).margin({ top: 12 })
           .fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
           .borderRadius(UI_RADIUS).onClick(async () => {
@@ -263,6 +267,13 @@ export struct HomeView {
       .width('100%').padding({ left: PAGE_PADDING, right: PAGE_PADDING, bottom: 24 });
     }
     .height('100%').width('100%').scrollBar(BarState.Off).backgroundColor(COLOR_PAGE_BG);
+  }
+
+  @Builder
+  legalLink(title: string, document: string): void {
+    Button(title).type(ButtonType.Normal).width('100%').height(46).borderRadius(UI_RADIUS)
+      .fontSize(14).fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
+      .onClick(() => this.getUIContext().getRouter().pushUrl({ url: PAGE_LEGAL, params: { document: document } }));
   }
 
   @Builder

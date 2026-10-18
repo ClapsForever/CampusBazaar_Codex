@@ -115,6 +115,11 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'POST' && path === '/api/v1/auth/password/sessions') {
     send(res, 201, await store.loginWithPassword(await readJson(req), loginClientIp(req)), rid); return;
   }
+  // Image CAPTCHA is deferred; keep this path explicitly unavailable before auth.
+  if (path === '/api/v1/auth/captchas') throw new ApiError(404, 'NOT_FOUND', '接口尚未开放');
+  if (method === 'POST' && path === '/api/v1/auth/registrations') {
+    send(res, 201, await store.register(await readJson(req), loginClientIp(req)), rid); return;
+  }
   if (path.startsWith('/internal/')) {
     if (method !== 'GET') throw new ApiError(404, 'NOT_FOUND', '接口不存在');
     const user = internalIdentity(req, store);

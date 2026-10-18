@@ -29,7 +29,7 @@ test('配置不再依赖开发验证码，邮箱统一大小写但保留加号�
   }
 });
 
-test('预置账号才能登录，固定验证码与手机号入口关闭，停用账号立即失效，管理员可重置密码', async () => {
+test('未注册账号不能直接登录，固定验证码与手机号入口关闭，停用账号立即失效，管理员可重置密码', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'campus-email-auth-'));
   const config = configFor(directory);
   let app = createApiApp(config), base = '';
@@ -134,7 +134,7 @@ test('v2 迁移保留用户、商品、交易、消息与历史引用，撤销�
   old.close();
   const db = openDatabase(config);
   try {
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 4);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 5);
     assert.equal(db.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
     assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, hash);

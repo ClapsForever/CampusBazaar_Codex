@@ -1,8 +1,12 @@
 # 校园集市（CampusBazaar）
 
-校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持预置账号的邮箱密码登录、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；自助注册、找回密码与邮件验证码尚未接入。
+校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、自助注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；邮件归属验证和自助找回密码尚未接入。
 
 腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。licx 的测试入口现为 `http://101.35.53.59:18080`，健康检查为 `http://101.35.53.59:18080/health/ready`，**不再限制来源 IP，通过预置邮箱密码账号登录**；组员接入、验证范围及云防火墙设置见 [IP 直连测试说明](docs/ip-direct-testing.md)。HTTP 会明文传输密码和登录令牌，仅使用测试账号；正式发布前恢复 HTTPS。域名入口与证书配置保留，见 [HTTPS 说明](deploy/ubuntu/licx-https/README.md)。
+
+后续迁往阿里云的预备方案见[阿里云迁移指南](deploy/aliyun/README.md)：按 Ubuntu 24.04 单台 ECS 准备，包含源码打包、HTTPS 配置生成、完整 SQLite/图片迁移与校验、匿名注册验收和切换回退步骤。已按保留全部现有数据设计；尚未连接或改动现有服务器，也未切换 App 地址。
+
+商品详情与“我发布的”支持卖家下架，买卖双方可取消待确认或待交易订单；普通搜索支持关键词与多选价格、大类和校区组合；AI 历史可手动删除整段对话，保留原有分页与数量策略。详见[功能及数据保留说明](docs/marketplace-actions.md)。注册、商品和交易升级统一使用 schema v5，兼容原 v3 及两种 v4 数据库。
 
 ## 目录与运行架构
 
@@ -119,7 +123,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `http://101.35.53.59:18080`，在模拟器浏览器打开该地址的 `/health/ready` 确认返回 `{"status":"ok"}`。不再需要登记或放行组员公网 IP，使用分配的邮箱密码登录即可。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
-启动前先按 [Demo 认证说明](docs/demo-auth.md) 导入邮箱密码账号。登录页只填写邮箱与密码；账号由项目组分配，暂不开放自助注册和邮件找回密码。
+启动页通过登录按钮下的“没有账号？立即注册”进入注册，注册页通过“已有账号？返回登录”切回，顶部只显示当前表单标题。注册填写邮箱、6–64 位密码和确认密码，阅读并主动勾选用户协议与隐私政策草案后提交，成功后自动进入首页。图形验证码本轮暂时移除，恢复计划见[发布前清单](docs/legal/launch-checklist.md)。测试阶段允许任意邮箱，不验证邮箱归属或学生身份。也可按 [Demo 认证说明](docs/demo-auth.md) 导入预置账号；找回密码仍由项目组人工处理。本次源码变更需同步更新 API 和 App，已有云端部署不会自动更新。实现与验收步骤见[注册说明](docs/registration.md)。
 
 ## 6. 验证完整流程
 
@@ -135,7 +139,8 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 - AI 对话每轮成功回复后自动保存在业务 SQLite，按账号隔离；“新对话”旁的“历史记录”可按时间分页查看，退出登录、重启 App 或服务不会丢失已保存内容。历史详情供回看；Agent 的续聊上下文仍存于内存，重启或过期后需新建对话。更新前已经丢失的内存对话无法补回。
 - “我的 → 个人设置”支持相册头像、昵称及登录密码。修改密码需当前密码；演示密码为 6–64 位，以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
 - `.env`、DeepSeek Key、数据库、上传图片、`node_modules`、构建产物均已被 Git 忽略。只提交源码、两个 `package-lock.json`、`.env.example`、文档和测试。
-- Demo 不包含学校统一认证、自助注册或邮件验证码服务。
+- 测试版不包含学校统一认证、邮箱归属验证或邮件找回密码服务；当前注册不获取或校验图形验证码，仍保留服务端注册限流。
+- [用户协议草案](docs/legal/user-agreement.md)、[隐私政策草案](docs/legal/privacy-policy.md)和[社区与交易规则草案](docs/legal/community-rules.md)可从启动页及“我的”阅读。运营主体、联系方式、注销/删除流程及保存期限尚未确定，详见[发布前清单](docs/legal/launch-checklist.md)。三份正文作为离线文本随 App 打包；修改 Markdown 后运行 `node scripts/sync-legal-docs.cjs`，用 `node scripts/sync-legal-docs.cjs --check` 检查同步。协议版本变更须同时更新前端、后端版本常量与正文。
 
 业务 API 接口和备份说明见 [backend/api/README.md](backend/api/README.md)；Agent 内部接口见 [backend/agent/docs/api.md](backend/agent/docs/api.md)。
 
