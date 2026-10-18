@@ -3,7 +3,8 @@ import { productService, ProductSearchQuery } from '../service/ProductService';
 import { ProductCard } from '../components/ProductCard';
 import { CAMPUS_OPTIONS, PRICE_RANGE_OPTIONS, PriceRangeOption, QUICK_CATEGORIES } from '../common/MarketOptions';
 import {
-  UI_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
+  UI_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_STRONG, COLOR_TEXT_PRIMARY,
+  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
   ROUTE_PRODUCT_DETAIL
 } from '../common/Constants';
 
@@ -100,10 +101,17 @@ export struct SearchSheetView {
       Scroll() {
         Row({ space: 6 }) {
           ForEach(PRICE_RANGE_OPTIONS, (option: PriceRangeOption) => {
-            this.filterChip(option.label, this.priceLabels.indexOf(option.label) >= 0, (): void => {
-              this.priceLabels = this.toggle(this.priceLabels, option.label);
-              this.scheduleSearch();
-            });
+            Text(option.label).fontSize('12fp')
+              .fontWeight(this.isSelected(this.priceLabels, option.label) ? FontWeight.Medium : FontWeight.Normal)
+              .fontColor(this.isSelected(this.priceLabels, option.label) ? Color.White : COLOR_TEXT_SECONDARY)
+              .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+              .backgroundColor(this.isSelected(this.priceLabels, option.label) ? COLOR_PRIMARY_STRONG : Color.White)
+              .borderRadius(UI_RADIUS)
+              .border({ width: this.isSelected(this.priceLabels, option.label) ? 0 : 1, color: COLOR_DIVIDER })
+              .onClick(() => {
+                this.priceLabels = this.toggle(this.priceLabels, option.label);
+                this.scheduleSearch();
+              });
           }, (option: PriceRangeOption): string => option.label);
         }
       }
@@ -119,10 +127,17 @@ export struct SearchSheetView {
       Scroll() {
         Row({ space: 6 }) {
           ForEach(QUICK_CATEGORIES, (item: string) => {
-            this.filterChip(item, this.categories.indexOf(item) >= 0, (): void => {
-              this.categories = this.toggle(this.categories, item);
-              this.scheduleSearch();
-            });
+            Text(item).fontSize('12fp')
+              .fontWeight(this.isSelected(this.categories, item) ? FontWeight.Medium : FontWeight.Normal)
+              .fontColor(this.isSelected(this.categories, item) ? Color.White : COLOR_TEXT_SECONDARY)
+              .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+              .backgroundColor(this.isSelected(this.categories, item) ? COLOR_PRIMARY_STRONG : Color.White)
+              .borderRadius(UI_RADIUS)
+              .border({ width: this.isSelected(this.categories, item) ? 0 : 1, color: COLOR_DIVIDER })
+              .onClick(() => {
+                this.categories = this.toggle(this.categories, item);
+                this.scheduleSearch();
+              });
           }, (item: string): string => item);
         }
       }
@@ -138,10 +153,17 @@ export struct SearchSheetView {
       Scroll() {
         Row({ space: 6 }) {
           ForEach(CAMPUS_OPTIONS, (item: string) => {
-            this.filterChip(item, this.campuses.indexOf(item) >= 0, (): void => {
-              this.campuses = this.toggle(this.campuses, item);
-              this.scheduleSearch();
-            });
+            Text(item).fontSize('12fp')
+              .fontWeight(this.isSelected(this.campuses, item) ? FontWeight.Medium : FontWeight.Normal)
+              .fontColor(this.isSelected(this.campuses, item) ? Color.White : COLOR_TEXT_SECONDARY)
+              .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+              .backgroundColor(this.isSelected(this.campuses, item) ? COLOR_PRIMARY_STRONG : Color.White)
+              .borderRadius(UI_RADIUS)
+              .border({ width: this.isSelected(this.campuses, item) ? 0 : 1, color: COLOR_DIVIDER })
+              .onClick(() => {
+                this.campuses = this.toggle(this.campuses, item);
+                this.scheduleSearch();
+              });
           }, (item: string): string => item);
         }
       }
@@ -150,19 +172,12 @@ export struct SearchSheetView {
     .width('100%');
   }
 
-  @Builder
-  filterChip(label: string, selected: boolean, onTap: () => void): void {
-    Text(label).fontSize('12fp')
-      .fontColor(selected ? Color.White : COLOR_TEXT_SECONDARY)
-      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-      .backgroundColor(selected ? COLOR_PRIMARY : Color.White)
-      .borderRadius(UI_RADIUS)
-      .border({ width: selected ? 0 : 1, color: COLOR_DIVIDER })
-      .onClick(onTap);
+  private isSelected(values: string[], value: string): boolean {
+    return values.indexOf(value) >= 0;
   }
 
   private toggle(values: string[], value: string): string[] {
-    if (values.indexOf(value) >= 0) {
+    if (this.isSelected(values, value)) {
       return values.filter((item: string): boolean => item !== value);
     }
     return values.concat([value]);
