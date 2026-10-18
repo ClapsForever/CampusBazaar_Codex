@@ -8,13 +8,34 @@ import { hashPassword, validatePassword, verifyPassword } from './password.js';
 import { normalizeEmail } from './accounts.js';
 
 type UserRow = { id: string; phone: string | null; email: string | null; enabled: number; nickname: string; avatar: string; school_id: string; password_hash: string | null };
-type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD'; published_at: number };
-type TransactionRow = { id: string; product_id: string; buyer_id: string; seller_id: string; school_id: string; create_time: number; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED'; price_cents: number; title_snapshot: string };
+type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD' | 'DELISTED'; published_at: number };
+type TransactionRow = { id: string; product_id: string; buyer_id: string; seller_id: string; school_id: string; create_time: number; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED'; price_cents: number; title_snapshot: string };
 type MessageRow = { id: string; transaction_id: string; sender_id: string; content: string; send_time: number };
 type ImageRow = { id: string; owner_id: string; product_id: string | null; mime: string; extension: string; size_bytes: number };
 
 const productIdPattern = /^listing_[a-z0-9_-]{1,64}$/;
 const conditions = ['new', 'like_new', 'good', 'fair', 'unknown'];
+
+function commaValues(value: string | null): string[] {
+  if (!value) return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function parsePriceRanges(value: string | null): [number, number | null][] {
+  const parts = commaValues(value);
+  if (parts.length > 8) throw new ApiError(400, 'BAD_REQUEST', '价格区间过多');
+  return parts.map(part => {
+    const match = /^(\d{1,9})-(\d{0,9})$/.exec(part);
+    if (!match) throw new ApiError(400, 'BAD_REQUEST', '价格区间格式不正确');
+    const min = Number(match[1]);
+    const max = match[2] === '' ? null : Number(match[2]);
+    if (!Number.isSafeInteger(min) || min < 0 || min > 10_000_000 ||
+      (max !== null && (!Number.isSafeInteger(max) || max <= min || max > 10_000_000))) {
+      throw new ApiError(400, 'BAD_REQUEST', '价格区间无效');
+    }
+    return [min, max] as [number, number | null];
+  });
+}
 
 export class Store {
   constructor(public db: DatabaseSync, public config: Config) {}
@@ -168,6 +189,38 @@ export class Store {
     const args: (string | number)[] = [mine ? user.id : user.school_id];
     if (!mine) where.push("NOT EXISTS (SELECT 1 FROM transactions t WHERE t.product_id=products.id AND t.status IN ('PENDING','ACCEPTED'))");
     if (keyword) { where.push('instr(lower(title),lower(?))>0'); args.push(keyword); }
+    const categories = commaValues(params.get('categories'));
+    if (categories.length > 6) throw new ApiError(400, 'BAD_REQUEST', '筛选项过多');
+    if (categories.length > 0) {
+      const clauses: string[] = [];
+      for (const value of categories) {
+        const checked = text(value, 'categories', 1, 50);
+        const exact = categorySearchSpec(checked).exact;
+        const values = exact.length > 0 ? exact : [checked];
+        clauses.push(`category IN (${values.map(() => '?').join(',')})`);
+        args.push(...values);
+      }
+      where.push(`(${clauses.join(' OR ')})`);
+    }
+    const campuses = commaValues(params.get('campuses'));
+    if (campuses.length > 10) throw new ApiError(400, 'BAD_REQUEST', '筛选项过多');
+    if (campuses.length > 0) {
+      const values = campuses.map(value => text(value, 'campuses', 1, 100));
+      where.push(`campus IN (${values.map(() => '?').join(',')})`);
+      args.push(...values);
+    }
+    const ranges = parsePriceRanges(params.get('priceRanges'));
+    if (ranges.length > 0) {
+      const clauses = ranges.map(([min, max]) => {
+        if (max === null) {
+          args.push(min);
+          return 'price_cents>=?';
+        }
+        args.push(min, max);
+        return '(price_cents>=? AND price_cents<?)';
+      });
+      where.push(`(${clauses.join(' OR ')})`);
+    }
     if (cursor) { where.push('(published_at<? OR (published_at=? AND id<?))'); args.push(cursor[0], cursor[0], cursor[1]); }
     const rows = this.db.prepare(`SELECT * FROM products WHERE ${where.join(' AND ')} ORDER BY published_at DESC,id DESC LIMIT ?`)
       .all(...args, limit + 1) as ProductRow[];
@@ -202,6 +255,21 @@ export class Store {
       for (const imageId of imageIds) this.db.prepare('UPDATE product_images SET product_id=? WHERE id=?').run(id, imageId);
     });
     return this.product(this.findProduct(id)!);
+  }
+
+  delistProduct(id: string, user: UserRow): Record<string, unknown> {
+    return transaction(this.db, () => {
+      const row = this.findProduct(id);
+      if (!row || row.school_id !== user.school_id) throw new ApiError(404, 'NOT_FOUND', '商品不存在');
+      if (row.seller_id !== user.id) throw new ApiError(403, 'FORBIDDEN', '只能下架自己发布的商品');
+      if (row.status === 'DELISTED') return this.product(row);
+      if (row.status === 'SOLD') throw new ApiError(409, 'INVALID_STATUS', '已售出的商品不能下架');
+      const occupied = this.db.prepare("SELECT 1 FROM transactions WHERE product_id=? AND status IN ('PENDING','ACCEPTED')").get(id);
+      if (occupied) throw new ApiError(409, 'PRODUCT_OCCUPIED', '商品有进行中的交易，请先取消交易');
+      const update = this.db.prepare("UPDATE products SET status='DELISTED' WHERE id=? AND status='ACTIVE'").run(id);
+      if (update.changes !== 1) throw new ApiError(409, 'INVALID_STATUS', '商品状态已变化');
+      return this.product(this.findProduct(id)!);
+    });
   }
 
   transactionView(row: TransactionRow): Record<string, unknown> {
@@ -267,7 +335,7 @@ export class Store {
       const product = this.findProduct(productId);
       if (!product || product.school_id !== user.school_id) throw new ApiError(404, 'NOT_FOUND', '商品不存在');
       if (product.seller_id === user.id) throw new ApiError(403, 'OWN_PRODUCT', '不能购买自己的商品');
-      if (product.status !== 'ACTIVE') throw new ApiError(409, 'PRODUCT_SOLD', '商品已售出');
+      if (product.status !== 'ACTIVE') throw new ApiError(409, 'PRODUCT_SOLD', '商品已下架或售出');
       const occupied = this.db.prepare("SELECT 1 FROM transactions WHERE product_id=? AND status IN ('PENDING','ACCEPTED')").get(productId);
       if (occupied) throw new ApiError(409, 'PRODUCT_OCCUPIED', '商品已有进行中的交易');
       const id = `trade_${randomUUID()}`;
@@ -280,12 +348,20 @@ export class Store {
     });
   }
 
-  transition(id: string, user: UserRow, action: 'accept' | 'reject' | 'complete'): Record<string, unknown> {
-    const expected = action === 'complete' ? 'ACCEPTED' : 'PENDING';
-    const next = { accept: 'ACCEPTED', reject: 'REJECTED', complete: 'COMPLETED' }[action];
+  transition(id: string, user: UserRow, action: 'accept' | 'reject' | 'complete' | 'cancel'): Record<string, unknown> {
+    const next = { accept: 'ACCEPTED', reject: 'REJECTED', complete: 'COMPLETED', cancel: 'CANCELLED' }[action];
     return transaction(this.db, () => {
       const row = this.findTransaction(id, user);
+      if (action === 'cancel') {
+        if (row.status !== 'PENDING' && row.status !== 'ACCEPTED') {
+          throw new ApiError(409, 'INVALID_STATUS', '交易已结束，不能取消');
+        }
+        const update = this.db.prepare('UPDATE transactions SET status=? WHERE id=? AND status=?').run(next, id, row.status);
+        if (update.changes !== 1) throw new ApiError(409, 'INVALID_STATUS', '交易状态已变化');
+        return this.transactionView(this.findTransaction(id, user));
+      }
       if (row.seller_id !== user.id) throw new ApiError(403, 'FORBIDDEN', '只有卖家可以处理交易');
+      const expected = action === 'complete' ? 'ACCEPTED' : 'PENDING';
       if (row.status !== expected) throw new ApiError(409, 'INVALID_STATUS', '交易状态不允许此操作');
       const update = this.db.prepare('UPDATE transactions SET status=? WHERE id=? AND status=?').run(next, id, expected);
       if (update.changes !== 1) throw new ApiError(409, 'INVALID_STATUS', '交易状态已变化');

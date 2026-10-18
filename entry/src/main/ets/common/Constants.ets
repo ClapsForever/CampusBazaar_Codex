@@ -50,6 +50,8 @@ export const STATUS_REJECTED_TEXT_COLOR: string = '#E5484D';
 export const STATUS_REJECTED_BG_COLOR: string = '#E5484D1F';
 export const STATUS_COMPLETED_TEXT_COLOR: string = '#5B7A9D';
 export const STATUS_COMPLETED_BG_COLOR: string = '#5B7A9D1F';
+export const STATUS_CANCELLED_TEXT_COLOR: string = '#6D6C6A';
+export const STATUS_CANCELLED_BG_COLOR: string = '#E5E4E1';
 
 export enum LoadState {
   LOADING = 0,
@@ -67,6 +69,8 @@ export class TradeStatusUI {
         return '待交易';
       case TransactionStatus.REJECTED:
         return '已关闭';
+      case TransactionStatus.CANCELLED:
+        return '已取消';
       case TransactionStatus.COMPLETED:
         return '已完成';
       default:
@@ -82,6 +86,8 @@ export class TradeStatusUI {
         return STATUS_ACCEPTED_TEXT_COLOR;
       case TransactionStatus.REJECTED:
         return STATUS_REJECTED_TEXT_COLOR;
+      case TransactionStatus.CANCELLED:
+        return STATUS_CANCELLED_TEXT_COLOR;
       case TransactionStatus.COMPLETED:
         return STATUS_COMPLETED_TEXT_COLOR;
       default:
@@ -97,6 +103,8 @@ export class TradeStatusUI {
         return STATUS_ACCEPTED_BG_COLOR;
       case TransactionStatus.REJECTED:
         return STATUS_REJECTED_BG_COLOR;
+      case TransactionStatus.CANCELLED:
+        return STATUS_CANCELLED_BG_COLOR;
       case TransactionStatus.COMPLETED:
         return STATUS_COMPLETED_BG_COLOR;
       default:
@@ -105,6 +113,7 @@ export class TradeStatusUI {
   }
 
   static isTerminal(status: TransactionStatus): boolean {
-    return status === TransactionStatus.REJECTED || status === TransactionStatus.COMPLETED;
+    return status === TransactionStatus.REJECTED || status === TransactionStatus.CANCELLED ||
+      status === TransactionStatus.COMPLETED;
   }
 }
