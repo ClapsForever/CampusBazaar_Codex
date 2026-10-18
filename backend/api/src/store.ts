@@ -15,6 +15,7 @@ type ImageRow = { id: string; owner_id: string; product_id: string | null; mime:
 
 const productIdPattern = /^listing_[a-z0-9_-]{1,64}$/;
 const conditions = ['new', 'like_new', 'good', 'fair', 'unknown'];
+const MAX_AGENT_CONVERSATIONS = 10;
 
 function commaValues(value: string | null): string[] {
   if (!value) return [];
@@ -412,6 +413,33 @@ export class Store {
     if (!row) this.db.prepare('INSERT INTO agent_sessions VALUES(?,?,?)').run(sessionId, user.id, Date.now());
   }
 
+  private deleteAgentSession(sessionId: string): void {
+    this.db.prepare('DELETE FROM agent_turns WHERE session_id=?').run(sessionId);
+    this.db.prepare('DELETE FROM agent_sessions WHERE session_id=?').run(sessionId);
+  }
+
+  private trimAgentSessions(userId: string): void {
+    // Order by the newest stored turn so rapid requests with equal timestamps
+    // still evict the genuinely oldest conversation.
+    const stale = this.db.prepare(`SELECT s.session_id
+      FROM agent_sessions s LEFT JOIN agent_turns t ON t.session_id=s.session_id
+      WHERE s.user_id=? GROUP BY s.session_id
+      ORDER BY MAX(t.id) DESC,MAX(s.created_at) DESC,s.session_id DESC
+      LIMIT -1 OFFSET ?`)
+      .all(userId, MAX_AGENT_CONVERSATIONS) as { session_id: string }[];
+    for (const row of stale) this.deleteAgentSession(row.session_id);
+  }
+
+  deleteAgentConversation(sessionId: string, user: UserRow): void {
+    transaction(this.db, () => {
+      const row = this.db.prepare('SELECT user_id FROM agent_sessions WHERE session_id=?')
+        .get(sessionId) as { user_id: string } | undefined;
+      if (!row) throw new ApiError(404, 'NOT_FOUND', '对话记录不存在');
+      if (row.user_id !== user.id) throw new ApiError(403, 'FORBIDDEN', '不能删除其他用户的对话记录');
+      this.deleteAgentSession(sessionId);
+    });
+  }
+
   saveAgentTurn(sessionId: string, user: UserRow, question: string, response: Record<string, unknown>): void {
     transaction(this.db, () => {
       this.rememberAgentSession(sessionId, user);
@@ -420,6 +448,7 @@ export class Store {
       if (previous && previous.question !== question) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', '请求编号已用于其他问题');
       if (!previous) this.db.prepare('INSERT INTO agent_turns(session_id,request_id,question,response_json,created_at) VALUES(?,?,?,?,?)')
         .run(sessionId, response.requestId as string, question, JSON.stringify(response), Date.now());
+      this.trimAgentSessions(user.id);
     });
   }
 

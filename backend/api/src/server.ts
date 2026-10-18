@@ -149,6 +149,10 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'GET' && conversationMatch?.[1]) {
     send(res, 200, store.agentHistoryTurns(user, conversationMatch[1], url.searchParams), rid); return;
   }
+  if (method === 'DELETE' && conversationMatch?.[1]) {
+    store.deleteAgentConversation(conversationMatch[1], user);
+    send(res, 200, { ok: true }, rid); return;
+  }
   if (method === 'GET' && path === '/api/v1/products') { send(res, 200, store.products(user, url.searchParams), rid); return; }
   if (method === 'GET' && path === '/api/v1/me/products') { send(res, 200, store.products(user, url.searchParams, true), rid); return; }
   if (method === 'POST' && path === '/api/v1/products') { send(res, 201, store.publish(user, await readJson(req)), rid); return; }

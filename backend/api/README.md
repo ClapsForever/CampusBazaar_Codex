@@ -67,8 +67,9 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 | 密码登录 | `POST /api/v1/auth/password/sessions` | `email,password`，返回 `{user,token,expiresAt}`；仅允许预置账号，邮箱统一去首尾空白并转小写；每邮箱连续失败 5 次后限流 15 分钟，来源 IP 也有限额，服务重启保留限制 |
 | 更新个人资料 | `PUT /api/v1/me`（也支持 PATCH） | `nickname`（1–24 字），可选 `avatarId`（当前账号的未绑定商品图片）；返回当前用户 |
 | 修改密码 | `POST /api/v1/me/password` | `newPassword`（6–64 位且非全空白）和 `currentPassword`；撤销其他会话 |
-| 对话历史列表 | `GET /api/v1/agent/conversations?limit=20&cursor=...` | 当前账号按开始时间倒序；每项 `sessionId,title,createdAt,updatedAt,turnCount` |
+| 对话历史列表 | `GET /api/v1/agent/conversations?limit=10&cursor=...` | 每个账号最多保留 10 条对话，超出后自动删除最早记录；每项 `sessionId,title,createdAt,updatedAt,turnCount` |
 | 历史对话详情 | `GET /api/v1/agent/conversations/{sessionId}?limit=50&cursor=...` | 时间正序的 `{question,createdAt,response}`；仅归属用户可读 |
+| 删除对话记录 | `DELETE /api/v1/agent/conversations/{sessionId}` | 仅归属用户可删；会话与其全部轮次一并删除 |
 | 当前用户、退出 | `GET /api/v1/me`、`POST /api/v1/auth/logout` | 退出后令牌失效 |
 | 商品流、搜索 | `GET /api/v1/products?q=...&categories=教材,数码&campuses=江湾校区&priceRanges=0-100,100-1000&limit=20&cursor=...` | 只显示本校可购买商品；三个筛选参数都可多选，同维度取并集、不同维度取交集；价格区间单位为分，上界不含，留空表示无上限 |
 | 商品详情、我的商品 | `GET /api/v1/products/{id}`、`GET /api/v1/me/products` | 商品包含 ArkTS `Product` 字段及分类、成色、校区 |

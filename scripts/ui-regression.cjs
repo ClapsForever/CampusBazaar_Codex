@@ -311,6 +311,43 @@ test('退出和快速切换历史时忽略旧请求，历史加载失败可重�
   fails = false; await model.viewHistory(summary); assert.equal(model.historyError, '');
 });
 
+test('删除 AI 对话记录后列表移除，删除当前会话时清空对话', async () => {
+  const summary = { sessionId: 'session_a', title: '找教材', createdAt: 1, updatedAt: 2, turnCount: 1 };
+  let deleted = '';
+  const load = harness({ 'service/AgentService': { agentService: {
+    getHistory: async () => ({ items: [summary], nextCursor: null }),
+    deleteHistory: async sessionId => { deleted = sessionId; }
+  } } });
+  const model = new (load('viewmodel/AgentViewModel').AgentViewModel)();
+  model.sessionId = 'session_a';
+  model.turns = [{ id: 'turn_1', question: '找教材' }];
+  await model.openHistory();
+  assert.equal(await model.deleteHistory(summary), true);
+  assert.equal(deleted, 'session_a');
+  assert.equal(model.history.length, 0);
+  assert.equal(model.sessionId, null);
+  assert.equal(model.turns.length, 0);
+  assert.equal(model.deletingHistoryId, '');
+});
+
+test('删除 AI 记录失败时保留列表，进行中不能重复删除', async () => {
+  const summary = { sessionId: 'session_a', title: '找教材', createdAt: 1, updatedAt: 2, turnCount: 1 };
+  const pending = deferred(); let calls = 0;
+  const load = harness({ 'service/AgentService': { agentService: {
+    getHistory: async () => ({ items: [summary], nextCursor: null }),
+    deleteHistory: () => { calls++; return pending.promise; }
+  } } });
+  const model = new (load('viewmodel/AgentViewModel').AgentViewModel)();
+  await model.openHistory();
+  const first = model.deleteHistory(summary);
+  assert.equal(await model.deleteHistory(summary), false);
+  assert.equal(calls, 1);
+  pending.reject(new Error('offline'));
+  assert.equal(await first, false);
+  assert.equal(model.history.length, 1);
+  assert.equal(model.historyError, 'offline');
+});
+
 test('个人资料保存失败保留昵称头像，保存成功同步用户，禁止重复提交', async () => {
   const response = deferred(); let calls = 0;
   const load = harness({ 'service/AuthenticationService': { authService: {
