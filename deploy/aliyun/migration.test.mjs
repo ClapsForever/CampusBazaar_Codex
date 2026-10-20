@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -16,7 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url)), repo = resolve(here, '../.
 function directory() { return mkdtempSync(join(tmpdir(), 'campus-aliyun-')); }
 function execute(script, args = []) {
   return new Promise((resolveResult, reject) => {
-    const child = spawn(process.execPath, [join(here, script), ...args], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, [resolve(here, script), ...args], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
     child.stdout.on('data', chunk => { stdout += chunk; }); child.stderr.on('data', chunk => { stderr += chunk; });
     child.on('error', reject); child.on('close', status => resolveResult({ status, stdout, stderr }));
@@ -146,6 +146,7 @@ test('源码发布包按白名单生成，不带运行密钥、数据库或已�
   assert.equal(result.status, 0, result.stderr);
   const files = readFileSync(join(output, 'source-files.txt'), 'utf8').trim().split('\n');
   assert(files.includes('backend/api/src/registration.ts')); assert(files.includes('backend/agent/package-lock.json'));
+  assert(files.includes('deploy/aliyun/licx-ip-test/nginx.conf'));
   assert(files.every(name => !/(^|\/)(node_modules|dist|\.local-data|results)\//.test(name)));
   assert(files.every(name => !/(^|\/)\.env$/.test(name)));
   const metadata = JSON.parse(readFileSync(join(output, 'release.json')));
@@ -154,6 +155,30 @@ test('源码发布包按白名单生成，不带运行密钥、数据库或已�
   assert.equal(metadata.apiSchema, 5); assert.equal(metadata.legalVersion, '2026-10-18-draft-3');
   assert(!readFileSync(join(output, 'source/deploy/ubuntu/backup.sh'), 'utf8').includes('\r'));
   assert.equal((await execute('prepare-release.mjs', ['--output', output])).status, 1);
+});
+
+test('通过current目录链接调用配置和数据CLI时仍实际执行并校验失败状态', async () => {
+  const root = directory(), current = join(root, 'current');
+  symlinkSync(repo, current, process.platform === 'win32' ? 'junction' : 'dir');
+  const output = join(root, 'config');
+  const configured = await execute(join(current, 'deploy/aliyun/prepare-config.mjs'), ['--output', output, '--public-base-url', 'https://api.example.com']);
+  assert.equal(configured.status, 0, configured.stderr);
+  assert.equal(JSON.parse(configured.stdout).directory, output);
+  assert(existsSync(join(output, 'env/api.env')));
+  const fixture = await snapshotFixture();
+  try {
+    const cli = join(current, 'deploy/aliyun/data-bundle.mjs');
+    const verified = await execute(cli, ['verify', '--bundle', fixture.bundle]);
+    assert.equal(verified.status, 0, verified.stderr);
+    assert.equal(JSON.parse(verified.stdout).counts.users, 1);
+    const restored = join(fixture.root, 'restored-via-link');
+    const restore = await execute(cli, ['restore', '--bundle', fixture.bundle, '--destination', restored]);
+    assert.equal(restore.status, 0, restore.stderr);
+    assert(existsSync(join(restored, 'campusbazaar.sqlite')));
+    const invalid = await execute(cli, ['verify', '--bundle', join(fixture.root, 'missing')]);
+    assert.equal(invalid.status, 1);
+    assert.notEqual(invalid.stderr.trim(), '');
+  } finally { fixture.db.close(); }
 });
 
 test('真实v5数据库可快照恢复，保留取消下架状态、协议、会话、图片与超过十段AI历史', async () => {

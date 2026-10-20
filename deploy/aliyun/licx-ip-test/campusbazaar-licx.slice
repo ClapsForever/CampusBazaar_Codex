@@ -1,0 +1,5 @@
+[Unit]
+Description=licx CampusBazaar service memory budget
+
+[Slice]
+MemoryMax=1100M

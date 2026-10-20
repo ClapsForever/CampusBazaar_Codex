@@ -30,8 +30,9 @@ for (const service of ['api', 'agent']) {
 }
 // Explicit deployment-file allowlist; generated configuration and migration data are never collected.
 for (const name of ['README.md', 'init-env.mjs', 'backup.sh', 'campusbazaar-api.service', 'campusbazaar-agent.service', 'campusbazaar.nginx.conf']) collect(`deploy/ubuntu/${name}`);
-for (const name of ['README.md', 'data-bundle.mjs', 'prepare-config.mjs', 'prepare-release.mjs', 'smoke.mjs', 'migration.test.mjs']) collect(`deploy/aliyun/${name}`);
+for (const name of ['README.md', 'data-bundle.mjs', 'prepare-config.mjs', 'prepare-release.mjs', 'smoke.mjs', 'migration.test.mjs', 'licx-ip-test']) collect(`deploy/aliyun/${name}`);
 collect('docs/registration.md');
+collect('docs/aliyun-migration-2026-10-20.md');
 collect('docs/legal');
 mkdirSync(output, { mode: 0o700 });
 const staging = join(output, 'source');

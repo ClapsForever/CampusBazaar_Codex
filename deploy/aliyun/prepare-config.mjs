@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -75,7 +75,7 @@ export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousA
     modelKeyProvided: !!oldAgent.MODEL_API_KEY, requiresCertificate: url.protocol === 'https:' };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
     const args = process.argv.slice(2), options = {};
     const keys = { '--output': 'output', '--public-base-url': 'publicBaseUrl', '--previous-api-env': 'previousApiEnv', '--previous-agent-env': 'previousAgentEnv' };

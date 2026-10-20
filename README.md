@@ -2,9 +2,9 @@
 
 校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、自助注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；邮件归属验证和自助找回密码尚未接入。
 
-腾讯云 Ubuntu 24.04 的小组共同测试部署见 [Ubuntu 部署指南](deploy/ubuntu/README.md)，包含 systemd、Nginx、配置生成、备份及更新回滚模板。licx 的测试入口现为 `http://101.35.53.59:18080`，健康检查为 `http://101.35.53.59:18080/health/ready`，**不再限制来源 IP，通过预置邮箱密码账号登录**；组员接入、验证范围及云防火墙设置见 [IP 直连测试说明](docs/ip-direct-testing.md)。HTTP 会明文传输密码和登录令牌，仅使用测试账号；正式发布前恢复 HTTPS。域名入口与证书配置保留，见 [HTTPS 说明](deploy/ubuntu/licx-https/README.md)。
+2026-10-20 已将 licx 的后端及完整数据迁入阿里云 Ubuntu 24.04。当前测试入口为 `http://47.117.96.16:18080`，健康检查为 `http://47.117.96.16:18080/health/ready`，通过邮箱密码登录或自助注册；组员接入见 [IP 直连测试说明](docs/ip-direct-testing.md)。腾讯云旧地址临时转发到同一套阿里云后端，旧数据库停止写入。HTTP 会明文传输密码和登录令牌，仅使用测试账号；正式发布前恢复 HTTPS。
 
-后续迁往阿里云的预备方案见[阿里云迁移指南](deploy/aliyun/README.md)：按 Ubuntu 24.04 单台 ECS 准备，包含源码打包、HTTPS 配置生成、完整 SQLite/图片迁移与校验、匿名注册验收和切换回退步骤。已按保留全部现有数据设计；尚未连接或改动现有服务器，也未切换 App 地址。
+实际目录、用户级服务、数据保留验证、备份及回退边界见[阿里云部署记录](docs/aliyun-migration-2026-10-20.md)。[阿里云迁移指南](deploy/aliyun/README.md)继续提供源码打包、配置生成、SQLite/图片快照恢复和验收工具；[Ubuntu 部署指南](deploy/ubuntu/README.md)保留通用系统级部署模板。
 
 商品详情与“我发布的”支持卖家下架，买卖双方可取消待确认或待交易订单；普通搜索支持关键词与多选价格、大类和校区组合；AI 历史可手动删除整段对话，保留原有分页与数量策略。详见[功能及数据保留说明](docs/marketplace-actions.md)。注册、商品和交易升级统一使用 schema v5，兼容原 v3 及两种 v4 数据库。
 
@@ -120,7 +120,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 ## 5. 在 DevEco Studio 运行 App
 
 1. 打开本仓库根目录，等待工程与 OHPM 同步；选择匹配的 HarmonyOS SDK 和模拟器。
-2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `http://101.35.53.59:18080`，在模拟器浏览器打开该地址的 `/health/ready` 确认返回 `{"status":"ok"}`。不再需要登记或放行组员公网 IP，使用分配的邮箱密码登录即可。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
+2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `http://47.117.96.16:18080`，在模拟器浏览器打开该地址的 `/health/ready` 确认返回 `{"status":"ok"}`。使用分配的邮箱密码登录，也可自助注册。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
 启动页通过登录按钮下的“没有账号？立即注册”进入注册，注册页通过“已有账号？返回登录”切回，顶部只显示当前表单标题。注册填写邮箱、6–64 位密码和确认密码，阅读并主动勾选用户协议与隐私政策草案后提交，成功后自动进入首页。图形验证码本轮暂时移除，恢复计划见[发布前清单](docs/legal/launch-checklist.md)。测试阶段允许任意邮箱，不验证邮箱归属或学生身份。也可按 [Demo 认证说明](docs/demo-auth.md) 导入预置账号；找回密码仍由项目组人工处理。本次源码变更需同步更新 API 和 App，已有云端部署不会自动更新。实现与验收步骤见[注册说明](docs/registration.md)。

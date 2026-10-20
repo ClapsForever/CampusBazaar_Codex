@@ -1,0 +1,23 @@
+[Unit]
+Description=licx CampusBazaar Nginx on Aliyun
+Wants=campusbazaar-licx-api.service
+After=campusbazaar-licx-api.service
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+ExecStart=/home/licx/campusbazaar/runtime/nginx/usr/sbin/nginx -p /home/licx/campusbazaar/nginx/ -c /home/licx/campusbazaar/nginx/nginx.conf -e /home/licx/campusbazaar/nginx/logs/error.log -g "daemon off;"
+ExecReload=/home/licx/campusbazaar/runtime/nginx/usr/sbin/nginx -p /home/licx/campusbazaar/nginx/ -c /home/licx/campusbazaar/nginx/nginx.conf -e /home/licx/campusbazaar/nginx/logs/error.log -s reload
+KillSignal=SIGQUIT
+TimeoutStopSec=30
+MemoryMax=96M
+LimitNOFILE=8192
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+Slice=campusbazaar-licx.slice
+
+[Install]
+WantedBy=default.target

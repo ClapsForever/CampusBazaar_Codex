@@ -127,7 +127,7 @@ export function restoreData({ bundle, destination }) {
   return { directory, ...summary };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
     const [action, ...args] = process.argv.slice(2), options = {};
     for (let index = 0; index < args.length; index++) {
