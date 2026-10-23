@@ -10,6 +10,7 @@ export interface SessionRecord {
   displayedListingIds: string[];
   displayedProducts?: Array<{ listingId: string; title: string }>;
   searchPage: number;
+  needs?: string[];
   createdAt: number;
   updatedAt: number;
   busy: boolean;

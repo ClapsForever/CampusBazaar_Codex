@@ -566,15 +566,29 @@ export class Store {
       }
     }
     const keyword = params.get('keyword');
-    if (keyword) {
-      const checked = text(keyword, 'keyword', 1, 100);
-      hard.keyword = checked;
-      for (const aliases of keywordGroups(checked)) {
-        where.push(`(${aliases.map(() =>
-          '(instr(lower(p.title),lower(?))>0 OR instr(lower(p.category),lower(?))>0 OR instr(lower(p.description),lower(?))>0 OR instr(lower(coalesce(p.version,\'\')),lower(?))>0)'
-        ).join(' OR ')})`);
-        for (const alias of aliases) args.push(alias, alias, alias, alias);
+    if (keyword) hard.keyword = text(keyword, 'keyword', 1, 100);
+    const queryTerms = params.get('queryTerms');
+    let queries: string[] = keyword ? [hard.keyword as string] : [];
+    if (queryTerms !== null) {
+      let values: unknown;
+      try { values = JSON.parse(queryTerms); } catch { throw new ApiError(400, 'BAD_REQUEST', '相关检索词格式不正确'); }
+      if (!Array.isArray(values) || values.length < 1 || values.length > 12
+        || values.some(v => typeof v !== 'string' || v.length > 80 || !v.trim())) {
+        throw new ApiError(400, 'BAD_REQUEST', '相关检索词不支持');
       }
+      queries = [...new Set((values as string[]).map(value => value.trim().replace(/\s+/gu, ' ')))];
+      hard.queryTerms = queries;
+    }
+    // OR all semantic queries in one SQL predicate. Apply permissions and hard
+    // conditions outside it, then sort and paginate the union (no duplicate rows).
+    if (queries.length) {
+      const alternatives = queries.map(query => keywordGroups(query).map(aliases => {
+        for (const alias of aliases) args.push(alias, alias, alias, alias);
+        return `(${aliases.map(() =>
+          '(instr(lower(p.title),lower(?))>0 OR instr(lower(p.category),lower(?))>0 OR instr(lower(p.description),lower(?))>0 OR instr(lower(coalesce(p.version,\'\')),lower(?))>0)'
+        ).join(' OR ')})`;
+      }).join(' AND '));
+      where.push(`(${alternatives.map(alternative => `(${alternative})`).join(' OR ')})`);
     }
     for (const [key, op] of [['minPriceCents','>='],['maxPriceCents','<=']] as const) {
       const value = params.get(key);

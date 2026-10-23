@@ -96,6 +96,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         session.displayedListingIds = result.displayedListingIds;
         session.displayedProducts = result.displayedProducts;
         session.searchPage = result.searchPage;
+        session.needs = result.needs;
         sessionStore.save(session);
         sessionStore.saveIdempotentResponse(body, user, result.response);
         return reply.code(200).send(result.response);

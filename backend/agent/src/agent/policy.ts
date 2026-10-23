@@ -11,6 +11,7 @@ export const TurnPlanSchema = Type.Object({
   action: Type.Union([Type.Literal("search"), Type.Literal("refine"), Type.Literal("detail"), Type.Literal("compare"), Type.Literal("preference"), Type.Literal("help"), Type.Literal("out_of_scope"), Type.Literal("unsupported"), Type.Literal("clarification")]),
   changes: Type.Object({
     keyword: nullableText(100), category: nullableText(40),
+    queryTerms: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 80, pattern: "\\S" }), { minItems: 1, maxItems: 12, uniqueItems: true })),
     minPriceCents: nullablePrice, maxPriceCents: nullablePrice,
     campus: nullableText(40), preferredCampus: nullableText(40),
     condition: Type.Optional(Type.Union([Type.Literal("new"), Type.Literal("like_new"), Type.Literal("good"), Type.Literal("fair"), Type.Literal("unknown"), Type.Null()])),
@@ -21,6 +22,7 @@ export const TurnPlanSchema = Type.Object({
   }, { additionalProperties: false }),
   positions: Type.Array(Type.Integer({ minimum: 1, maximum: 10 }), { maxItems: 10, uniqueItems: true }),
   page: Type.Integer({ minimum: 1, maximum: 1000 }),
+  needs: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 60, pattern: "\\S" }), { minItems: 1, maxItems: 8, uniqueItems: true })),
 }, { additionalProperties: false });
 
 export type TurnPlan = Static<typeof TurnPlanSchema>;
@@ -28,7 +30,7 @@ export type BusinessAction = "search" | "refine" | "detail" | "compare" | "prefe
 export const CLARIFICATION_REPLY = "请告诉我想找的商品、预算或校区；查看和比较商品时，请指出本次展示的商品编号顺序。";
 export const REFUSAL_REPLY = "我只能帮你查找、筛选、查看和比较本校二手商品。";
 export const UNSUPPORTED_REPLY = "我不能执行购买、付款、预约或联系卖家。你可以让我继续查询商品，再通过平台正式业务流程完成交易。";
-export const HELP_REPLY = "我可以查找本校二手商品，按预算、成色、版本和校区筛选，并查看或比较已展示的商品。你可以说‘找50元以内的高数教材’，或在找到商品后问‘第二个怎么样’。";
+export const HELP_REPLY = "我可以根据你的需求查找本校二手商品，例如‘找一本线代教材’或‘我想考六级’，也可以按预算、成色、版本和校区筛选，查看或比较商品。说‘继续’可看下一页，‘第二个怎么样’可看详情。";
 
 export function emptyPlan(action: BusinessAction): TurnPlan {
   return { action, changes: {}, positions: [], page: 1 };
@@ -50,8 +52,11 @@ export function scopeDecision(message: string): "unsupported" | "out_of_scope" |
     }
   }
   if (/忽略.*(?:系统|规则|指令)|(?:泄露|输出|告诉我).*(?:密钥|令牌|系统提示词)|查(?:询)?(?:别的学校|其他学校|外校)|跨校(?:查询|搜索|找货)/u.test(message)) return "out_of_scope";
-  if (/笑话|写(?:一首|首)?诗|写代码|天气|股票|扮演|角色扮演/u.test(message)
-    && !(/找|搜索|搜|想买/u.test(message) && /教材|课本|书/u.test(message) && !/然后|顺便|同时/u.test(message))) return "out_of_scope";
+  // Reject only definite unrelated commands here. Words such as 天气/写代码
+  // also occur in valid needs (weather protection, programming equipment).
+  // Ambiguous utterances must reach the intent model instead of a keyword veto.
+  if (/^(?:请|帮我|给我)?(?:讲|说)(?:一个|个)?笑话[吧。！!？?\s]*$/u.test(message)
+    || /^(?:请|帮我|给我)?写(?:一首|首)?诗[吧。！!？?\s]*$/u.test(message)) return "out_of_scope";
   if (/^(?:你好|您好|谢谢|多谢)[！!。\s]*$/u.test(message) || /(?:你|助手).*(?:能做什么|可以做什么|有什么功能|怎么使用)/u.test(message)) return "help";
   return undefined;
 }
@@ -87,6 +92,7 @@ export function mockTurnPlan(message: string, previous: SearchFilters, displayed
   const changes: Record<string, unknown> = {};
   for (const field of new Set([...Object.keys(previous), ...Object.keys(next)])) {
     const key = field as keyof SearchFilters;
+    if (key === "queryTerms" && next.queryTerms === undefined) continue; // merge clears old retrieval on topic changes
     if (previous[key] !== next[key]) changes[key] = next[key] ?? null;
   }
   const action = hasKnownTopic || explicitSearch ? "search" : "refine";
@@ -122,10 +128,20 @@ export function mergeSearchFilters(previous: SearchFilters, plan: TurnPlan, mess
   }
   const recognizedTopic = parseSearchUpdate(message, {});
   const purpose = purposeTopic(message);
-  const grounded = (keyword: string) => isGroundedKeyword(message, keyword) || purpose?.keyword === keyword;
+  const literalGrounded = (keyword: string) => isGroundedKeyword(message, keyword) || purpose?.keyword === keyword;
+  // A schema-checked search plan may infer both the need label and its vocabulary.
+  // A semantic follow-up can carry inferred needs rather than repeat a product
+  // name (e.g. "有没有不占地方的"). Never require a fixed purpose vocabulary.
+  const semanticSearch = Array.isArray(changes.queryTerms) && typeof changes.keyword === "string" && Boolean(changes.keyword.trim())
+    && (plan.action === "search" || literalGrounded(changes.keyword) || Boolean(plan.needs?.length));
+  const grounded = (keyword: string) => literalGrounded(keyword) || (semanticSearch && keyword === changes.keyword);
+  if (semanticSearch) changes.queryTerms = [...new Set(changes.queryTerms!.map(term => term.trim().replace(/\s+/gu, " ")))];
+  else delete changes.queryTerms;
   const newUnclassifiedTopic = !recognizedTopic.category && !purpose && plan.action === "search"
-    && typeof changes.keyword === "string" && hasSearchRequest(message) && grounded(changes.keyword);
-  if (changes.category === null && !/不限类别|取消类别|换成|改找|切换|改成/u.test(message) && !newUnclassifiedTopic) delete changes.category;
+    && typeof changes.keyword === "string" && (hasSearchRequest(message) || semanticSearch) && grounded(changes.keyword);
+  const crossCategoryNeed = semanticSearch && plan.action === "search" && changes.category === null;
+  if (changes.category === null && !/不限类别|取消类别|换成|改找|切换|改成/u.test(message)
+    && !newUnclassifiedTopic && !crossCategoryNeed) delete changes.category;
   if (changes.keyword === null && !/取消关键词|不限关键词|换成|改找|切换|改成/u.test(message)) delete changes.keyword;
   if (typeof changes.keyword === "string" && !grounded(changes.keyword)) delete changes.keyword;
   if (typeof changes.version === "string" && !message.includes(changes.version)) delete changes.version;
@@ -152,16 +168,20 @@ export function mergeSearchFilters(previous: SearchFilters, plan: TurnPlan, mess
     } else { changes.campus = campus.name; changes.preferredCampus = null; }
   }
   const newCategory = typeof changes.category === "string" ? changes.category : undefined;
-  if (newCategory && !mentionsCategory(message, newCategory) && purpose?.category !== newCategory) delete changes.category;
-  if (purpose && !recognizedTopic.keyword) { changes.keyword = purpose.keyword; changes.category = purpose.category; }
+  if (newCategory && !mentionsCategory(message, newCategory) && purpose?.category !== newCategory
+    && !(semanticSearch && CATEGORY_GROUPS.some(group => group.category === newCategory))) delete changes.category;
+  if (purpose && !recognizedTopic.keyword && !semanticSearch) { changes.keyword = purpose.keyword; changes.category = purpose.category; }
   const targetGroup = CATEGORY_GROUPS.find(group => group.category === changes.category);
   const concreteSubject = recognizedTopic.keyword ?? recognizedTopic.category;
   if (plan.action === "search" && targetGroup && !changes.keyword && concreteSubject
     && concreteSubject !== targetGroup.category && grounded(concreteSubject)) changes.keyword = concreteSubject;
   const groupFor = (category: string | undefined) => CATEGORY_GROUPS.find(group => group.members.includes(category ?? ""))?.category ?? category;
   const topicChanged = (typeof changes.category === "string" && previous.category !== undefined && groupFor(previous.category) !== groupFor(changes.category))
-    || (newUnclassifiedTopic && changes.category === null && previous.category !== undefined);
+    || (crossCategoryNeed && previous.category !== undefined)
+    || (newUnclassifiedTopic && (changes.category === null || changes.category === undefined) && previous.category !== undefined);
   const filters: SearchFilters = topicChanged ? {} : { ...previous };
+  if (topicChanged || (typeof changes.keyword === "string" && changes.keyword !== previous.keyword)
+    || (changes.keyword === null)) delete filters.queryTerms;
   // Sorting and exclusions must also be grounded in this turn, never in catalog text.
   if (changes.sort !== undefined && !/价格|便宜|贵|排序|最新|发布|price|cheap|sort/iu.test(message)) delete changes.sort;
   if (changes.resultLimit !== undefined && !/只|一个|一件|一款|数量|条|件|款|one|only/iu.test(message)) delete changes.resultLimit;

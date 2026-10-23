@@ -174,7 +174,7 @@ export class MockBusinessClient implements BusinessReadClient {
     signal?.throwIfAborted();
     const visible = MOCK_LISTINGS.filter((listing) => listing.schoolId === user.schoolId);
     const matched = visible.filter((listing) =>
-      matchesText(listing, input.keyword) &&
+      (input.queryTerms ? input.queryTerms.some(term => matchesText(listing, term)) : matchesText(listing, input.keyword)) &&
       matchesCategory(listing.category, input.category, `${listing.title} ${listing.description}`, searchKeywordGroups) &&
       (input.minPriceCents === undefined || listing.priceCents >= input.minPriceCents) &&
       (input.maxPriceCents === undefined || listing.priceCents <= input.maxPriceCents) &&
@@ -196,6 +196,7 @@ export class MockBusinessClient implements BusinessReadClient {
     const appliedConditions: AppliedConditions = {
       hard: {
         ...(input.keyword ? { keyword: input.keyword } : {}),
+        ...(input.queryTerms ? { queryTerms: input.queryTerms } : {}),
         ...(input.category ? { category: input.category } : {}),
         ...(input.minPriceCents !== undefined ? { minPriceCents: input.minPriceCents } : {}),
         ...(input.maxPriceCents !== undefined ? { maxPriceCents: input.maxPriceCents } : {}),

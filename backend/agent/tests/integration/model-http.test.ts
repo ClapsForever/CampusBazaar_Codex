@@ -3,11 +3,12 @@ import { buildApp } from "../../src/app.js";
 import { loadConfig } from "../../src/config/index.js";
 import { MockBusinessClient } from "../../src/clients/mock.js";
 import { emptyPlan } from "../../src/agent/policy.js";
+import * as policy from "../../src/agent/policy.js";
 
 const config = loadConfig({ NODE_ENV: "test", SERVICE_AUTH_TOKEN: "test-token", MODEL_MODE: "real", MODEL_API_KEY: "fake-test-key", MODEL_BASE_URL: "https://model.invalid", MOCK_BACKEND: "true", LOG_LEVEL: "silent" });
 const headers = { "x-agent-service-token": "test-token", "x-user-id": "user_001", "x-school-id": "school_demo" };
 const apps: ReturnType<typeof buildApp>[] = [];
-afterEach(async () => { vi.unstubAllGlobals(); await Promise.all(apps.splice(0).map((app) => app.close())); });
+afterEach(async () => { vi.unstubAllGlobals(); vi.restoreAllMocks(); await Promise.all(apps.splice(0).map((app) => app.close())); });
 
 function modelResponse(content: string, tool = false): Response {
   const base = { id: "test_response", object: "chat.completion.chunk", model: "deepseek-chat" };
@@ -29,12 +30,25 @@ function fixture(responses: Response[]) {
   const detail = vi.spyOn(client, "getListingDetail");
   const app = buildApp({ config, client });
   apps.push(app);
-  const chat = () => app.inject({ method: "POST", url: "/internal/agent/chat", headers, payload: { requestId: "http_policy_test", sessionId: null, message: "想买键盘" } });
+  const chat = (message = "想买键盘") => app.inject({ method: "POST", url: "/internal/agent/chat", headers, payload: { requestId: "http_policy_test", sessionId: null, message } });
   return { bodies, fetch, search, detail, chat };
 }
 const searchPlan = JSON.stringify({ ...emptyPlan("search"), changes: { category: "键盘" } });
 
 describe("real provider adapter with local SSE responses", () => {
+  it("executes a semantic retrieval plan returned through the real model adapter", async () => {
+    const deterministicPlanner = vi.spyOn(policy, "mockTurnPlan");
+    const plan = { ...emptyPlan("search"), needs: ["校园代步工具"], changes: { keyword: "校园通勤", category: "运动", queryTerms: ["自行车", "单车", "bike"] } };
+    const f = fixture([modelResponse(JSON.stringify(plan)), modelResponse("找到一辆可供通勤参考的自行车。")]);
+    const response = await f.chat("我想在校园上课通勤");
+    expect(response.statusCode).toBe(200);
+    expect(response.json().recommendations.map((item: any) => item.listingId)).toEqual(["listing_bike_001"]);
+    expect(f.search.mock.calls[0]?.[0]).toMatchObject(plan.changes);
+    expect(f.fetch).toHaveBeenCalledTimes(2);
+    expect(deterministicPlanner).not.toHaveBeenCalled();
+    expect(response.json().reply).toContain("校园代步工具");
+    for (const body of f.bodies) expect(body.tools ?? []).toEqual([]);
+  });
   it("runs a model plan, a server query and a model reply without offering tools", async () => {
     const f = fixture([modelResponse(searchPlan), modelResponse("为你找到两件键盘。")]);
     const response = await f.chat();

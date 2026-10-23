@@ -28,9 +28,8 @@ const cases = selectedIds.length ? dataset.cases.filter(c => selectedIds.include
 assert.ok(cases.length > 0 && cases.length <= 100, 'Expected 1–100 selected cases');
 if (selectedIds.length) assert.equal(cases.length, selectedIds.length, 'Unknown/duplicate --only case');
 const importProject = (path) => import(pathToFileURL(resolve(projectRoot, path)).href);
-const [{ createApiApp }, { Store }, { loadConfig }, { runAgentTurn }, { HttpBusinessClient }, { MemorySessionStore }] = await Promise.all([
+const [{ createApiApp }, { loadConfig }, { runAgentTurn }, { HttpBusinessClient }, { MemorySessionStore }] = await Promise.all([
   importProject('backend/api/dist/src/server.js'),
-  importProject('backend/api/dist/src/store.js'),
   importProject('backend/agent/dist/config/index.js'),
   importProject('backend/agent/dist/agent/service.js'),
   importProject('backend/agent/dist/clients/http.js'),
@@ -43,7 +42,7 @@ if (config.modelMode === 'real') assert.ok(config.modelApiKey, 'MODEL_API_KEY mu
 const syntheticConfig = {
   mode: 'local', host: '127.0.0.1', port: 0, databasePath: ':memory:', uploadDir: tmpdir(),
   publicBaseUrl: 'http://127.0.0.1', sessionSecret: 'synthetic-eval-secret-longer-than-thirty-two-characters',
-  devLoginCode: '123456', agentBaseUrl: 'http://127.0.0.1:1',
+  agentBaseUrl: 'http://127.0.0.1:1',
   agentServiceToken: 'synthetic-eval-agent-token', internalAgentToken: 'synthetic-eval-read-token',
   schoolId: 'school_synthetic_paraphrase',
 };
@@ -58,10 +57,10 @@ await new Promise((resolve, reject) => {
   app.server.once('error', reject);
   app.server.listen(0, '127.0.0.1', resolve);
 });
-const store = new Store(app.db, syntheticConfig);
-const login = store.login({ phone: '13800000001', smsCode: '123456' });
-const dbUser = store.authenticate(login.token);
-const user = { userId: dbUser.id, schoolId: dbUser.school_id };
+// Synthetic identity, independent of public registration and obsolete SMS login.
+const user = { userId: 'user_synthetic_eval', schoolId: syntheticConfig.schoolId };
+app.db.prepare('INSERT INTO users(id,email,nickname,avatar,school_id,created_at) VALUES(?,?,?,?,?,?)')
+  .run(user.userId, 'synthetic-eval@example.invalid', '合成评测用户', '', user.schoolId, Date.now());
 const insert = app.db.prepare(`INSERT INTO products
   (id,seller_id,school_id,title,description,price_cents,category,condition,campus,version,status,published_at)
   VALUES(?,?,?,?,?,?,?,?,?,?,'ACTIVE',?)`);
@@ -146,7 +145,7 @@ function grade(result, expected) {
   return problems;
 }
 const sessions = new MemorySessionStore(3_600_000);
-const stateKeys = ['messages', 'filters', 'displayedListingIds', 'displayedProducts', 'searchPage'];
+const stateKeys = ['messages', 'filters', 'needs', 'displayedListingIds', 'displayedProducts', 'searchPage'];
 async function turn(message, session) {
   const trace = { model: [], tools: [], pending: [], action: undefined };
   const started = Date.now();

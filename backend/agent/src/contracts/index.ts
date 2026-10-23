@@ -34,6 +34,8 @@ export interface ListingDetail extends ListingSummary {
 
 export interface SearchFilters {
   keyword?: string;
+  /** Alternative retrieval queries inferred from the user's need (OR, words within each query are AND). */
+  queryTerms?: string[];
   category?: string;
   minPriceCents?: number;
   maxPriceCents?: number;

@@ -16,6 +16,7 @@ import {
 
 const SearchListingsParameters = Type.Object({
   keyword: Type.Optional(Type.String({ maxLength: 120, description: "商品关键词，不要包含身份字段" })),
+  queryTerms: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 80, pattern: "\\S" }), { minItems: 1, maxItems: 12, uniqueItems: true })),
   category: Type.Optional(Type.String({ maxLength: 40, description: "商品类别" })),
   minPriceCents: Type.Optional(Type.Integer({ minimum: PRICE_MIN_CENTS, maximum: PRICE_MAX_CENTS })),
   maxPriceCents: Type.Optional(Type.Integer({ minimum: PRICE_MIN_CENTS, maximum: PRICE_MAX_CENTS })),

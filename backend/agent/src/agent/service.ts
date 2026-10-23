@@ -4,7 +4,7 @@ import { Check } from "typebox/value";
 import type { AppConfig } from "../config/index.js";
 import type { BusinessReadClient } from "../clients/types.js";
 import { AppError } from "../errors/index.js";
-import { priceText, type AgentResponse, type ListingSummary, type Recommendation, type SearchFilters, type UserContext } from "../contracts/index.js";
+import { priceText, type AgentResponse, type ListingSummary, type Recommendation, type SearchFilters, type SearchListingsResult, type UserContext } from "../contracts/index.js";
 import type { SessionRecord } from "../sessions/store.js";
 import { requestModelText } from "./model.js";
 import { withTurnSignal } from "./deadline.js";
@@ -16,7 +16,7 @@ import { CLARIFICATION_REPLY, HELP_REPLY, REFUSAL_REPLY, UNSUPPORTED_REPLY, Turn
 
 interface SearchDetails {
   kind: "searchListings";
-  result: { listings: ListingSummary[]; appliedConditions: { hard: Record<string, unknown>; soft: Record<string, unknown> } };
+  result: SearchListingsResult;
 }
 interface DetailDetails { kind: "getListingDetail"; listing: ListingSummary & { version?: string } }
 
@@ -48,6 +48,7 @@ interface TurnResult {
   displayedListingIds: string[];
   displayedProducts: Array<{ listingId: string; title: string }>;
   searchPage: number;
+  needs: string[];
 }
 
 /** The model proposes a typed intent; only this service can execute the approved read workflow. */
@@ -58,20 +59,21 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
   let displayedListingIds = [...session.displayedListingIds];
   let displayedProducts = [...(session.displayedProducts ?? [])];
   let searchPage = session.searchPage;
+  let needs = [...(session.needs ?? [])];
   const finish = (reply: string, status: AgentResponse["status"] = "completed", recommendations: Recommendation[] = []): TurnResult => ({
     response: { requestId: options.requestId, sessionId: session.sessionId, status, reply: normalizeReply(reply), recommendations, relaxedConditions: [] },
     messages: [...session.messages, { role: "user", content: message, timestamp: Date.now() }, fauxAssistantMessage(normalizeReply(reply), { stopReason: "stop" })],
-    filters, displayedListingIds, displayedProducts, searchPage,
+    filters, displayedListingIds, displayedProducts, searchPage, needs,
   });
   const earlyScope = scopeDecision(message);
   let plan: TurnPlan;
   if (earlyScope) plan = emptyPlan(earlyScope);
   else {
-    const mockPlan = mockTurnPlan(message, filters, displayedListingIds.length, searchPage);
+    const mockPlan = config.modelMode === "mock" ? mockTurnPlan(message, filters, displayedListingIds.length, searchPage) : undefined;
     const text = await requestModelText(config, PLAN_PROMPT.replace("SCHEMA_PLACEHOLDER", JSON.stringify(TurnPlanSchema)), JSON.stringify({
-      message, previousFilters: filters, displayedListingCount: displayedListingIds.length, previousPage: searchPage,
+      message, previousFilters: filters, previousNeeds: needs, displayedListingCount: displayedListingIds.length, previousPage: searchPage,
       displayedProducts: displayedProducts.map((p, i) => ({ position: i + 1, title: p.title.slice(0, 100) })),
-    }), signal, JSON.stringify(mockPlan));
+    }), signal, mockPlan ? JSON.stringify(mockPlan) : "");
     const decoded = parseTurnPlan(text);
     // Invalid/unavailable plans always fail closed; only a valid clarification can be refined.
     if (!decoded) return finish(CLARIFICATION_REPLY, "clarification");
@@ -91,7 +93,7 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
 
   if (plan.action === "search" || plan.action === "refine") {
     const next = mergeSearchFilters(filters, plan, message);
-    // Preserve an incomplete, explicitly stated need, but never query without a topic.
+    // Preserve an incomplete need, but never query without a topic or retrieval plan.
     if (!next.keyword && (!next.category || next.category === "教材")) {
       filters = next;
       return finish("你想找哪一类商品或哪门课的教材？有预算、成色或取货校区偏好也可以一起告诉我。", "clarification");
@@ -103,6 +105,9 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     if (plan.action === "refine" && JSON.stringify(next) === JSON.stringify(filters)
       && nextPage === session.searchPage && pageRequest === undefined) return finish("请明确要调整的条件，例如新的预算金额、成色或取货校区。", "clarification");
     if (!Number.isSafeInteger(nextPage) || nextPage < 1 || nextPage > 1000) return finish("页码应在1到1000之间，请重新说明。", "clarification");
+    const replanned = next.keyword !== filters.keyword || next.category !== filters.category
+      || JSON.stringify(next.queryTerms) !== JSON.stringify(filters.queryTerms);
+    if (replanned || (plan.action === "search" && next.queryTerms)) needs = plan.needs?.map(need => need.trim()) ?? (next.keyword ? [next.keyword] : []);
     filters = next;
     searchPage = nextPage;
   }
@@ -165,13 +170,15 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     displayedProducts = details.map(({ listing }) => ({ listingId: listing.listingId, title: listing.title }));
   }
   const status = currentSearch && !currentSearch.result.listings.length ? "no_results" : "completed";
-  if (status === "no_results") return finish(noResultsReply(filters), status);
+  const needSummary = currentSearch && filters.queryTerms && needs.length ? `我理解你可能需要：${needs.join("、")}。\n` : "";
+  if (status === "no_results") return finish(`${needSummary}${noResultsReply(filters)}`, status);
   const mockReply = currentSearch ? `已查询到 ${recommendations.length} 条符合明确条件的商品，商品卡片中的信息均来自平台查询结果。`
     : plan.action === "preference" ? "我已读取当前用户的兴趣偏好，只会把它作为辅助排序信号，不会改变学校权限范围。"
     : plan.action === "compare" ? "我已重新读取指定商品详情，可以从价格、成色、取货校区和描述进行比较；缺失信息会标为未知。"
     : "这是本次指定商品的详情，信息已经通过平台重新验证，未提供的版本或属性会标为未知。";
   const reply = await requestModelText(config, SYSTEM_PROMPT, JSON.stringify({
-    action: plan.action, question: message, filters, results: modelResults,
+    action: plan.action, question: message, needs, filters, results: modelResults,
   }), signal, mockReply);
-  return finish(reply ?? mockReply, status, recommendations);
+  const more = currentSearch?.result.hasMore ? "\n还有更多相关商品，可以说“继续”查看下一页。" : "";
+  return finish(`${needSummary}${reply ?? mockReply}${more}`, status, recommendations);
 }

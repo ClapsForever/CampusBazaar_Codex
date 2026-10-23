@@ -1,0 +1,316 @@
+{
+  "description": "通用模糊找物评测：不预设模型计划或检索词，只用用户原话和合成商品验证真实模型的需求理解与召回。pipeline-smoke 仅供无密钥时检查评测链路。",
+  "fixtures": [
+    {
+      "id": "listing_lamp_clip",
+      "title": "床头夹式阅读灯",
+      "category": "日用",
+      "description": "适合室友休息后局部照明，不必开宿舍顶灯。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_lamp_portable",
+      "title": "便携小台灯",
+      "category": "日用",
+      "description": "充电式阅读照明，适合晚上看纸质书。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_bike",
+      "title": "校园通勤自行车",
+      "category": "运动",
+      "description": "宿舍到教学楼代步，骑行上课。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_scooter",
+      "title": "折叠滑板车",
+      "category": "运动",
+      "description": "校园短途代步通勤。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_cable_clip",
+      "title": "桌面理线器",
+      "category": "日用",
+      "description": "固定充电线，整理凌乱的桌面电线。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_cable_box",
+      "title": "电源线材收纳盒",
+      "category": "日用",
+      "description": "收纳桌面电线、充电器和排插。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_power_bank",
+      "title": "便携移动电源",
+      "category": "外设",
+      "description": "充电宝，适合出门为手机充电。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_racket",
+      "title": "羽毛球拍",
+      "category": "运动",
+      "description": "适合初学者参加羽毛球运动。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_shuttlecock",
+      "title": "羽毛球一筒",
+      "category": "运动",
+      "description": "羽毛球社日常练习用球。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_fan",
+      "title": "桌面小风扇",
+      "category": "日用",
+      "description": "夏天宿舍降温，桌面使用。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_fan_clip",
+      "title": "床边夹式风扇",
+      "category": "日用",
+      "description": "床头散热降温，夏季宿舍使用。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_python",
+      "title": "Python 零基础入门",
+      "category": "教材",
+      "description": "Python 编程自学教材，从基础语法开始。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_programming",
+      "title": "Python 程序设计教材",
+      "category": "教材",
+      "description": "适合编程零基础学生学习 Python。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_headphone",
+      "title": "入耳式有线耳机",
+      "category": "外设",
+      "description": "听网课和音乐，避免扬声器影响别人。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_headset",
+      "title": "蓝牙头戴耳机",
+      "category": "外设",
+      "description": "可用于听网课。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_storage",
+      "title": "衣物整理箱",
+      "category": "日用",
+      "description": "放换季衣服，宿舍收纳。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_hanger",
+      "title": "多层衣裤收纳架",
+      "category": "日用",
+      "description": "节省挂衣空间，整理宿舍衣物。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_keyboard",
+      "title": "有线键盘",
+      "category": "外设",
+      "description": "办公打字使用。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_basketball",
+      "title": "篮球",
+      "category": "运动",
+      "description": "篮球运动器材。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_math",
+      "title": "高等数学教材",
+      "category": "教材",
+      "description": "微积分学习资料。",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    }
+  ],
+  "presets": {},
+  "cases": [
+    {
+      "id": "night-reading",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "室友睡了我还想看纸质书，有什么能用的？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_lamp_clip",
+          "listing_lamp_portable"
+        ]
+      }
+    },
+    {
+      "id": "commute",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "最近早八总赶不上，宿舍到教学楼太远了",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_bike",
+          "listing_scooter"
+        ]
+      }
+    },
+    {
+      "id": "cables",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "桌上充电线缠成一团，看着太乱了",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_cable_clip",
+          "listing_cable_box"
+        ]
+      }
+    },
+    {
+      "id": "power",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "手机出门总没电，想不依赖墙上的插座",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_power_bank"
+        ]
+      }
+    },
+    {
+      "id": "badminton",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "想加入羽毛球社，之前没买过装备",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_racket",
+          "listing_shuttlecock"
+        ]
+      }
+    },
+    {
+      "id": "cooling",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "天气热得宿舍睡不着，有什么能降降温的？",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_fan",
+          "listing_fan_clip"
+        ]
+      }
+    },
+    {
+      "id": "programming",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "我想学写代码，先从 Python 开始，完全零基础，需要入门资料",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_python",
+          "listing_programming"
+        ]
+      }
+    },
+    {
+      "id": "online-class",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "晚上听网课不想吵到室友",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_headphone",
+          "listing_headset"
+        ]
+      }
+    },
+    {
+      "id": "clothes",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "寝室换季衣服实在没地方放了",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_storage",
+          "listing_hanger"
+        ]
+      }
+    },
+    {
+      "id": "pipeline-smoke",
+      "group": "通用模糊需求",
+      "scope": "core",
+      "message": "找键盘",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_keyboard"
+        ]
+      }
+    }
+  ]
+}

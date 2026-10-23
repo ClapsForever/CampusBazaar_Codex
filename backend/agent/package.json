@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "eval": "vitest run tests/evals.test.ts",
     "eval:paraphrases": "node scripts/evaluate-paraphrases.mjs",
+    "eval:fuzzy": "node scripts/evaluate-paraphrases.mjs --real --cases evals/fuzzy-needs-cases.json",
     "format:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

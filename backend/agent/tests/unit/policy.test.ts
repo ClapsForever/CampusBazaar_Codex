@@ -19,11 +19,21 @@ describe("business intent policy", () => {
     JSON.stringify({ ...emptyPlan("detail"), positions: [0] }),
     JSON.stringify({ ...emptyPlan("compare"), positions: [1, 1] }),
     JSON.stringify({ ...emptyPlan("search"), changes: { userId: "other" } }),
+    JSON.stringify({ ...emptyPlan("search"), changes: { keyword: "线代", queryTerms: [] } }),
+    JSON.stringify({ ...emptyPlan("search"), changes: { keyword: "线代", queryTerms: ["   "] } }),
+    JSON.stringify({ ...emptyPlan("search"), changes: { keyword: "线代", queryTerms: ["线代", "线代"] } }),
+    JSON.stringify({ ...emptyPlan("search"), changes: { keyword: "线代", queryTerms: Array(13).fill("教材") } }),
+    JSON.stringify({ ...emptyPlan("search"), needs: [" "] }),
+    JSON.stringify({ ...emptyPlan("search"), needs: ["收纳", "收纳"] }),
+    JSON.stringify({ ...emptyPlan("search"), needs: ["x".repeat(61)] }),
   ])("fails closed for invalid model plans: %s", (text) => {
     expect(decodeTurnPlan(text).action).toBe("clarification");
   });
   it("does not infer shopping from an old topic for unrelated follow-ups", () => {
     expect(mockTurnPlan("你是谁的作品", { category: "键盘" }, 2, 1).action).toBe("out_of_scope");
+  });
+  it.each(["天气冷了，上课路上想保暖", "我想学写代码，缺入门资料", "最近想学诗歌创作", "准备拍毕业照"])("lets the intent model interpret an implicit need: %s", message => {
+    expect(scopeDecision(message)).toBeUndefined();
   });
   it("does not mutate existing state while interpreting an unknown product", () => {
     const previous = Object.freeze({ category: "键盘", maxPriceCents: 30000 });
