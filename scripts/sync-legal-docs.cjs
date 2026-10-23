@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const target = path.join(root, 'entry/src/main/resources/rawfile/legal');
-const version = '2026-10-18-draft-3';
+const version = '2026-10-23-draft-4';
 const check = process.argv.includes('--check');
 let stale = false;
 for (const relative of ['entry/src/main/ets/common/LegalDocuments.ets', 'backend/api/src/registration.ts']) {

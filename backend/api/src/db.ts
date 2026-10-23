@@ -14,8 +14,9 @@ export function openDatabase(config: Pick<Config, 'databasePath' | 'uploadDir'>)
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 5) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 5) return;
+  if (version.user_version > 6) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 6) return;
+  if (version.user_version === 5) { migrateEmailVerification(db); return; }
   if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -191,6 +192,25 @@ function migrate(db: DatabaseSync): void {
     if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Database migration failed foreign key validation');
     db.exec('PRAGMA user_version=5');
   });
+  migrateEmailVerification(db);
+}
+
+function migrateEmailVerification(db: DatabaseSync): void {
+  transaction(db, () => db.exec(`
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      id TEXT NOT NULL UNIQUE, email TEXT NOT NULL, purpose TEXT NOT NULL CHECK(purpose='register'),
+      code_hash TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('sending','sent','failed','consumed')),
+      attempts INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
+      PRIMARY KEY(email,purpose)
+    );
+    CREATE INDEX IF NOT EXISTS email_verifications_expiry ON email_verifications(expires_at);
+    CREATE TABLE IF NOT EXISTS email_verification_limits (
+      scope TEXT NOT NULL, key TEXT NOT NULL, count INTEGER NOT NULL, until_at INTEGER NOT NULL,
+      PRIMARY KEY(scope,key)
+    );
+    CREATE INDEX IF NOT EXISTS email_verification_limits_expiry ON email_verification_limits(until_at);
+    PRAGMA user_version=6;
+  `));
 }
 
 export function transaction<T>(db: DatabaseSync, action: () => T): T {

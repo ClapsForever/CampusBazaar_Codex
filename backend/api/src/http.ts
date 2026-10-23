@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Config } from './config.js';
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string, public retryable = false) {
+  constructor(public status: number, public code: string, message: string, public retryable = false, public retryAfter?: number) {
     super(message);
   }
 }
@@ -20,7 +20,9 @@ export function send(res: ServerResponse, status: number, body: unknown, request
 export function fail(res: ServerResponse, error: unknown, requestId: string): void {
   const known = error instanceof ApiError ? error : new ApiError(500, 'INTERNAL_ERROR', '服务器内部错误', true);
   if (!(error instanceof ApiError)) console.error(JSON.stringify({ requestId, code: known.code, error: String(error) }));
-  send(res, known.status, { requestId, code: known.code, message: known.message, retryable: known.retryable }, requestId);
+  if (known.retryAfter !== undefined) res.setHeader('Retry-After', String(known.retryAfter));
+  send(res, known.status, { requestId, code: known.code, message: known.message, retryable: known.retryable,
+    ...(known.retryAfter !== undefined ? { retryAfter: known.retryAfter } : {}) }, requestId);
 }
 
 export function requestId(req: IncomingMessage): string {

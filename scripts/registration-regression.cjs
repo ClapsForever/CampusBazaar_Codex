@@ -80,7 +80,7 @@ test('注册仅校验邮箱、密码、确认密码及主动同意，协议默�
   }
 });
 
-test('无需验证码即可注册，6和64位密码均支持', async () => {
+test('旧客户端服务替身：密码长度与注册响应处理', async () => {
   for (const length of [6, 64]) {
     let submitted;
     const model = validForm(modelWith({ registerByPassword: async (...args) => { submitted = args; } }));
@@ -123,7 +123,7 @@ test('注册失败保留输入且允许重试，不自动重复请求', async ()
   fail = false; assert.equal(await model.register(), true); assert.equal(calls, 2); assert.equal(model.formError, '');
 });
 
-test('匿名注册只发送邮箱密码和当前协议版本，不发送验证码', async () => {
+test('旧客户端尚未接入邮箱验证码，请求仍只有邮箱密码和协议版本', async () => {
   const requests = [];
   const { service, tokens } = authenticationWith(async (method, route, body, authenticated) => {
     requests.push({ method, route, body: JSON.parse(body), authenticated });
@@ -131,7 +131,7 @@ test('匿名注册只发送邮箱密码和当前协议版本，不发送验证�
   });
   assert.equal((await service.registerByPassword(' Student@EXAMPLE.COM ', 'Campus123')).id, 'registered');
   assert.deepEqual(requests, [{ method: 'POST', route: '/api/v1/auth/registrations', authenticated: false,
-    body: { email: 'student@example.com', password: 'Campus123', agreementVersion: '2026-10-18-draft-3', privacyVersion: '2026-10-18-draft-3' } }]);
+    body: { email: 'student@example.com', password: 'Campus123', agreementVersion: '2026-10-23-draft-4', privacyVersion: '2026-10-23-draft-4' } }]);
   assert.deepEqual(tokens, ['registration-token']); assert.equal(service.getCurrentUser().id, 'registered');
 });
 

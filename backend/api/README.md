@@ -25,7 +25,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-然后构建并启动，可以从首页注册测试账号，也可按 [Demo 认证说明](../../docs/demo-auth.md) 导入账号：
+然后构建并启动。新注册须通过邮箱验证码；当前 App 注册控件尚未接入，新环境可先按 [Demo 认证说明](../../docs/demo-auth.md) 导入账号：
 
 ```powershell
 npm run build
@@ -60,12 +60,13 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 
 ## 公共 API
 
-除注册、登录和健康检查外，请求头都要带 `Authorization: Bearer <登录令牌>`。时间使用 Unix 毫秒；列表为 `{items,nextCursor}`。错误为 `{requestId,code,message,retryable}`。商品 ID 与 Agent `listingId` 相同。
+除邮箱验证码、注册、登录和健康检查外，请求头都要带 `Authorization: Bearer <登录令牌>`。时间使用 Unix 毫秒；列表为 `{items,nextCursor}`。错误为 `{requestId,code,message,retryable}`。商品 ID 与 Agent `listingId` 相同。
 
 | 操作 | 方法与路径 | 请求体/说明 |
 | --- | --- | --- |
 | 图形验证码（待办） | `POST /api/v1/auth/captchas` | 暂不开放，匿名请求也返回 404 `NOT_FOUND`；注册不再请求或校验图形验证码 |
-| 自助注册 | `POST /api/v1/auth/registrations` | `email,password,agreementVersion,privacyVersion`；201 返回 `{user,token,expiresAt}` 并登录；协议和政策版本都须为 `2026-10-18-draft-3`，保存对应用户及接受时间；无需 `captchaId`、`captchaCode` |
+| 邮箱验证码 | `POST /api/v1/auth/email-verifications` | `email`、可选 `purpose=register`；202 返回 `verificationId,expiresAt,expiresIn,resendAfter`，不返回验证码；详见 [邮件交接清单](../../docs/aliyun-email-handoff.md) |
+| 自助注册 | `POST /api/v1/auth/registrations` | `email,password,emailVerificationId,emailCode,agreementVersion,privacyVersion`；201 返回 `{user,token,expiresAt}` 并登录；协议和政策版本都须为 `2026-10-23-draft-4`，保存对应用户及接受时间；无需 `captchaId`、`captchaCode` |
 | 密码登录 | `POST /api/v1/auth/password/sessions` | `email,password`，返回 `{user,token,expiresAt}`；账号须已注册或预置，邮箱统一去首尾空白并转小写；每邮箱连续失败 5 次后限流 15 分钟，来源 IP 也有限额，服务重启保留限制 |
 | 更新个人资料 | `PUT /api/v1/me`（也支持 PATCH） | `nickname`（1–24 字），可选 `avatarId`（当前账号的未绑定商品图片）；返回当前用户 |
 | 修改密码 | `POST /api/v1/me/password` | `newPassword`（6–64 位且非全空白）和 `currentPassword`；撤销其他会话 |
@@ -86,9 +87,11 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 | 消息 | `GET/POST /api/v1/transactions/{id}/messages` | 发送体 `{"content":"..."}`，可带 `Idempotency-Key` |
 | Agent | `POST /api/agent/chat` | `{"requestId":"req_1","sessionId":null,"message":"找教材"}` |
 
-上传图片后，将返回的 `id` 放在发布请求的 `imageIds` 中。设备本地 `photo://` URI 不能直接提交为图片 ID。商品响应中的图片 URL 含短期签名，可交给原生 `Image` 组件显示；签名到期后重新获取商品数据。未绑定商品或头像的图片仅允许上传者通过 Bearer 令牌读取。头像保存图片 ID，每次读取用户信息生成 24 小时签名 URL；当前头像不会被过期未发布图片清理。当前用户返回 `email`、`hasPassword`，不会返回密码摘要；公开卖家资料不返回邮箱。旧固定验证码路径 `/api/v1/auth/local/sessions` 对任何请求均返回 404。邮件找回密码尚未开放；管理员可在服务器本机创建、绑定旧账号或重置密码。
+上传图片后，将返回的 `id` 放在发布请求的 `imageIds` 中。设备本地 `photo://` URI 不能直接提交为图片 ID。商品响应中的图片 URL 含短期签名，可交给原生 `Image` 组件显示；签名到期后重新获取商品数据。未绑定商品或头像的图片仅允许上传者通过 Bearer 令牌读取。头像保存图片 ID，每次读取用户信息生成 24 小时签名 URL；当前头像不会被过期未发布图片清理。当前用户返回 `email`、`emailVerified`、`hasPassword`，不会返回密码摘要；公开卖家资料不返回邮箱。旧固定验证码路径 `/api/v1/auth/local/sessions` 对任何请求均返回 404。邮件找回密码尚未开放；管理员可在服务器本机创建、绑定旧账号或重置密码。
 
-测试阶段接受任意格式合法的邮箱，不验证邮箱所有权、不发送验证邮件，`email_verified_at` 保持空值；当前注册不使用图形验证码，恢复该能力列入待办。新用户加入配置的 `AGENT_SCHOOL_ID`，不能据此声称完成校园身份认证。新账号默认昵称为“校园用户”加随机后缀，不从邮箱生成公开昵称。注册密码为 6–64 位且非全空白，使用随机盐 scrypt 保存摘要；规范化后的重复邮箱返回 409 `EMAIL_EXISTS`。注册账号、协议记录和登录会话在同一事务创建，失败时全部回滚，可直接重试注册。
+新版后端注册必须通过邮箱验证码。发码通过阿里云 DirectMail 官方 SDK 完成；`EMAIL_PROVIDER=disabled` 时发码返回 503，不能进行无验证码注册。验证码为六位安全随机数字、五分钟有效，重发替换旧挑战、最多五次错误；SQLite 仅保存带密钥摘要。验证码消费、账号、协议记录和会话原子提交，并写入 `email_verified_at`。新用户加入 `AGENT_SCHOOL_ID`，邮箱验证不表示学生/真实身份认证。旧账号登录、密码和原验证状态保留；旧账号补验、改邮箱和邮件找回密码尚未实现。
+
+同一邮箱发码至少间隔 60 秒，每小时最多 5 次、24 小时最多 10 次；每 IP 每 15 分钟 20 次，全局每分钟 30 次、24 小时默认 200 次（`EMAIL_SEND_DAILY_LIMIT`）。计数窗口从首次请求开始，失败请求也计数。限流返回 429 `EMAIL_SEND_RATE_LIMITED` 及 `Retry-After`；不自动重发。邮箱验证码与限流行在启动、发码和每分钟维护时按到期时间清理，保留上限为各表 10000 行；备份和供应商投递记录不由此同步删除。配置和双方交接见 [阿里云邮件交接清单](../../docs/aliyun-email-handoff.md)。
 
 移除图形验证码后仍执行注册限流：每来源 IP 每 15 分钟最多尝试注册 20 次，全局上限 500 次，限流记录最多 10000 行；无效字段、重复邮箱和注册失败也计入尝试。限流记录在重启后保留，过期记录在后续相关请求时清理。只有回环来源的有效 `X-Real-IP` 才被视为本机可信反向代理提供的地址，`X-Forwarded-For` 不参与身份判断；Nginx 须覆盖 `X-Real-IP`，业务 API 需保持回环绑定。原图形验证码的渲染、摘要、来源绑定和限流基础实现及 v4 数据表暂时保留，但没有可用 HTTP 入口，注册不会使用它们；恢复前应重新评估方案与接口。
 
@@ -102,7 +105,7 @@ npm test
 
 测试会在系统临时目录创建独立数据库和模拟 Agent，不调用 DeepSeek，也不读取本机 `.env`；保留临时数据，不递归删除目录。真实 DeepSeek 与模拟器联调需在两个服务启动后单独验证。
 
-本版统一使用数据库 schema v5，同时包含商品下架、交易取消、注册限流和注册协议记录。支持从 v1/v2/v3、商品管理分支的 v4 及注册分支的 v4 升级；按实际表结构补齐状态约束和缺少的注册表，保留已有协议记录及业务数据。v1/v2 先执行 v3 邮箱迁移并撤销此前签发的会话；v3/v4 升级保留已有账号、会话、图片、登录及注册限流。旧手机号账号须由管理员确认归属后绑定邮箱才能登录，旧账号不补造注册协议记录。暂停验证码不删除兼容表或历史数据。更新前备份数据库与图片；旧 API 无法直接打开 v5 数据库，回滚须同时恢复升级前数据库。
+本版统一使用数据库 schema v6，在 v5 基础上增加邮箱验证码和发码限流表。支持从 v1/v2/v3、商品管理分支的 v4 及注册分支的 v4 升级；按实际表结构补齐状态约束和缺少的注册表，保留已有协议记录及业务数据。v1/v2 先执行 v3 邮箱迁移并撤销此前签发的会话；v3/v4/v5 升级保留已有账号、会话、图片、登录及注册限流。旧手机号账号须由管理员确认归属后绑定邮箱才能登录，旧账号不补造注册协议记录。暂停验证码不删除兼容表或历史数据。更新前备份数据库与图片；旧 API 无法直接打开 v6 数据库，回滚须同时恢复升级前数据库。
 
 停止业务 API 后，将整个 `.local-data` 目录复制到安全位置即可同时备份 SQLite 和图片。恢复时停止 API，用备份覆盖该目录再启动。若在 API 运行期间备份，请先使用 SQLite 的在线备份机制，避免只复制主数据库文件而遗漏 WAL 数据。
 

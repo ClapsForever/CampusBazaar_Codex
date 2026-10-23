@@ -25,19 +25,11 @@ try {
   if (args.includes('--registration-test')) {
     if (base.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(base.hostname)) throw new Error('Real registration smoke test requires HTTPS or localhost');
     const suffix = randomBytes(8).toString('hex'), email = `migration-${suffix}@example.invalid`, password = randomBytes(24).toString('base64url');
-    let token;
-    try {
-      const created = await call('/api/v1/auth/registrations', 'POST', { email, password,
-        agreementVersion: '2026-10-18-draft-3', privacyVersion: '2026-10-18-draft-3' });
-      if (created.status !== 201 || !created.data?.token || created.data.user?.email !== email) throw new Error('Registration test failed');
-      token = created.data.token;
-      if ((await call('/api/v1/me', 'GET', undefined, token)).data?.id !== created.data.user.id) throw new Error('Registered session unusable');
-      if ((await call('/api/v1/auth/logout', 'POST', {}, token)).status !== 200) throw new Error('Logout failed');
-      token = undefined;
-      const login = await call('/api/v1/auth/password/sessions', 'POST', { email, password });
-      token = login.data?.token;
-      if (login.status !== 201 || !token) throw new Error('Re-login failed');
-      console.log('PASS: registered, read own profile, logged out and logged in again. Test account remains:', created.data.user.id);
-    } finally { if (token) await call('/api/v1/auth/logout', 'POST', {}, token); }
+    const rejected = await call('/api/v1/auth/registrations', 'POST', { email, password,
+      agreementVersion: '2026-10-23-draft-4', privacyVersion: '2026-10-23-draft-4' });
+    if (rejected.status !== 400 || rejected.data?.code !== 'EMAIL_VERIFICATION_REQUIRED') {
+      throw new Error('Registration must require an email verification challenge and code');
+    }
+    console.log('PASS: unverified registration rejected; no account created or verification email sent. Complete real email acceptance using docs/aliyun-email-handoff.md.');
   }
 } catch (error) { console.error(error.message); process.exitCode = 1; }

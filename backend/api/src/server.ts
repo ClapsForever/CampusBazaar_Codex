@@ -8,6 +8,7 @@ import type { Config } from './config.js';
 import { openDatabase } from './db.js';
 import { ApiError, bearer, equalToken, fail, readBytes, readJson, requestId, send, text } from './http.js';
 import { Store } from './store.js';
+import type { VerificationEmailSender } from './mailer.js';
 
 export interface ApiApp { server: Server; db: DatabaseSync; close(): Promise<void> }
 
@@ -117,6 +118,9 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   }
   // Image CAPTCHA is deferred; keep this path explicitly unavailable before auth.
   if (path === '/api/v1/auth/captchas') throw new ApiError(404, 'NOT_FOUND', '接口尚未开放');
+  if (method === 'POST' && path === '/api/v1/auth/email-verifications') {
+    send(res, 202, await store.emailVerifications.issue(await readJson(req), loginClientIp(req)), rid); return;
+  }
   if (method === 'POST' && path === '/api/v1/auth/registrations') {
     send(res, 201, await store.register(await readJson(req), loginClientIp(req)), rid); return;
   }
@@ -220,9 +224,15 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   throw new ApiError(404, 'NOT_FOUND', '接口不存在');
 }
 
-export function createApiApp(config: Config): ApiApp {
+export function createApiApp(config: Config, options: { emailSender?: VerificationEmailSender } = {}): ApiApp {
   const db = openDatabase(config);
-  const store = new Store(db, config);
+  const store = new Store(db, config, options.emailSender);
+  store.emailVerifications.cleanup();
+  const cleanupTimer = setInterval(() => {
+    try { store.emailVerifications.cleanup(); }
+    catch { console.error(JSON.stringify({ event: 'email_verification_cleanup_failed' })); }
+  }, 60_000);
+  cleanupTimer.unref();
   // Authentication upgrades and service restarts must not delete upload files.
   // Any storage maintenance is a separate, explicitly reviewed operation.
   const server = createServer((req, res) => {
@@ -233,6 +243,7 @@ export function createApiApp(config: Config): ApiApp {
     route(req, res, store, rid).catch(error => fail(res, error, rid));
   });
   return { server, db, close: () => new Promise<void>((resolve, reject) => server.close(error => {
+    clearInterval(cleanupTimer);
     if (error) reject(error); else { db.close(); resolve(); }
   })) };
 }

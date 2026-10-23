@@ -134,7 +134,7 @@ test('v2 迁移保留用户、商品、交易、消息与历史引用，撤销�
   old.close();
   const db = openDatabase(config);
   try {
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 5);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 6);
     assert.equal(db.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
     assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, hash);

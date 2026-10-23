@@ -47,7 +47,7 @@ function databaseSummary(file) {
     if (integrity.length !== 1 || integrity[0].integrity_check !== 'ok') throw new Error('SQLite integrity check failed');
     if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('SQLite foreign key check failed');
     const schema = Number(db.prepare('PRAGMA user_version').get().user_version);
-    if (schema < 1 || schema > 5) throw new Error('Unsupported database schema; review the target API first');
+    if (schema < 1 || schema > 6) throw new Error('Unsupported database schema; review the target API first');
     const counts = {};
     for (const { name } of db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()) {
       counts[name] = Number(db.prepare(`SELECT COUNT(*) AS n FROM "${name.replaceAll('"', '""')}"`).get().n);

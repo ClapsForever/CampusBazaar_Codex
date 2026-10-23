@@ -1,3 +1,4 @@
+import { RecordingEmailSender } from './helpers/email.js';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -106,21 +107,24 @@ async function legacyFixture(layout: LegacyLayout) {
 }
 
 for (const layout of ['v3', 'marketplace-v4', 'registration-v4'] as const) {
-  test(`${layout} 升级 v5 保留全部业务行、图片、原会话及协议，并可注册、取消与下架`, async () => {
+  test(`${layout} 升级 v6 保留全部业务行、图片、原会话及协议，并可注册、取消与下架`, async () => {
     const { config, rows } = await legacyFixture(layout);
     let db = openDatabase(config);
     try {
-      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 5);
+      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 6);
       assert.equal(db.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
       assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
       for (const [table, before] of rows) assert.deepEqual(db.prepare(`SELECT * FROM ${table} ORDER BY 1`).all(), before, table);
       for (const id of [imageId, avatarId]) assert.deepEqual(readFileSync(join(config.uploadDir, `${id}.png`)), imageBytes);
-      const store = new Store(db, config), owner = store.authenticate('preserved-token'), buyer = store.findUser('user_buyer')!;
+      const sender = new RecordingEmailSender();
+      const store = new Store(db, config, sender), owner = store.authenticate('preserved-token'), buyer = store.findUser('user_buyer')!;
       assert.equal(owner.id, 'user_old');
       assert.equal(store.transition('trade_old', buyer, 'cancel').status, 'CANCELLED');
       assert.equal(store.delistProduct('listing_old', owner).status, 'DELISTED');
       assert.equal(db.prepare('SELECT content FROM messages WHERE id=?').get('message_old')!.content, '原有聊天内容');
+      const verification = await store.emailVerifications.issue({ email: 'new@example.com' }, '203.0.113.9');
       const registration = await store.register({ email: 'new@example.com', password: 'Campus123',
+        emailVerificationId: verification.verificationId, emailCode: sender.codeFor('new@example.com'),
         agreementVersion: AGREEMENT_VERSION, privacyVersion: PRIVACY_VERSION }, '203.0.113.9');
       assert(registration.token);
       db.close(); db = openDatabase(config);

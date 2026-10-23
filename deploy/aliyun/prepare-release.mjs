@@ -32,6 +32,7 @@ for (const service of ['api', 'agent']) {
 for (const name of ['README.md', 'init-env.mjs', 'backup.sh', 'campusbazaar-api.service', 'campusbazaar-agent.service', 'campusbazaar.nginx.conf']) collect(`deploy/ubuntu/${name}`);
 for (const name of ['README.md', 'data-bundle.mjs', 'prepare-config.mjs', 'prepare-release.mjs', 'smoke.mjs', 'migration.test.mjs', 'licx-ip-test']) collect(`deploy/aliyun/${name}`);
 collect('docs/registration.md');
+collect('docs/aliyun-email-handoff.md');
 collect('docs/aliyun-migration-2026-10-20.md');
 collect('docs/legal');
 mkdirSync(output, { mode: 0o700 });
@@ -51,6 +52,6 @@ const result = spawnSync('tar', ['-czf', archive, '-C', staging, '-T', listing],
 if (result.status !== 0) throw new Error('tar packaging failed; incomplete output retained for diagnosis');
 const sha256 = createHash('sha256').update(readFileSync(archive)).digest('hex');
 const metadata = { format: 1, createdAt: new Date().toISOString(), files: files.length, archive: 'campusbazaar-source.tar.gz', sha256,
-  minimumNode: '24.21.0', apiSchema: 5, legalVersion: '2026-10-18-draft-3', captcha: 'deferred', dataIncluded: false, secretsIncluded: false };
+  minimumNode: '24.21.0', apiSchema: 6, legalVersion: '2026-10-23-draft-4', captcha: 'deferred', emailVerification: 'required', dataIncluded: false, secretsIncluded: false };
 writeFileSync(join(output, 'release.json'), JSON.stringify(metadata, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
 console.log(JSON.stringify({ directory: output, ...metadata }));

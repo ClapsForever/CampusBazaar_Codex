@@ -9,14 +9,16 @@ const { test } = require('node:test');
 const ts = require(require.resolve('typescript', { paths: [path.join(__dirname, '../backend/api')] }));
 const root = path.resolve(__dirname, '..');
 
-test('真实前端无验证码注册、读取资料、重复邮箱、退出和重登完整链路', async () => {
+test('旧前端缺验证码不能注册；后端邮箱验证码注册后前端可登录、退出和重登', async () => {
   const { createApiApp } = await import(pathToFileURL(path.join(root, 'backend/api/dist/src/server.js')));
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'campus-registration-flow-'));
+  const codes = new Map();
   const app = createApiApp({ mode: 'local', host: '127.0.0.1', port: 0,
     databasePath: path.join(directory, 'flow.sqlite'), uploadDir: path.join(directory, 'uploads'),
     publicBaseUrl: 'http://127.0.0.1:0', sessionSecret: 'registration-flow-isolated-secret-32chars',
     agentBaseUrl: 'http://127.0.0.1:1', agentServiceToken: 'test-agent-service-token-a',
-    internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_flow' });
+    internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_flow' },
+    { emailSender: { async sendVerification(message) { codes.set(message.email, message.code); } } });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   let token = '', authService;
@@ -60,21 +62,30 @@ test('真实前端无验证码注册、读取资料、重复邮箱、退出和�
     assert.equal(requests.length, 0, 'Switching form does not request any challenge');
     model.email = ' Flow.User+Test@Example.COM ';
     model.password = model.confirmPassword = 'FlowPass123'; model.acceptedTerms = true;
-    assert.equal(await model.register(), true, model.formError);
+    assert.equal(await model.register(), false); assert.match(model.formError, /邮箱验证码/);
+    assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
+    const legalVersion = load('common/LegalDocuments').LEGAL_VERSION;
+    const email = model.email.trim().toLowerCase();
+    const issued = await transport.request('POST', '/api/v1/auth/email-verifications', JSON.stringify({ email }), false);
+    await transport.request('POST', '/api/v1/auth/registrations', JSON.stringify({ email, password: 'FlowPass123',
+      agreementVersion: legalVersion, privacyVersion: legalVersion,
+      emailVerificationId: issued.verificationId, emailCode: codes.get(email) }), false);
+    model.setRegistering(false); model.email = email; model.password = 'FlowPass123';
+    assert.equal(await model.login(), true, model.formError);
     const id = authService.getCurrentUser().id, registeredToken = token;
     assert.equal(authService.getCurrentUser().email, 'flow.user+test@example.com');
     assert.equal((await authService.refreshUser()).id, id);
     assert.equal(model.password, ''); assert.equal(model.confirmPassword, '');
     const row = app.db.prepare('SELECT email_verified_at FROM users WHERE id=?').get(id);
-    assert.equal(row.email_verified_at, null);
-    assert.equal(app.db.prepare('SELECT privacy_version FROM registration_consents WHERE user_id=?').get(id).privacy_version, '2026-10-18-draft-3');
+    assert(Number(row.email_verified_at) > 0);
+    assert.equal(app.db.prepare('SELECT privacy_version FROM registration_consents WHERE user_id=?').get(id).privacy_version, legalVersion);
     await authService.logout(); assert.equal(authService.getCurrentUser(), null); assert.equal(token, '');
     const revoked = await fetch(base + '/api/v1/me', { headers: { authorization: `Bearer ${registeredToken}` } });
     assert.equal(revoked.status, 401);
     const duplicate = new AuthViewModel(); duplicate.setRegistering(true);
     duplicate.email = 'flow.user+test@example.com'; duplicate.password = duplicate.confirmPassword = 'FlowPass123';
     duplicate.acceptedTerms = true;
-    assert.equal(await duplicate.register(), false); assert.match(duplicate.formError, /已注册/);
+    assert.equal(await duplicate.register(), false); assert.match(duplicate.formError, /邮箱验证码/);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 1);
     const login = new AuthViewModel(); login.email = 'FLOW.USER+TEST@EXAMPLE.COM'; login.password = 'FlowPass123';
     assert.equal(await login.login(), true, login.formError);

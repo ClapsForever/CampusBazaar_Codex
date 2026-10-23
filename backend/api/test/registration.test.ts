@@ -11,6 +11,7 @@ import { openDatabase } from '../src/db.js';
 import { tokenHash } from '../src/http.js';
 import { AGREEMENT_VERSION, PRIVACY_VERSION, RegistrationProtection } from '../src/registration.js';
 import { createApiApp } from '../src/server.js';
+import { RecordingEmailSender } from './helpers/email.js';
 
 function configFor(): Config {
   const directory = mkdtempSync(join(tmpdir(), 'campus-registration-'));
@@ -22,7 +23,8 @@ function configFor(): Config {
 
 async function fixture() {
   const config = configFor();
-  let app = createApiApp(config), base = '';
+  const sender = new RecordingEmailSender(), codes = new Map<string, { emailVerificationId: string; emailCode: string }>();
+  let app = createApiApp(config, { emailSender: sender }), base = '';
   async function start() {
     await new Promise<void>(resolve => app.server.listen(0, '127.0.0.1', resolve));
     const address = app.server.address(); assert(address && typeof address !== 'string');
@@ -42,15 +44,23 @@ async function fixture() {
       .run(createHmac('sha256', config.sessionSecret).update(`${captcha.id}:AB3D`).digest('hex'), captcha.id);
     return captcha;
   }
-  const registration = (overrides: Record<string, unknown> = {}, clientIp = '203.0.113.1') =>
-    call('/api/v1/auth/registrations', { email: ' New.Member+Test@Example.COM ', password: ' demo password ',
-      agreementVersion: AGREEMENT_VERSION, privacyVersion: PRIVACY_VERSION, ...overrides }, { 'x-real-ip': clientIp });
+  const registration = async (overrides: Record<string, unknown> = {}, clientIp = '203.0.113.1') => {
+    const email = String(overrides.email ?? ' New.Member+Test@Example.COM ').trim().toLowerCase();
+    if (!codes.has(email)) {
+      const sent = await call('/api/v1/auth/email-verifications', { email }, { 'x-real-ip': clientIp });
+      if (sent.status === 202 && sender.messages.some(item => item.email === email)) {
+        codes.set(email, { emailVerificationId: sent.body.verificationId, emailCode: sender.codeFor(email) });
+      }
+    }
+    return call('/api/v1/auth/registrations', { email: ' New.Member+Test@Example.COM ', password: ' demo password ',
+      agreementVersion: AGREEMENT_VERSION, privacyVersion: PRIVACY_VERSION, ...codes.get(email), ...overrides }, { 'x-real-ip': clientIp });
+  };
   return { config, call, challenge, registration, get app() { return app; },
-    async restart() { await app.close(); app = createApiApp(config); await start(); },
+    async restart() { await app.close(); app = createApiApp(config, { emailSender: sender }); await start(); },
     async close() { await app.close(); } };
 }
 
-test('验证码接口暂不开放；无需验证码注册、密码登录和会话均可跨重启使用', async () => {
+test('图形验证码接口保持关闭；邮箱验证码注册、密码登录和会话跨重启使用', async () => {
   const f = await fixture();
   try {
     for (const body of [{}, { previousId: 'old' }]) {
@@ -66,7 +76,7 @@ test('验证码接口暂不开放；无需验证码注册、密码登录和会�
     assert.equal(registered.body.token.length, 43);
     assert.equal((await f.call('/api/v1/me', undefined, { authorization: `Bearer ${registered.body.token}` })).status, 200);
     const user = f.app.db.prepare('SELECT * FROM users WHERE id=?').get(registered.body.user.id)!;
-    assert.equal(user.email_verified_at, null); assert.equal(user.phone, null); assert.equal(user.school_id, 'school_test');
+    assert.equal(user.email_verified_at, user.created_at); assert.equal(user.phone, null); assert.equal(user.school_id, 'school_test');
     assert.match(String(user.password_hash), /^scrypt:/); assert(!String(user.password_hash).includes('demo password'));
     const consent = f.app.db.prepare('SELECT * FROM registration_consents WHERE user_id=?').get(String(user.id))!;
     assert.equal(consent.agreement_version, AGREEMENT_VERSION); assert.equal(consent.privacy_version, PRIVACY_VERSION);
@@ -77,7 +87,7 @@ test('验证码接口暂不开放；无需验证码注册、密码登录和会�
     assert.equal((await f.call('/api/v1/me', undefined, { authorization: `Bearer ${registered.body.token}` })).status, 200);
     assert.equal(f.app.db.prepare('SELECT COUNT(*) AS n FROM registration_consents').get()!.n, 1);
     assert.equal((await f.call('/api/v1/auth/password/sessions', { email: 'new.member+test@example.com', password: ' demo password ' })).status, 201);
-    // Stale clients sending obsolete fields do not need a usable challenge.
+    // Obsolete image-CAPTCHA fields do not replace the required email verification.
     assert.equal((await f.registration({ email: 'another@example.net', captchaId: '', captchaCode: '' })).status, 201);
   } finally { await f.close(); }
 });
@@ -122,7 +132,7 @@ test('待办验证码实现保留：PNG、摘要、过期、刷新、重放和�
   } finally { await f.close(); }
 });
 
-test('注册要求当前协议版本及合法邮箱密码，任意测试邮箱均可注册但不标记所有权验证', async () => {
+test('注册要求当前协议版本及合法邮箱密码，非学校邮箱也必须通过邮箱验证', async () => {
   const f = await fixture();
   try {
     for (const overrides of [{ agreementVersion: undefined }, { privacyVersion: undefined },
@@ -134,13 +144,14 @@ test('注册要求当前协议版本及合法邮箱密码，任意测试邮箱�
     }
     const registered = await f.registration({ email: 'test@non-school.example', password: '123456' });
     assert.equal(registered.status, 201);
-    assert.equal(f.app.db.prepare('SELECT email_verified_at FROM users').get()!.email_verified_at, null);
+    assert(Number(f.app.db.prepare('SELECT email_verified_at FROM users').get()!.email_verified_at) > 0);
   } finally { await f.close(); }
 });
 
-test('无需验证码的并发规范化重复邮箱只创建一个账号；不同邮箱可注册', async () => {
+test('有效邮箱验证码的并发规范化重复注册只创建一个账号；不同邮箱可注册', async () => {
   const f = await fixture();
   try {
+    assert.equal((await f.registration({ password: 'short' })).status, 400);
     const results = await Promise.all([f.registration(), f.registration({ email: 'new.member+test@example.com' })]);
     assert.deepEqual(results.map(item => item.status).sort(), [201, 409]);
     assert.equal(results.find(item => item.status === 409)!.body.code, 'EMAIL_EXISTS');
@@ -150,7 +161,7 @@ test('无需验证码的并发规范化重复邮箱只创建一个账号；不�
   } finally { await f.close(); }
 });
 
-test('会话写入失败回滚账号与协议记录，修复后无需验证码即可重试', async () => {
+test('会话写入失败回滚账号、协议与验证码消费，修复后原验证码可重试', async () => {
   const f = await fixture();
   try {
     f.app.db.exec("CREATE TRIGGER reject_session BEFORE INSERT ON auth_sessions BEGIN SELECT RAISE(ABORT,'test rollback'); END;");
@@ -161,7 +172,7 @@ test('会话写入失败回滚账号与协议记录，修复后无需验证码�
   } finally { await f.close(); }
 });
 
-test('无需验证码时注册仍限流、并发不能超额、重启保留限制且忽略 x-forwarded-for', async () => {
+test('注册限流、并发不能超额、重启保留限制且忽略 x-forwarded-for', async () => {
   const f = await fixture();
   try {
     const attempts = await Promise.all(Array.from({ length: 21 }, (_, n) => f.call('/api/v1/auth/registrations',
@@ -201,7 +212,7 @@ test('全局预算和存储容量限制阻止分散来源无限创建验证码�
   } finally { db.close(); }
 });
 
-test('v3 升级 v5 保留原账号、会话和登录预算，新表可重复打开且外键完整', async () => {
+test('v3 升级 v6 保留原账号、会话和登录预算，新表可重复打开且外键完整', async () => {
   const config = configFor(), old = openDatabase(config);
   const [account] = await provisionAccounts(old, config.schoolId, [{ email: 'existing@example.com', password: 'demopw' }]);
   old.prepare('INSERT INTO auth_sessions(id,user_id,token_hash,expires_at) VALUES(?,?,?,?)')
@@ -213,7 +224,7 @@ test('v3 升级 v5 保留原账号、会话和登录预算，新表可重复打�
   for (let n = 0; n < 2; n++) {
     const db = openDatabase(config);
     try {
-      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 5);
+      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 6);
       assert.deepEqual(db.prepare('SELECT * FROM users').all(), before);
       assert.equal(db.prepare('SELECT revoked_at FROM auth_sessions').get()!.revoked_at, null);
       assert.equal(db.prepare('SELECT count FROM auth_login_attempts').get()!.count, 4);

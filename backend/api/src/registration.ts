@@ -5,8 +5,8 @@ import type { Config } from './config.js';
 import { transaction } from './db.js';
 import { ApiError } from './http.js';
 
-export const AGREEMENT_VERSION = '2026-10-18-draft-3';
-export const PRIVACY_VERSION = '2026-10-18-draft-3';
+export const AGREEMENT_VERSION = '2026-10-23-draft-4';
+export const PRIVACY_VERSION = '2026-10-23-draft-4';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const challengeLifetime = 5 * 60_000;
 const maximumStoredRows = 10_000;

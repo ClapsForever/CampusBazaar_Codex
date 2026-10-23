@@ -1,4 +1,4 @@
-export const LEGAL_VERSION: string = '2026-10-18-draft-3';
+export const LEGAL_VERSION: string = '2026-10-23-draft-4';
 export const PAGE_LEGAL: string = 'pages/LegalDocument';
 
 export interface LegalDocumentParams {

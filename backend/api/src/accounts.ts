@@ -16,6 +16,17 @@ export function normalizeEmail(value: unknown): string {
   return email;
 }
 
+/** DirectMail accepts recipient lists; registration must accept exactly one mailbox. */
+export function normalizeDeliveryEmail(value: unknown): string {
+  const email = normalizeEmail(value);
+  const [local, domain] = email.split('@') as [string, string];
+  if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local) || local.startsWith('.') || local.endsWith('.') || local.includes('..') ||
+    !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(domain)) {
+    throw new ApiError(400, 'INVALID_EMAIL', '请输入一个正确的邮箱地址');
+  }
+  return email;
+}
+
 export async function provisionAccounts(db: DatabaseSync, schoolId: string, input: unknown,
   mode: 'create' | 'reset' = 'create'): Promise<{ id: string; email: string; nickname: string }[]> {
   if (!Array.isArray(input) || input.length < 1 || input.length > 100) {

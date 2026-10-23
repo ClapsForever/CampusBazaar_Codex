@@ -1,9 +1,25 @@
 import { resolve } from 'node:path';
+import { normalizeDeliveryEmail } from './accounts.js';
+
+export const DIRECT_MAIL_ENDPOINTS: Record<string, string> = {
+  'cn-hangzhou': 'dm.aliyuncs.com',
+  'ap-southeast-1': 'dm.ap-southeast-1.aliyuncs.com',
+  'us-east-1': 'dm.us-east-1.aliyuncs.com',
+  'eu-central-1': 'dm.eu-central-1.aliyuncs.com'
+};
+
+export interface MailConfig {
+  regionId: string; endpoint: string; sender: string; senderName: string;
+  credentialType: 'ecs_ram_role' | 'access_key'; roleName?: string;
+  accessKeyId?: string; accessKeySecret?: string;
+}
 
 export interface Config {
   mode: 'local'; host: string; port: number; databasePath: string; uploadDir: string;
   publicBaseUrl: string; sessionSecret: string;
   agentBaseUrl: string; agentServiceToken: string; internalAgentToken: string; schoolId: string;
+  mail?: MailConfig;
+  emailSendDailyLimit?: number;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -31,11 +47,38 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Invalid service URL');
   }
+  const provider = env.EMAIL_PROVIDER?.trim() || 'disabled';
+  if (!['disabled', 'aliyun'].includes(provider)) throw new Error('EMAIL_PROVIDER must be disabled or aliyun');
+  let mail: MailConfig | undefined;
+  if (provider === 'aliyun') {
+    const publicUrl = new URL(publicBaseUrl);
+    if (publicUrl.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(publicUrl.hostname)) {
+      throw new Error('Email registration requires an HTTPS PUBLIC_BASE_URL (except loopback development)');
+    }
+    const regionId = required(env, 'ALIYUN_DM_REGION_ID');
+    const endpoint = DIRECT_MAIL_ENDPOINTS[regionId];
+    if (!endpoint) throw new Error('Unsupported ALIYUN_DM_REGION_ID; see the DirectMail configuration guide');
+    const credentialType = env.ALIYUN_DM_CREDENTIAL_TYPE?.trim() || 'ecs_ram_role';
+    if (credentialType !== 'ecs_ram_role' && credentialType !== 'access_key') throw new Error('Invalid ALIYUN_DM_CREDENTIAL_TYPE');
+    const senderName = env.ALIYUN_DM_SENDER_NAME?.trim() || '校园集市';
+    if ([...senderName].length >= 15 || /[\r\n]/.test(senderName)) throw new Error('Invalid ALIYUN_DM_SENDER_NAME');
+    mail = { regionId, endpoint, sender: normalizeDeliveryEmail(required(env, 'ALIYUN_DM_SENDER')),
+      senderName, credentialType, roleName: env.ALIYUN_DM_ROLE_NAME?.trim() || undefined };
+    if (credentialType === 'access_key') {
+      mail.accessKeyId = required(env, 'ALIBABA_CLOUD_ACCESS_KEY_ID');
+      mail.accessKeySecret = required(env, 'ALIBABA_CLOUD_ACCESS_KEY_SECRET');
+      if (mail.accessKeyId.startsWith('replace-') || mail.accessKeySecret.startsWith('replace-')) throw new Error('Replace mail credential placeholders');
+    }
+  }
+  const emailSendDailyLimit = Number(env.EMAIL_SEND_DAILY_LIMIT ?? 200);
+  if (!Number.isSafeInteger(emailSendDailyLimit) || emailSendDailyLimit < 1 || emailSendDailyLimit > 100_000) {
+    throw new Error('EMAIL_SEND_DAILY_LIMIT must be an integer between 1 and 100000');
+  }
   return {
     mode: 'local', host, port,
     databasePath: resolve(required(env, 'DATABASE_PATH')),
     uploadDir: resolve(required(env, 'UPLOAD_DIR')),
     publicBaseUrl, sessionSecret, agentBaseUrl, agentServiceToken, internalAgentToken,
-    schoolId: env.AGENT_SCHOOL_ID?.trim() || 'school_demo'
+    schoolId: env.AGENT_SCHOOL_ID?.trim() || 'school_demo', mail, emailSendDailyLimit
   };
 }

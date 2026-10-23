@@ -21,7 +21,8 @@ function putEnv(source, updates) {
   let text = source;
   for (const [key, value] of Object.entries(updates)) {
     if (typeof value !== 'string' || /[\r\n\x00]/.test(value)) throw new Error('Configuration values must be single-line strings');
-    text = text.replace(new RegExp(`^${key}=.*$`, 'm'), () => `${key}=${JSON.stringify(value)}`);
+    const line = `${key}=${JSON.stringify(value)}`, pattern = new RegExp(`^${key}=.*$`, 'm');
+    text = pattern.test(text) ? text.replace(pattern, () => line) : text + (text.endsWith('\n') ? '' : '\n') + line + '\n';
   }
   return text;
 }
@@ -40,6 +41,11 @@ export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousA
   if (previousApiEnv) {
     apiUpdates.SESSION_SECRET = oldApi.SESSION_SECRET;
     if (oldApi.AGENT_SCHOOL_ID) apiUpdates.AGENT_SCHOOL_ID = oldApi.AGENT_SCHOOL_ID;
+    for (const key of ['EMAIL_PROVIDER', 'EMAIL_SEND_DAILY_LIMIT', 'ALIYUN_DM_REGION_ID', 'ALIYUN_DM_SENDER',
+      'ALIYUN_DM_SENDER_NAME', 'ALIYUN_DM_CREDENTIAL_TYPE', 'ALIYUN_DM_ROLE_NAME',
+      'ALIBABA_CLOUD_ACCESS_KEY_ID', 'ALIBABA_CLOUD_ACCESS_KEY_SECRET']) {
+      if (oldApi[key]) apiUpdates[key] = oldApi[key];
+    }
   }
   const agentUpdates = {};
   for (const key of ['MODEL_API_KEY', 'MODEL_PROVIDER', 'MODEL_NAME', 'MODEL_BASE_URL', 'SESSION_TTL_MS']) {

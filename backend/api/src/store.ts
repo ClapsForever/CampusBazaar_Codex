@@ -5,10 +5,12 @@ import { transaction } from './db.js';
 import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalText, positiveInt, text, tokenHash } from './http.js';
 import { categorySearchSpec, keywordGroups } from './search.js';
 import { hashPassword, validatePassword, verifyPassword } from './password.js';
-import { normalizeEmail } from './accounts.js';
+import { normalizeDeliveryEmail, normalizeEmail } from './accounts.js';
 import { AGREEMENT_VERSION, PRIVACY_VERSION, RegistrationProtection } from './registration.js';
+import { EmailVerificationService } from './email-verification.js';
+import { createVerificationEmailSender, type VerificationEmailSender } from './mailer.js';
 
-type UserRow = { id: string; phone: string | null; email: string | null; enabled: number; nickname: string; avatar: string; school_id: string; password_hash: string | null };
+type UserRow = { id: string; phone: string | null; email: string | null; email_verified_at: number | null; enabled: number; nickname: string; avatar: string; school_id: string; password_hash: string | null };
 type ProductRow = { id: string; seller_id: string; school_id: string; title: string; description: string; price_cents: number; category: string; condition: string; campus: string; version: string | null; status: 'ACTIVE' | 'SOLD' | 'DELISTED'; published_at: number };
 type TransactionRow = { id: string; product_id: string; buyer_id: string; seller_id: string; school_id: string; create_time: number; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED'; price_cents: number; title_snapshot: string };
 type MessageRow = { id: string; transaction_id: string; sender_id: string; content: string; send_time: number };
@@ -40,38 +42,45 @@ function parsePriceRanges(value: string | null): [number, number | null][] {
 
 export class Store {
   readonly registrationProtection: RegistrationProtection;
-  constructor(public db: DatabaseSync, public config: Config) {
+  readonly emailVerifications: EmailVerificationService;
+  constructor(public db: DatabaseSync, public config: Config, emailSender?: VerificationEmailSender) {
     this.registrationProtection = new RegistrationProtection(db, config);
+    this.emailVerifications = new EmailVerificationService(db, config, emailSender ?? createVerificationEmailSender(config));
   }
 
   async register(body: Record<string, unknown>, clientIp: string) {
     this.registrationProtection.reserveRegistration(clientIp);
-    const email = normalizeEmail(body.email);
+    const email = normalizeDeliveryEmail(body.email);
     const password = validatePassword(body.password);
     if (body.agreementVersion !== AGREEMENT_VERSION || body.privacyVersion !== PRIVACY_VERSION) {
       throw new ApiError(400, 'AGREEMENT_REQUIRED', '请阅读并同意当前版本的用户协议与隐私政策');
     }
+    const verification = this.emailVerifications.requireInput(body);
     const passwordHash = await hashPassword(password);
     // Check and insert under the same write transaction after asynchronous hashing.
     // A concurrent request cannot create a second canonical email or partial account.
-    return transaction(this.db, () => {
+    const outcome = transaction(this.db, () => {
       if (this.db.prepare('SELECT 1 FROM users WHERE email=?').get(email)) {
         throw new ApiError(409, 'EMAIL_EXISTS', '该邮箱已注册，请登录');
       }
       const id = `user_${randomUUID().replaceAll('-', '')}`, now = Date.now();
+      const verificationError = this.emailVerifications.consume(email, verification.id, verification.code, now);
+      if (verificationError) return { error: verificationError };
       const nickname = `校园用户${randomBytes(3).toString('hex')}`;
-      this.db.prepare('INSERT INTO users(id,email,nickname,avatar,school_id,created_at,password_hash) VALUES(?,?,?,?,?,?,?)')
-        .run(id, email, nickname, '', this.config.schoolId, now, passwordHash);
+      this.db.prepare('INSERT INTO users(id,email,nickname,avatar,school_id,created_at,password_hash,email_verified_at) VALUES(?,?,?,?,?,?,?,?)')
+        .run(id, email, nickname, '', this.config.schoolId, now, passwordHash, now);
       this.db.prepare('INSERT INTO registration_consents(user_id,agreement_version,privacy_version,accepted_at) VALUES(?,?,?,?)')
         .run(id, AGREEMENT_VERSION, PRIVACY_VERSION, now);
       return this.issueSession(this.findUser(id)!);
     });
+    if ('error' in outcome) throw outcome.error;
+    return outcome;
   }
 
   user(row: UserRow, own = false): Record<string, unknown> {
     return { id: row.id, nickname: row.nickname,
       avatar: /^img_[a-f0-9]{32}$/.test(row.avatar) ? this.imageUrl(row.avatar) : row.avatar,
-      ...(own ? { email: row.email, hasPassword: !!row.password_hash } : {}) };
+      ...(own ? { email: row.email, emailVerified: row.email_verified_at !== null, hasPassword: !!row.password_hash } : {}) };
   }
 
   findUser(id: string): UserRow | undefined {

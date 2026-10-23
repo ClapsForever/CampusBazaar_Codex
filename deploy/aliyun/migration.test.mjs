@@ -26,7 +26,10 @@ function execute(script, args = []) {
 test('新环境保留会话密钥与学校，内部令牌配对，HTTPS代理包含匿名注册和内部路径保护', () => {
   const root = directory(), oldApi = join(root, 'old-api.env'), oldAgent = join(root, 'old-agent.env');
   const session = 'synthetic-only-session-secret-for-migration-tests';
-  writeFileSync(oldApi, `SESSION_SECRET=${session}\nAGENT_SCHOOL_ID=school_preserved\nHOST=0.0.0.0\n`);
+  writeFileSync(oldApi, `SESSION_SECRET=${session}\nAGENT_SCHOOL_ID=school_preserved\nHOST=0.0.0.0\n` +
+    'EMAIL_PROVIDER=aliyun\nEMAIL_SEND_DAILY_LIMIT=150\nALIYUN_DM_REGION_ID=cn-hangzhou\n' +
+    'ALIYUN_DM_SENDER=noreply@notify.example.com\nALIYUN_DM_SENDER_NAME=校园集市\n' +
+    'ALIYUN_DM_CREDENTIAL_TYPE=access_key\nALIBABA_CLOUD_ACCESS_KEY_ID=synthetic-mail-id\nALIBABA_CLOUD_ACCESS_KEY_SECRET=synthetic-mail-secret\n');
   writeFileSync(oldAgent, 'MODEL_API_KEY=synthetic-model-key\nMODEL_NAME=deepseek-chat\n');
   const output = join(root, 'prepared');
   const report = prepareConfig({ output, publicBaseUrl: 'https://api.example.com', previousApiEnv: oldApi, previousAgentEnv: oldAgent });
@@ -36,12 +39,17 @@ test('新环境保留会话密钥与学校，内部令牌配对，HTTPS代理包
   assert.notEqual(api.AGENT_SERVICE_TOKEN, api.INTERNAL_AGENT_TOKEN);
   assert.equal(api.PUBLIC_BASE_URL, 'https://api.example.com'); assert.equal(api.HOST, '127.0.0.1');
   assert.equal(agent.MODEL_API_KEY, 'synthetic-model-key'); assert.equal(api.APP_MODE, 'local');
+  assert.equal(api.EMAIL_PROVIDER, 'aliyun'); assert.equal(api.EMAIL_SEND_DAILY_LIMIT, '150');
+  assert.equal(api.ALIYUN_DM_REGION_ID, 'cn-hangzhou'); assert.equal(api.ALIYUN_DM_SENDER, 'noreply@notify.example.com');
+  assert.equal(api.ALIYUN_DM_CREDENTIAL_TYPE, 'access_key'); assert.equal(api.ALIBABA_CLOUD_ACCESS_KEY_SECRET, 'synthetic-mail-secret');
   assert.equal(report.sessionSecretPreserved, true);
   const nginx = readFileSync(join(output, 'nginx.conf'), 'utf8');
   assert.match(nginx, /listen 443 ssl/); assert.match(nginx, /api\.example\.com\/fullchain.pem/);
   assert.match(nginx, /location = \/api\/v1\/auth\/registrations/); assert.match(nginx, /location \^~ \/internal\//);
+  assert.match(nginx, /location = \/api\/v1\/auth\/email-verifications/);
   assert.match(nginx, /X-Real-IP \$remote_addr/); assert.match(nginx, /X-User-Id ""/);
   assert(!nginx.includes(session)); assert(!JSON.stringify(report).includes(session));
+  assert(!nginx.includes('synthetic-mail-secret')); assert(!JSON.stringify(report).includes('synthetic-mail-secret'));
   assert.throws(() => prepareConfig({ output, publicBaseUrl: 'https://api.example.com' }), /already exists/);
   assert.match(readFileSync(oldApi, 'utf8'), /HOST=0.0.0.0/);
 });
@@ -152,7 +160,7 @@ test('源码发布包按白名单生成，不带运行密钥、数据库或已�
   const metadata = JSON.parse(readFileSync(join(output, 'release.json')));
   assert.equal(metadata.sha256, createHash('sha256').update(readFileSync(join(output, metadata.archive))).digest('hex'));
   assert.equal(metadata.secretsIncluded, false); assert.equal(metadata.dataIncluded, false);
-  assert.equal(metadata.apiSchema, 5); assert.equal(metadata.legalVersion, '2026-10-18-draft-3');
+  assert.equal(metadata.apiSchema, 6); assert.equal(metadata.legalVersion, '2026-10-23-draft-4');
   assert(!readFileSync(join(output, 'source/deploy/ubuntu/backup.sh'), 'utf8').includes('\r'));
   assert.equal((await execute('prepare-release.mjs', ['--output', output])).status, 1);
 });
@@ -181,7 +189,7 @@ test('通过current目录链接调用配置和数据CLI时仍实际执行并校�
   } finally { fixture.db.close(); }
 });
 
-test('真实v5数据库可快照恢复，保留取消下架状态、协议、会话、图片与超过十段AI历史', async () => {
+test('真实v6数据库可快照恢复，保留邮箱验证、取消下架状态、协议、会话、图片与超过十段AI历史', async () => {
   const { openDatabase } = await import(pathToFileURL(join(repo, 'backend/api/dist/src/db.js')));
   const { Store } = await import(pathToFileURL(join(repo, 'backend/api/dist/src/store.js')));
   const root = directory(), source = join(root, 'live-data');
@@ -189,10 +197,15 @@ test('真实v5数据库可快照恢复，保留取消下架状态、协议、会
     uploadDir: join(source, 'uploads'), publicBaseUrl: 'http://127.0.0.1:0',
     sessionSecret: 'synthetic-v5-backup-session-secret', agentBaseUrl: 'http://127.0.0.1:1',
     agentServiceToken: 'synthetic-v5-agent-token-a', internalAgentToken: 'synthetic-v5-internal-token-b', schoolId: 'school_backup' };
-  const db = openDatabase(config), store = new Store(db, config);
+  const codes = new Map();
+  const sender = { async sendVerification(message) { codes.set(message.email, message.code); } };
+  const db = openDatabase(config), store = new Store(db, config, sender);
   try {
-    const register = email => store.register({ email, password: 'Campus123',
-      agreementVersion: '2026-10-18-draft-3', privacyVersion: '2026-10-18-draft-3' }, '203.0.113.15');
+    const register = async email => {
+      const verification = await store.emailVerifications.issue({ email }, '203.0.113.15');
+      return store.register({ email, password: 'Campus123', emailVerificationId: verification.verificationId, emailCode: codes.get(email),
+        agreementVersion: '2026-10-23-draft-4', privacyVersion: '2026-10-23-draft-4' }, '203.0.113.15');
+    };
     const seller = await register('seller@example.invalid'), buyer = await register('buyer@example.invalid');
     const owner = store.findUser(seller.user.id), customer = store.findUser(buyer.user.id);
     const image = 'img_cccccccccccccccccccccccccccccccc', bytes = Buffer.from('synthetic backup image');
@@ -205,7 +218,7 @@ test('真实v5数据库可快照恢复，保留取消下架状态、协议、会
     for (let index = 0; index < 12; index++) store.saveAgentTurn(`session_backup_${index}`, owner, '保留问题', { requestId: `request_${index}` });
     const bundle = join(root, 'bundle-v5');
     const snapshot = await snapshotData({ database: config.databasePath, uploads: config.uploadDir, output: bundle, apiStopped: true });
-    assert.equal(snapshot.schema, 5); assert.equal(snapshot.counts.agent_sessions, 12);
+    assert.equal(snapshot.schema, 6); assert.equal(snapshot.counts.agent_sessions, 12);
     const restored = join(root, 'restored-v5'); restoreData({ bundle, destination: restored });
     const restoredDb = openDatabase({ ...config, databasePath: join(restored, 'campusbazaar.sqlite'), uploadDir: join(restored, 'uploads') });
     try {
@@ -214,13 +227,14 @@ test('真实v5数据库可快照恢复，保留取消下架状态、协议、会
       assert.equal(restoredDb.prepare('SELECT status FROM transactions WHERE id=?').get(trade.id).status, 'CANCELLED');
       assert.equal(restoredDb.prepare('SELECT COUNT(*) AS n FROM agent_sessions').get().n, 12);
       assert.equal(restoredDb.prepare('SELECT COUNT(*) AS n FROM registration_consents').get().n, 2);
+      assert(Number(restoredDb.prepare('SELECT email_verified_at FROM users WHERE id=?').get(owner.id).email_verified_at) > 0);
       assert.deepEqual(readFileSync(join(restored, 'uploads', `${image}.png`)), bytes);
       assert.deepEqual(restoredDb.prepare('PRAGMA foreign_key_check').all(), []);
     } finally { restoredDb.close(); }
   } finally { db.close(); }
 });
 
-test('部署探针识别旧后端401，并在显式选择时验证真实新版API的注册与重登', async () => {
+test('部署探针识别旧后端401，并在显式选择时验证新API拒绝无邮箱验证码注册', async () => {
   const { createApiApp } = await import(pathToFileURL(join(repo, 'backend/api/dist/src/server.js')));
   const root = directory();
   const app = createApiApp({ mode: 'local', host: '127.0.0.1', port: 0, databasePath: join(root, 'smoke.sqlite'), uploadDir: join(root, 'uploads'),
@@ -245,7 +259,7 @@ test('部署探针识别旧后端401，并在显式选择时验证真实新版AP
     const readOnly = await execute('smoke.mjs', ['--base-url', base]); assert.equal(readOnly.status, 0, readOnly.stderr);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
     const real = await execute('smoke.mjs', ['--base-url', base, '--registration-test']); assert.equal(real.status, 0, real.stderr);
-    assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 1);
+    assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM auth_sessions WHERE revoked_at IS NULL').get().n, 0);
   } finally { await new Promise(resolveClose => proxy.close(resolveClose)); await app.close(); }
 });

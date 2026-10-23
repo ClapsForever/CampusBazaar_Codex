@@ -1,12 +1,14 @@
 # 校园集市（CampusBazaar）
 
-校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、自助注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；邮件归属验证和自助找回密码尚未接入。
+> 2026-10-23：后端已增加阿里云邮箱验证码注册，缺少验证码不可创建账号；当前 App 验证码 UI 与云端邮件配置/投递尚待接入验收。已有账号登录保留。配置交接见 [阿里云邮件交接清单](docs/aliyun-email-handoff.md)，接口见 [注册说明](docs/registration.md)。数据库升级为 v6；下述旧部署记录不代表本轮已部署。
+
+校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、自助注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；邮箱验证后端已接入，自助找回密码与客户端验证码 UI 尚未接入。
 
 2026-10-20 已将 licx 的后端及完整数据迁入阿里云 Ubuntu 24.04。当前测试入口为 `http://47.117.96.16:18080`，健康检查为 `http://47.117.96.16:18080/health/ready`，通过邮箱密码登录或自助注册；组员接入见 [IP 直连测试说明](docs/ip-direct-testing.md)。腾讯云旧地址临时转发到同一套阿里云后端，旧数据库停止写入。HTTP 会明文传输密码和登录令牌，仅使用测试账号；正式发布前恢复 HTTPS。
 
 实际目录、用户级服务、数据保留验证、备份及回退边界见[阿里云部署记录](docs/aliyun-migration-2026-10-20.md)。[阿里云迁移指南](deploy/aliyun/README.md)继续提供源码打包、配置生成、SQLite/图片快照恢复和验收工具；[Ubuntu 部署指南](deploy/ubuntu/README.md)保留通用系统级部署模板。
 
-商品详情与“我发布的”支持卖家下架，买卖双方可取消待确认或待交易订单；普通搜索支持关键词与多选价格、大类和校区组合；AI 历史可手动删除整段对话，保留原有分页与数量策略。详见[功能及数据保留说明](docs/marketplace-actions.md)。注册、商品和交易升级统一使用 schema v5，兼容原 v3 及两种 v4 数据库。
+商品详情与“我发布的”支持卖家下架，买卖双方可取消待确认或待交易订单；普通搜索支持关键词与多选价格、大类和校区组合；AI 历史可手动删除整段对话，保留原有分页与数量策略。详见[功能及数据保留说明](docs/marketplace-actions.md)。注册、商品和交易升级统一使用 schema v6，兼容原 v3 及两种 v4 数据库。
 
 ## 目录与运行架构
 
@@ -123,7 +125,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 2. 若使用 licx 的共享测试后端，保持 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 中的 `http://47.117.96.16:18080`，在模拟器浏览器打开该地址的 `/health/ready` 确认返回 `{"status":"ok"}`。使用分配的邮箱密码登录，也可自助注册。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`，与自己 API 的 `PUBLIC_BASE_URL` 使用同一个地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
-启动页通过登录按钮下的“没有账号？立即注册”进入注册，注册页通过“已有账号？返回登录”切回，顶部只显示当前表单标题。注册填写邮箱、6–64 位密码和确认密码，阅读并主动勾选用户协议与隐私政策草案后提交，成功后自动进入首页。图形验证码本轮暂时移除，恢复计划见[发布前清单](docs/legal/launch-checklist.md)。测试阶段允许任意邮箱，不验证邮箱归属或学生身份。也可按 [Demo 认证说明](docs/demo-auth.md) 导入预置账号；找回密码仍由项目组人工处理。本次源码变更需同步更新 API 和 App，已有云端部署不会自动更新。实现与验收步骤见[注册说明](docs/registration.md)。
+启动页仍可切换登录/注册，但当前注册表单尚无邮箱验证码控件，新后端会拒绝旧请求。新版需增加发码及验证码提交，注册成功后仍自动登录。已有账号可继续密码登录；新环境开发可先使用 [Demo 账号导入](docs/demo-auth.md)。真实注册接入及双方验收见 [注册说明](docs/registration.md) 与 [阿里云邮件交接清单](docs/aliyun-email-handoff.md)。
 
 ## 6. 验证完整流程
 
@@ -139,7 +141,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 - AI 对话每轮成功回复后自动保存在业务 SQLite，按账号隔离；“新对话”旁的“历史记录”可按时间分页查看，退出登录、重启 App 或服务不会丢失已保存内容。历史详情供回看；Agent 的续聊上下文仍存于内存，重启或过期后需新建对话。更新前已经丢失的内存对话无法补回。
 - “我的 → 个人设置”支持相册头像、昵称及登录密码。修改密码需当前密码；演示密码为 6–64 位，以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
 - `.env`、DeepSeek Key、数据库、上传图片、`node_modules`、构建产物均已被 Git 忽略。只提交源码、两个 `package-lock.json`、`.env.example`、文档和测试。
-- 测试版不包含学校统一认证、邮箱归属验证或邮件找回密码服务；当前注册不获取或校验图形验证码，仍保留服务端注册限流。
+- 测试版不包含学校统一认证、邮箱归属验证或邮件找回密码服务；图形验证码仍不启用，新注册必须通过邮箱验证码；App 端尚待接入。
 - [用户协议草案](docs/legal/user-agreement.md)、[隐私政策草案](docs/legal/privacy-policy.md)和[社区与交易规则草案](docs/legal/community-rules.md)可从启动页及“我的”阅读。运营主体、联系方式、注销/删除流程及保存期限尚未确定，详见[发布前清单](docs/legal/launch-checklist.md)。三份正文作为离线文本随 App 打包；修改 Markdown 后运行 `node scripts/sync-legal-docs.cjs`，用 `node scripts/sync-legal-docs.cjs --check` 检查同步。协议版本变更须同时更新前端、后端版本常量与正文。
 
 业务 API 接口和备份说明见 [backend/api/README.md](backend/api/README.md)；Agent 内部接口见 [backend/agent/docs/api.md](backend/agent/docs/api.md)。
