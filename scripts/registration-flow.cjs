@@ -9,7 +9,7 @@ const { test } = require('node:test');
 const ts = require(require.resolve('typescript', { paths: [path.join(__dirname, '../backend/api')] }));
 const root = path.resolve(__dirname, '..');
 
-test('旧前端缺验证码不能注册；后端邮箱验证码注册后前端可登录、退出和重登', async () => {
+test('实际前端发码、纠正错码、验证码注册自动登录、退出和密码重登', async () => {
   const { createApiApp } = await import(pathToFileURL(path.join(root, 'backend/api/dist/src/server.js')));
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'campus-registration-flow-'));
   const codes = new Map();
@@ -33,7 +33,7 @@ test('旧前端缺验证码不能注册；后端邮箱验证码注册后前端�
         ...(authorized ? { authorization: `Bearer ${token}` } : {})
       }, ...(body !== null ? { body } : {}) });
       const result = await response.json();
-      if (!response.ok) throw Object.assign(new Error(result.message), { statusCode: response.status });
+      if (!response.ok) throw Object.assign(new Error(result.message), { statusCode: response.status, code: result.code, retryAfter: result.retryAfter });
       return result;
     }
   };
@@ -60,22 +60,26 @@ test('旧前端缺验证码不能注册；后端邮箱验证码注册后前端�
     const model = new AuthViewModel();
     model.setRegistering(true);
     assert.equal(requests.length, 0, 'Switching form does not request any challenge');
-    model.email = ' Flow.User+Test@Example.COM ';
+    model.setEmail(' Flow.User+Test@Example.COM ');
     model.password = model.confirmPassword = 'FlowPass123'; model.acceptedTerms = true;
-    assert.equal(await model.register(), false); assert.match(model.formError, /邮箱验证码/);
+    assert.equal(await model.register(), false); assert.match(model.verificationError, /验证码/);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
     const legalVersion = load('common/LegalDocuments').LEGAL_VERSION;
     const email = model.email.trim().toLowerCase();
-    const issued = await transport.request('POST', '/api/v1/auth/email-verifications', JSON.stringify({ email }), false);
-    await transport.request('POST', '/api/v1/auth/registrations', JSON.stringify({ email, password: 'FlowPass123',
-      agreementVersion: legalVersion, privacyVersion: legalVersion,
-      emailVerificationId: issued.verificationId, emailCode: codes.get(email) }), false);
-    model.setRegistering(false); model.email = email; model.password = 'FlowPass123';
-    assert.equal(await model.login(), true, model.formError);
+    assert.equal(await model.sendEmailCode(), true, model.verificationError);
+    assert.equal(model.resendSeconds, 60);
+    assert.equal(await model.sendEmailCode(), false, '冷却中不重复发码');
+    model.emailCode = String((Number(codes.get(email)) + 1) % 1000000).padStart(6, '0');
+    assert.equal(await model.register(), false); assert.match(model.verificationError, /错误/);
+    assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
+    model.emailCode = codes.get(email);
+    assert.equal(await model.register(), true, model.verificationError || model.formError);
     const id = authService.getCurrentUser().id, registeredToken = token;
     assert.equal(authService.getCurrentUser().email, 'flow.user+test@example.com');
+    assert.equal(authService.getCurrentUser().emailVerified, true);
     assert.equal((await authService.refreshUser()).id, id);
     assert.equal(model.password, ''); assert.equal(model.confirmPassword, '');
+    assert.equal(model.emailCode, '');
     const row = app.db.prepare('SELECT email_verified_at FROM users WHERE id=?').get(id);
     assert(Number(row.email_verified_at) > 0);
     assert.equal(app.db.prepare('SELECT privacy_version FROM registration_consents WHERE user_id=?').get(id).privacy_version, legalVersion);
@@ -83,9 +87,11 @@ test('旧前端缺验证码不能注册；后端邮箱验证码注册后前端�
     const revoked = await fetch(base + '/api/v1/me', { headers: { authorization: `Bearer ${registeredToken}` } });
     assert.equal(revoked.status, 401);
     const duplicate = new AuthViewModel(); duplicate.setRegistering(true);
-    duplicate.email = 'flow.user+test@example.com'; duplicate.password = duplicate.confirmPassword = 'FlowPass123';
+    duplicate.setEmail('flow.user+test@example.com'); duplicate.password = duplicate.confirmPassword = 'FlowPass123';
     duplicate.acceptedTerms = true;
-    assert.equal(await duplicate.register(), false); assert.match(duplicate.formError, /邮箱验证码/);
+    assert.equal(await duplicate.sendEmailCode(), false, '新表单也不能绕过服务端邮箱冷却');
+    assert(duplicate.resendSeconds > 0); assert.match(duplicate.verificationError, /频繁/);
+    assert.equal(await duplicate.register(), false); assert.match(duplicate.verificationError, /获取/);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 1);
     const login = new AuthViewModel(); login.email = 'FLOW.USER+TEST@EXAMPLE.COM'; login.password = 'FlowPass123';
     assert.equal(await login.login(), true, login.formError);

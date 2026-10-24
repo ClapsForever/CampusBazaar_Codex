@@ -12,6 +12,7 @@ export interface User {
   nickname: string;
   avatar: string;
   email?: string;
+  emailVerified?: boolean;
   phone?: string;
   studentId?: string;
   hasPassword?: boolean;

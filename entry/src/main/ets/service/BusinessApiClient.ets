@@ -4,6 +4,7 @@ import { BUSINESS_API_BASE_URL } from './BackendRuntimeConfig';
 interface ErrorBody {
   message?: string;
   code?: string;
+  retryAfter?: number;
 }
 
 interface UploadResponse {
@@ -12,10 +13,14 @@ interface UploadResponse {
 
 export class BusinessApiError extends Error {
   statusCode: number;
+  code: string;
+  retryAfter: number;
 
-  constructor(statusCode: number, message: string) {
+  constructor(statusCode: number, message: string, code: string = '', retryAfter: number = 0) {
     super(message);
     this.statusCode = statusCode;
+    this.code = code;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -29,6 +34,31 @@ export class BusinessApiClient {
 
   clearToken(): void {
     this.token = '';
+  }
+
+  private responseError(response: http.HttpResponse): BusinessApiError {
+    let message: string = `请求失败（HTTP ${response.responseCode}）`;
+    let code: string = '';
+    let retryAfter: number = 0;
+    try {
+      const body: ErrorBody = JSON.parse(response.result as string) as ErrorBody;
+      if (typeof body.message === 'string' && body.message !== '') message = body.message;
+      if (typeof body.code === 'string') code = body.code;
+      if (typeof body.retryAfter === 'number' && Number.isFinite(body.retryAfter) && body.retryAfter > 0) {
+        retryAfter = Math.ceil(body.retryAfter);
+      }
+    } catch (_error) {
+    }
+    if (response.header) {
+      const headers = response.header as Record<string, string>;
+      for (const key of Object.keys(headers)) {
+        if (key.toLowerCase() !== 'retry-after') continue;
+        const seconds: number = Number(headers[key]);
+        const delay: number = Number.isFinite(seconds) ? seconds : (Date.parse(headers[key]) - Date.now()) / 1000;
+        if (Number.isFinite(delay) && delay > 0) retryAfter = Math.max(retryAfter, Math.ceil(delay));
+      }
+    }
+    return new BusinessApiError(response.responseCode, message, code, retryAfter);
   }
 
   async request<T>(method: http.RequestMethod, path: string, body: string | null = null,
@@ -67,15 +97,7 @@ export class BusinessApiClient {
       }
       const raw: string = response.result as string;
       if (response.responseCode < 200 || response.responseCode >= 300) {
-        let message: string = `请求失败（HTTP ${response.responseCode}）`;
-        try {
-          const errorBody: ErrorBody = JSON.parse(raw) as ErrorBody;
-          if (typeof errorBody.message === 'string' && errorBody.message !== '') {
-            message = errorBody.message;
-          }
-        } catch (_error) {
-        }
-        throw new BusinessApiError(response.responseCode, message);
+        throw this.responseError(response);
       }
       try {
         return JSON.parse(raw) as T;

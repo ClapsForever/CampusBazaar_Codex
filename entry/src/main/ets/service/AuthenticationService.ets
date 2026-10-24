@@ -7,12 +7,20 @@ import { readPhoto, UploadBytes } from './ImageUpload';
 
 export interface AuthenticationService {
   loginByPassword(email: string, password: string): Promise<User>;
-  registerByPassword(email: string, password: string): Promise<User>;
+  sendRegistrationEmail(email: string): Promise<EmailVerificationResponse>;
+  registerByPassword(email: string, password: string, verificationId: string, emailCode: string): Promise<User>;
   refreshUser(): Promise<User>;
   updateProfile(nickname: string, avatarUri: string): Promise<User>;
   changePassword(currentPassword: string, newPassword: string): Promise<User>;
   getCurrentUser(): User | null;
   logout(): Promise<void>;
+}
+
+export interface EmailVerificationResponse {
+  verificationId: string;
+  expiresAt: number;
+  expiresIn: number;
+  resendAfter: number;
 }
 
 interface LoginResponse {
@@ -52,10 +60,24 @@ export class HttpAuthenticationService implements AuthenticationService {
     return response.user;
   }
 
-  async registerByPassword(email: string, password: string): Promise<User> {
+  async sendRegistrationEmail(email: string): Promise<EmailVerificationResponse> {
+    if (!isValidEmail(email)) throw new Error('请输入正确的邮箱地址');
+    const response = await businessApiClient.request<EmailVerificationResponse>(http.RequestMethod.POST,
+      '/api/v1/auth/email-verifications', JSON.stringify({ email: email.trim().toLowerCase(), purpose: 'register' }), false);
+    if (!response || typeof response.verificationId !== 'string' || !/^emailv_[a-f0-9]{32}$/.test(response.verificationId) ||
+      !Number.isFinite(response.expiresAt) || response.expiresAt <= 0 ||
+      !Number.isFinite(response.expiresIn) || response.expiresIn <= 0 ||
+      !Number.isFinite(response.resendAfter) || response.resendAfter < 0) {
+      throw new Error('验证码发送响应格式不正确，请稍后重新获取');
+    }
+    return response;
+  }
+
+  async registerByPassword(email: string, password: string, verificationId: string, emailCode: string): Promise<User> {
     const revision: number = ++this.revision;
     const response = await businessApiClient.request<LoginResponse>(http.RequestMethod.POST,
       '/api/v1/auth/registrations', JSON.stringify({ email: email.trim().toLowerCase(), password: password,
+        emailVerificationId: verificationId, emailCode: emailCode.trim(),
         agreementVersion: LEGAL_VERSION, privacyVersion: LEGAL_VERSION }), false);
     if (revision !== this.revision) throw new Error('登录状态已改变，请重新登录');
     if (!response.user || !response.token) throw new Error('注册响应格式不正确');
