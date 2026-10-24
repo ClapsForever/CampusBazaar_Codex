@@ -35,7 +35,7 @@ export struct SearchSheetView {
     Column({ space: 12 }) {
       Text('搜索商品').fontSize('20fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
         .width('100%').margin({ top: 8 });
-      TextInput({ placeholder: '搜索高数教材、键盘、台灯', text: this.keyword })
+      TextInput({ placeholder: '搜索同学们发布的闲置物品', text: this.keyword })
         .height(50).fontSize('14fp').backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {

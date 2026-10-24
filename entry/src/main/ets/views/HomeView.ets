@@ -88,7 +88,7 @@ export struct HomeView {
       Row({ space: 10 }) {
         Row({ space: 8 }) {
           Image($r('app.media.design_search')).width(18).height(18);
-          Text('搜索高数教材、耳机、台灯').fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY)
+          Text('搜索同学们发布的闲置物品').fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY)
             .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         }
         .layoutWeight(1).height(52).padding({ left: 16, right: 12 })
