@@ -39,10 +39,9 @@ struct Index {
       Scroll() {
         Column({ space: 16 }) {
           Column({ space: 12 }) {
-            Text('集').fontSize(32).fontWeight(FontWeight.Bold).fontColor(Color.White)
-              .width(72).height(72).textAlign(TextAlign.Center)
-              .backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS);
-            Text('校园集市').fontSize(27).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
+            Image($r('app.media.app_icon')).width(72).height(72).objectFit(ImageFit.Contain)
+              .borderRadius(UI_RADIUS).clip(true).accessibilityText('同窗集图标');
+            Text('同窗集').fontSize(27).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
             Text('同校好物 · 当面交易').fontSize(14).fontColor(COLOR_TEXT_SECONDARY);
           }
           .width('100%').margin({ top: this.vm.registering ? 24 : 48, bottom: 8 });
@@ -80,7 +79,7 @@ struct Index {
           const success: boolean = this.vm.registering ? await this.vm.register() : await this.vm.login();
           if (success) {
             this.getUIContext().getPromptAction().showToast({
-              message: this.vm.registering ? '注册成功，欢迎来到校园集市' : '登录成功', duration: 1500
+              message: this.vm.registering ? '注册成功，欢迎来到同窗集' : '登录成功', duration: 1500
             });
             this.getUIContext().getRouter().replaceUrl({ url: PAGE_MAIN });
           }
