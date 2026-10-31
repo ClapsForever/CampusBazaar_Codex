@@ -28,7 +28,7 @@ test('新环境保留会话密钥与学校，内部令牌配对，HTTPS代理包
   const session = 'synthetic-only-session-secret-for-migration-tests';
   writeFileSync(oldApi, `SESSION_SECRET=${session}\nAGENT_SCHOOL_ID=school_preserved\nHOST=0.0.0.0\n` +
     'EMAIL_PROVIDER=aliyun\nEMAIL_SEND_DAILY_LIMIT=150\nALIYUN_DM_REGION_ID=cn-hangzhou\n' +
-    'ALIYUN_DM_SENDER=noreply@notify.example.com\nALIYUN_DM_SENDER_NAME=校园集市\n' +
+    'ALIYUN_DM_SENDER=noreply@notify.example.com\nALIYUN_DM_SENDER_NAME=同窗集\n' +
     'ALIYUN_DM_CREDENTIAL_TYPE=access_key\nALIBABA_CLOUD_ACCESS_KEY_ID=synthetic-mail-id\nALIBABA_CLOUD_ACCESS_KEY_SECRET=synthetic-mail-secret\n');
   writeFileSync(oldAgent, 'MODEL_API_KEY=synthetic-model-key\nMODEL_NAME=deepseek-chat\n');
   const output = join(root, 'prepared');

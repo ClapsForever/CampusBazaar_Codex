@@ -72,7 +72,7 @@ export struct HomeView {
     Column({ space: 14 }) {
       Row() {
         Column({ space: 2 }) {
-          Text('校园集市').fontSize(FONT_TITLE).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
+          Text('同窗集').fontSize(FONT_TITLE).fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
           Text('同校好物 · 当面交易').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
         }
         .layoutWeight(1).alignItems(HorizontalAlign.Start);
@@ -225,7 +225,7 @@ export struct HomeView {
           Column({ space: 6 }) {
             Text(this.user === null ? '校园同学' : this.user.nickname)
               .fontSize('18fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
-            Text('欢迎来到校园集市').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
+            Text('欢迎来到同窗集').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
           }
           .alignItems(HorizontalAlign.Start).layoutWeight(1);
         }

@@ -1,8 +1,12 @@
-# 校园集市（CampusBazaar）
+# 同窗集（CampusBazaar）
+
+> 2026-10-30：新增 A「校园生活刊」UI，新页面与组件独立放在 `entry/src/main/ets/ui/editorial/`，通过 `ui/UiVariant.ets` 切换新旧布局。新旧 UI、系统显示名称及随包协议已统一为“同窗集”，线上注册邮件名称也已更新。构建与回归通过，已完成部分页面的原生预览自查，模拟器／真机完整交互仍待验收。见 [新 UI、切换与模拟器部署说明](entry/src/main/ets/ui/editorial/README.md)、[预览记录](design/editorial-a/review/README.md)及[邮件名称更新记录](docs/mail-brand-rollout-2026-10-30.md)。
+
+> 2026-10-28：阿里云 Agent 已单独更新到本仓库 `7dd371b` 中的需求理解与语义检索实现，16:59 完成切换。176 项回归通过，真实模型验证了相关商品返回及预算、校区追问，但发现部分候选漏查，不能视为完整召回率保证。App 中请使用“新对话”开始。部署位置、验收结果与回退方式见 [Agent 更新记录](docs/agent-rollout-2026-10-28.md)。
 
 > 2026-10-24：App 已接入邮箱发码、六位验证码、服务端冷却和验证码注册，默认 API 地址为 `https://api.campus-bazzar.work`。22:06 已备份并切换正式邮件 API、升级数据库至 v6；22:29 完成真实 163 邮箱收件、验证码注册、自动登录、退出与密码重登。旧数据和 Agent 保留，详见 [邮件注册上线记录](docs/email-registration-rollout-2026-10-24.md)。新包签名安装及真机验收尚待完成。接口见 [注册说明](docs/registration.md)。
 
-校园集市是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、邮箱验证码注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；自助找回密码尚未接入。
+同窗集是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、邮箱验证码注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；自助找回密码尚未接入。
 
 2026-10-20 已将 licx 的后端及完整数据迁入阿里云 Ubuntu 24.04。当前入口为 `https://api.campus-bazzar.work`，健康检查为该地址的 `/health/ready`；组员接入见 [模拟器接入说明](docs/ip-direct-testing.md)。旧 IP HTTP 入口仍保留，新包使用 HTTPS 域名。
 

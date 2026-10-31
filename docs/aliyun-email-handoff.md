@@ -2,6 +2,8 @@
 
 更新日期：2026-10-24。本文对应 `codex/aliyun-email-verification` 的邮箱验证码实现；客户端已接入，正式 API 于 22:06 备份切换，22:29 已完成真实 163 邮箱收件及验证码注册、自动登录、退出和密码重登，见 [上线记录](email-registration-rollout-2026-10-24.md)。签名 App 的真机验收尚待完成。
 
+2026-10-30：线上发件人昵称、邮件主题和正文名称已统一为“同窗集”，现有域名、发信地址及凭据沿用。验证与回退见[邮件名称更新记录](mail-brand-rollout-2026-10-30.md)。
+
 ## 先了解本次范围
 
 - 后端已提供匿名发码与强制邮箱验证码注册，使用阿里云官方 DirectMail SDK 的 `SingleSendMail`。
@@ -35,7 +37,7 @@
 ### 3. 创建触发邮件发信地址
 
 - [ ] 创建例如 `noreply@notify.example.com` 的发信地址，**类型选“触发邮件”**。
-- [ ] 确定发件人名称，默认“校园集市”。
+- [ ] 确定发件人名称，默认“同窗集”。
 - [ ] 若启用发信 IP 防护，确认服务器实际出站 IP 在允许范围内。
 - [ ] 该地址用于发信，不因此自动获得收件箱。当前代码关闭回信地址功能；如要接收用户回信，后续另行设置有效回信邮箱并调整代码。
 
@@ -89,7 +91,7 @@ EMAIL_PROVIDER=aliyun
 EMAIL_SEND_DAILY_LIMIT=200
 ALIYUN_DM_REGION_ID=cn-hangzhou
 ALIYUN_DM_SENDER=noreply@notify.example.com
-ALIYUN_DM_SENDER_NAME=校园集市
+ALIYUN_DM_SENDER_NAME=同窗集
 ALIYUN_DM_CREDENTIAL_TYPE=ecs_ram_role
 ALIYUN_DM_ROLE_NAME=实际绑定的角色名称
 ```

@@ -1,0 +1,70 @@
+import { KeyboardAvoidMode } from '@kit.ArkUI';
+import { HomeView } from '../views/HomeView';
+import { ProductDetailView } from '../views/ProductDetailView';
+import { SellerHomeView } from '../views/SellerHomeView';
+import { PublishProductView } from '../views/PublishProductView';
+import { TradeListView } from '../views/TradeListView';
+import { TradeDetailView } from '../views/TradeDetailView';
+import { AgentViewModel } from '../../../viewmodel/AgentViewModel';
+import { BuyerHomeViewModel } from '../../../viewmodel/BuyerHomeViewModel';
+import {
+  ROUTE_PRODUCT_DETAIL, ROUTE_SELLER_HOME, ROUTE_PUBLISH_PAGE,
+  ROUTE_TRADE_LIST, ROUTE_TRADE_DETAIL, FONT_EDITORIAL
+} from '../common/Constants';
+
+@Entry
+@ComponentV2
+struct Main {
+  @Local pathStack: NavPathStack = new NavPathStack();
+  @Local agentVm: AgentViewModel = new AgentViewModel();
+  @Local feedVm: BuyerHomeViewModel = new BuyerHomeViewModel();
+  private navWasHidden: boolean = false;
+
+  onPageShow(): void {
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
+  }
+
+  aboutToAppear(): void {
+    this.getUIContext().getFont().registerFont({
+      familyName: FONT_EDITORIAL, familySrc: $rawfile('editorial/CampusEditorialSerif.otf')
+    });
+    this.feedVm.ensureFeedLoaded();
+  }
+
+  @Builder
+  pageMap(name: string): void {
+    if (name === ROUTE_SELLER_HOME) {
+      SellerHomeView();
+    } else if (name === ROUTE_PRODUCT_DETAIL) {
+      ProductDetailView();
+    } else if (name === ROUTE_PUBLISH_PAGE) {
+      PublishProductView();
+    } else if (name === ROUTE_TRADE_LIST) {
+      TradeListView();
+    } else if (name === ROUTE_TRADE_DETAIL) {
+      TradeDetailView();
+    } else {
+      NavDestination() {
+        Text('页面不存在').fontSize('16fp');
+      }
+      .title('提示');
+    }
+  }
+
+  build() {
+    Navigation(this.pathStack) {
+      HomeView({ pathStack: this.pathStack, agentVm: this.agentVm, vm: this.feedVm });
+    }
+    .mode(NavigationMode.Stack)
+    .hideTitleBar(true)
+    .navDestination(this.pageMap)
+    .onNavBarStateChange((visible: boolean) => {
+      if (!visible) {
+        this.navWasHidden = true;
+      } else if (this.navWasHidden) {
+        this.navWasHidden = false;
+        this.feedVm.loadFeed(true);
+      }
+    });
+  }
+}

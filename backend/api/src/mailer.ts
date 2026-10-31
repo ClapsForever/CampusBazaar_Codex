@@ -43,8 +43,8 @@ export class AliyunVerificationEmailSender implements VerificationEmailSender {
       const result = await this.client.singleSendMailWithOptions(new DirectMail.SingleSendMailRequest({
         accountName: this.config.sender, addressType: 1, replyToAddress: false,
         fromAlias: this.config.senderName, toAddress: email,
-        subject: '校园集市注册邮箱验证码',
-        textBody: `您的校园集市注册验证码为：${code}，5 分钟内有效。请勿向他人提供验证码。如非您本人操作，请忽略本邮件。`,
+        subject: '同窗集注册邮箱验证码',
+        textBody: `您的同窗集注册验证码为：${code}，5 分钟内有效。请勿向他人提供验证码。如非您本人操作，请忽略本邮件。`,
         clickTrace: '0'
       }), new RuntimeOptions({ autoretry: false, connectTimeout: 5_000, readTimeout: 10_000 }));
       if (result.statusCode !== 200 || !result.body?.requestId) throw mailUnavailable();

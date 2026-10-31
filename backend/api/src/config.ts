@@ -60,7 +60,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (!endpoint) throw new Error('Unsupported ALIYUN_DM_REGION_ID; see the DirectMail configuration guide');
     const credentialType = env.ALIYUN_DM_CREDENTIAL_TYPE?.trim() || 'ecs_ram_role';
     if (credentialType !== 'ecs_ram_role' && credentialType !== 'access_key') throw new Error('Invalid ALIYUN_DM_CREDENTIAL_TYPE');
-    const senderName = env.ALIYUN_DM_SENDER_NAME?.trim() || '校园集市';
+    const senderName = env.ALIYUN_DM_SENDER_NAME?.trim() || '同窗集';
     if ([...senderName].length >= 15 || /[\r\n]/.test(senderName)) throw new Error('Invalid ALIYUN_DM_SENDER_NAME');
     mail = { regionId, endpoint, sender: normalizeDeliveryEmail(required(env, 'ALIYUN_DM_SENDER')),
       senderName, credentialType, roleName: env.ALIYUN_DM_ROLE_NAME?.trim() || undefined };

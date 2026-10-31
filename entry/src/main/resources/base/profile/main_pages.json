@@ -1,3 +1,6 @@
 {
-  "src": ["pages/Index", "pages/Main", "pages/LegalDocument"]
+  "src": [
+    "pages/Index", "pages/Main", "pages/LegalDocument",
+    "ui/editorial/pages/Index", "ui/editorial/pages/Main", "ui/editorial/pages/LegalDocument"
+  ]
 }

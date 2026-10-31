@@ -1,0 +1,8 @@
+Campus Editorial Serif is a modified glyph subset of Noto Serif CJK SC Regular.
+Original copyright: © 2017–2024 Adobe (http://www.adobe.com/).
+Original project: https://github.com/notofonts/noto-cjk
+Source: the NotoSerifCJK-Regular.ttc distributed in the HarmonyOS SDK's Previewer.
+Licence: SIL Open Font License 1.1; see OFL.txt.
+The derivative family has been renamed Campus Editorial Serif / CampusEditorialSerif.
+Only characters used in the editorial UI source are included. Dynamic product and
+user text deliberately uses the system sans-serif font.
