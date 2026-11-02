@@ -1,5 +1,5 @@
-/** Publishing and browsing use the same six categories; old values are mapped for display. */
-export const HOME_CATEGORIES: string[] = ['全部', '教材', '数码', '外设', '日用', '运动', '其他'];
+/** Home groups existing publishing categories without changing stored product values. */
+export const HOME_CATEGORIES: string[] = ['全部', '生活', '学习', '娱乐', '其他'];
 export interface CategoryOption {
   value: string;
   group: string;
@@ -34,16 +34,10 @@ export const PRICE_RANGE_OPTIONS: PriceRangeOption[] = [
 
 export function homeCategory(category: string | undefined): string {
   const value: string = (category || '').trim();
-  for (const option of PRODUCT_CATEGORIES) {
-    if (option.value === value) {
-      return option.group;
-    }
-  }
-  if (['图书', '书籍'].includes(value)) return '教材';
-  if (['手机', '电脑', '平板', '相机', '计算器'].includes(value)) return '数码';
-  if (['耳机', '键盘', '鼠标', '显示器', '音箱', '充电器'].includes(value)) return '外设';
-  if (['生活', '生活用品', '台灯', '收纳'].includes(value)) return '日用';
-  if (['出行', '自行车', '单车', '运动用品'].includes(value)) return '运动';
+  if (['学习', '教材', '图书', '书籍', '学习用品', '计算器'].includes(value)) return '学习';
+  if (['生活', '日用', '生活用品', '台灯', '收纳', '数码', '手机', '电脑', '平板', '相机',
+    '外设', '耳机', '键盘', '鼠标', '显示器', '音箱', '充电器', '出行', '自行车', '单车'].includes(value)) return '生活';
+  if (['娱乐', '运动', '运动用品'].includes(value)) return '娱乐';
   return '其他';
 }
 

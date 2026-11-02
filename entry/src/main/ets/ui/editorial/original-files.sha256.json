@@ -33,6 +33,6 @@
   "model/Models.ets": "4669b7bd99f5ebf512b6a58d952712531bca1d9f9d76bbcd75501af8778edab2",
   "common/Constants.ets": "0c4a09f428d2910c300f6a0dff65fac6d1063dfbd79f504741b55412f688b7d8",
   "common/LegalDocuments.ets": "924b1c59c583652fad4a76d655a8682a6505d518d08f4a959c4d54a111dfcd6d",
-  "common/MarketOptions.ets": "b8bafd19117c13e9bf9074b54f992e845d68f1a73d2c7c7e16a77ca37f59755d",
+  "common/MarketOptions.ets": "972ef2419717e8e0e2b4b412d0f6e960c56b648c65e519016593c0cb0c7b7c90",
   "common/Utils.ets": "c55ba9ec31a5f91e0391ed172b0485c338cb9f261667217ef535498ca05e04d7"
 }

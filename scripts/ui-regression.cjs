@@ -186,15 +186,17 @@ test('较早的退出请求完成或失败均不能清除新账号登录状态',
   }
 });
 
-test('发布与首页共用六类，兼容旧小类和大类别名', () => {
+test('首页新分类覆盖现有发布类别和历史小类', () => {
   const { homeCategory, HOME_CATEGORIES, PRODUCT_CATEGORIES, CAMPUS_OPTIONS } = harness()('common/MarketOptions');
-  for (const [value, expected] of [['耳机','外设'], ['键盘','外设'], ['显示器','外设'], ['计算器','数码'],
-    ['自行车','运动'], ['单车','运动'], ['生活用品','日用'], ['教材','教材'], ['数码','数码'],
-    ['生活','日用'], ['出行','运动'], ['未知','其他'], ['', '其他'], [undefined,'其他']]) {
+  for (const [value, expected] of [['耳机','生活'], ['键盘','生活'], ['显示器','生活'], ['计算器','学习'],
+    ['自行车','生活'], ['单车','生活'], ['生活用品','生活'], ['教材','学习'], ['数码','生活'],
+    ['外设','生活'], ['日用','生活'], ['运动','娱乐'], ['运动用品','娱乐'], ['图书','学习'],
+    ['学习','学习'], ['娱乐','娱乐'], ['生活','生活'], ['出行','生活'], ['其他','其他'],
+    ['未知','其他'], ['', '其他'], [undefined,'其他']]) {
     assert.equal(homeCategory(value), expected);
   }
   assert.equal(PRODUCT_CATEGORIES.map(option => option.value).join(','), '教材,数码,外设,日用,运动,其他');
-  assert.equal(HOME_CATEGORIES.join(','), '全部,教材,数码,外设,日用,运动,其他');
+  assert.equal(HOME_CATEGORIES.join(','), '全部,生活,学习,娱乐,其他');
   assert.equal(CAMPUS_OPTIONS.join(','), '江湾校区,邯郸校区,张江校区,枫林校区');
 });
 

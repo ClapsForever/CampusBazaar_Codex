@@ -35,7 +35,7 @@ env JAVA_HOME=/Applications/DevEco-Studio.app/Contents/jbr/Contents/Home \
   -p buildMode=debug assembleHap --no-daemon
 ```
 
-输出为 `entry/build/default/outputs/default/entry-default-unsigned.hap`。未配置调试签名，unsigned HAP 需要在 DevEco 配置签名后才能直接部署。默认后端地址仍为 https://api.campus-bazzar.work。
+输出为 `entry/build/default/outputs/default/entry-default-unsigned.hap`。未配置调试签名，unsigned HAP 需要在 DevEco 配置签名后才能直接部署。当前后端地址为本机演示桥接的 `http://127.0.0.1:18765`；需要启动模拟器及本机 `backend/api/.local-data/demo-tunnel/start-demo.ps1`。也可将 `BackendRuntimeConfig.ets` 改回 `https://api.campus-bazzar.work` 并重新构建。
 
 ## 验证边界
 

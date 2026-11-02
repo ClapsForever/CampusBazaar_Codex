@@ -149,12 +149,6 @@ export struct HomeView {
     Column({ space: 16 }) {
       // The category bar and feed share this single separator.
       Divider().strokeWidth(1).color(COLOR_DIVIDER);
-      Row() {
-        Text(this.category === '全部' ? '最新闲置' : `${this.category}好物`)
-          .fontSize('18fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
-          .layoutWeight(1);
-      }
-      .width('100%');
       if (this.vm.feedError !== '' && this.vm.products.length > 0) {
         Row({ space: 8 }) {
           Text(this.vm.feedError).fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).layoutWeight(1);

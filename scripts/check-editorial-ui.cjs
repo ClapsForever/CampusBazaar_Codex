@@ -91,7 +91,14 @@ for (const [name, hash] of Object.entries(manifest)) {
     /\b(if)\s*\(/g
   ];
   for (const pattern of contracts) {
-    assert.deepEqual(calls(current, pattern), calls(old, pattern), name + ': ' + pattern);
+    const oldCalls = calls(old, pattern);
+    if (name === 'views/HomeView.ets') {
+      // The blue homepage intentionally removes the redundant feed heading.
+      const heading = "Text:" + canonical("this.category === '全部' ? '最新闲置' : `${this.category}好物`");
+      const index = oldCalls.indexOf(heading);
+      if (index >= 0) oldCalls.splice(index, 1);
+    }
+    assert.deepEqual(calls(current, pattern), oldCalls, name + ': ' + pattern);
   }
   for (const match of current.matchAll(/from ['"]([^'"]+)['"]/g)) {
     if (!match[1].startsWith('.')) continue;
@@ -110,7 +117,8 @@ for (const page of ['Index', 'Main', 'LegalDocument']) {
 const home = fs.readFileSync(path.join(editorial, 'views/HomeView.ets'), 'utf8');
 const feed = home.slice(home.indexOf('  productFeed()'), home.indexOf('  private filteredProducts'));
 assert.equal((feed.match(/Divider\(/g) || []).length, 1, 'Home must have exactly one category/feed separator');
-assert.ok(!feed.includes('border({'), 'Feed heading must not introduce another rule');
+assert.ok(!feed.includes('最新闲置') && !feed.includes('${this.category}好物'), 'Home feed must not repeat the category heading');
+assert.ok(!feed.includes('border({'), 'Feed must not introduce another rule');
 for (const page of ['Index', 'Main']) {
   assert.ok(fs.readFileSync(path.join(editorial, 'pages/' + page + '.ets'), 'utf8').includes("$rawfile('editorial/CampusEditorialSerif.otf')"));
 }
