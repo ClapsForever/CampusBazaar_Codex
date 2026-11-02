@@ -111,7 +111,7 @@ for (const layout of ['v3', 'marketplace-v4', 'registration-v4'] as const) {
     const { config, rows } = await legacyFixture(layout);
     let db = openDatabase(config);
     try {
-      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 6);
+      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 7);
       assert.equal(db.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
       assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
       for (const [table, before] of rows) assert.deepEqual(db.prepare(`SELECT * FROM ${table} ORDER BY 1`).all(), before, table);

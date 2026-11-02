@@ -220,7 +220,7 @@ test('v5 升级 v6 保留旧账号、密码、会话和验证状态，重复打�
     f.db.exec('DROP TABLE email_verifications; DROP TABLE email_verification_limits; PRAGMA user_version=5;');
     for (let n = 0; n < 2; n++) {
       await f.restart();
-      assert.equal(f.db.prepare('PRAGMA user_version').get()!.user_version, 6);
+      assert.equal(f.db.prepare('PRAGMA user_version').get()!.user_version, 7);
       assert.deepEqual(f.db.prepare('SELECT * FROM users').get(), user);
       assert.deepEqual(f.db.prepare('SELECT * FROM auth_sessions').get(), session);
       assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM email_verifications').get()!.n, 0);

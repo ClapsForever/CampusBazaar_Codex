@@ -9,6 +9,24 @@ const response: AgentResponse = { requestId: request.requestId, sessionId: "sess
 afterEach(() => vi.useRealTimers());
 
 describe("request identity and session expiry", () => {
+  it("actively cleans idle data and caps a continuously active session at 365 days without resurrecting late results", () => {
+    vi.useFakeTimers();
+    const store = new MemorySessionStore(86400000);
+    const session = store.create(user);
+    session.createdAt = Date.now() - 365 * 86400000;
+    session.updatedAt = Date.now();
+    session.busy = true;
+    store.cleanup();
+    const internals = store as unknown as { sessions: Map<string, unknown> };
+    expect(internals.sessions.has(session.sessionId)).toBe(false);
+    store.release(session);
+    expect(internals.sessions.has(session.sessionId)).toBe(false);
+    expect(() => store.get(session.sessionId, user)).toThrow(expect.objectContaining({ code: "SESSION_NOT_FOUND" }));
+    const idle = store.create(user);
+    vi.advanceTimersByTime(86400000);
+    store.cleanup();
+    expect(internals.sessions.has(idle.sessionId)).toBe(false);
+  });
   it("replays only the same question and session, and reserves a request until released", () => {
     const store = new MemorySessionStore(1000);
     expect(store.claimRequest(request, user)).toBeUndefined();

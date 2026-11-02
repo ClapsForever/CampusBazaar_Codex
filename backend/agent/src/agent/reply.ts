@@ -19,7 +19,7 @@ export function normalizeReply(value: string): string {
 }
 export function noResultsReply(filters: SearchFilters): string {
   const conditions: string[] = [];
-  if (filters.keyword) conditions.push(`关键词：${filters.keyword}`);
+  if (filters.keyword) conditions.push(`${filters.queryTerms ? "需求" : "关键词"}：${filters.keyword}`);
   if (filters.category) conditions.push(`类别：${filters.category}`);
   if (filters.minPriceCents !== undefined) conditions.push(`价格至少 ${priceText(filters.minPriceCents)}`);
   if (filters.maxPriceCents !== undefined) conditions.push(`价格不超过 ${priceText(filters.maxPriceCents)}`);
@@ -31,5 +31,5 @@ export function noResultsReply(filters: SearchFilters): string {
   const budgetHint = filters.minPriceCents !== undefined || filters.maxPriceCents !== undefined
     ? "可以明确说“取消预算限制”，或点击“新对话”重新搜索。"
     : "可以明确调整条件，或点击“新对话”重新搜索。";
-  return `没有找到同时满足明确条件的商品。\n${active}同一对话会保留之前的筛选条件。${budgetHint}`;
+  return `没有检索到符合当前需求和筛选条件的商品。\n${active}同一对话会保留之前的筛选条件。${budgetHint}`;
 }

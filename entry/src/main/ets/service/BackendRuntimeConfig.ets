@@ -1,2 +1,2 @@
-/** Shared API origin; credentials and signed image URLs use HTTPS. */
-export const BUSINESS_API_BASE_URL: string = 'https://api.campus-bazzar.work';
+/** Temporary simulator Demo origin: HDC loopback -> local bridge -> encrypted SSH -> shared API. */
+export const BUSINESS_API_BASE_URL: string = 'http://127.0.0.1:18765';

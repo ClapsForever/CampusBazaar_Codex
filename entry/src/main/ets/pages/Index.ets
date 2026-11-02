@@ -91,8 +91,6 @@ struct Index {
         .enabled(!this.vm.loggingIn)
         .onClick(() => this.vm.setRegistering(!this.vm.registering));
       this.legalLinks();
-      Text('测试版 · 文档为待完善草案')
-        .fontSize(11).fontColor(COLOR_TEXT_TERTIARY).margin({ bottom: 20 });
     }
     .width('100%').height('100%').backgroundColor(COLOR_PAGE_BG);
   }
@@ -114,7 +112,7 @@ struct Index {
         .backgroundColor(Color.Transparent).borderRadius(UI_RADIUS).padding({ left: 8, right: 8 })
         .onClick(() => this.openLegal('community-rules'));
     }
-    .width('100%');
+    .width('100%').margin({ bottom: 20 });
   }
 
   @Builder
@@ -160,9 +158,9 @@ struct Index {
     Row({ space: 4 }) {
       Checkbox({ name: 'registration-consent' }).select(this.vm.acceptedTerms).selectedColor(COLOR_PRIMARY)
         .width(20).height(20).enabled(!this.vm.loggingIn)
-        .accessibilityText('同意用户协议与隐私政策草案')
+        .accessibilityText('同意用户协议与隐私政策')
         .onChange((value: boolean) => { this.vm.acceptedTerms = value; this.vm.consentError = ''; });
-      Text('我已阅读并同意下方用户协议与隐私政策草案')
+      Text('我已阅读并同意下方用户协议与隐私政策')
         .fontSize(12).fontColor(COLOR_TEXT_SECONDARY).layoutWeight(1);
     }
     .width('100%').alignItems(VerticalAlign.Center);

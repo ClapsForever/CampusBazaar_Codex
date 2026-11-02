@@ -160,7 +160,7 @@ test('源码发布包按白名单生成，不带运行密钥、数据库或已�
   const metadata = JSON.parse(readFileSync(join(output, 'release.json')));
   assert.equal(metadata.sha256, createHash('sha256').update(readFileSync(join(output, metadata.archive))).digest('hex'));
   assert.equal(metadata.secretsIncluded, false); assert.equal(metadata.dataIncluded, false);
-  assert.equal(metadata.apiSchema, 6); assert.equal(metadata.legalVersion, '2026-10-23-draft-4');
+  assert.equal(metadata.apiSchema, 7); assert.equal(metadata.legalVersion, '2026-10-23-draft-4');
   assert(!readFileSync(join(output, 'source/deploy/ubuntu/backup.sh'), 'utf8').includes('\r'));
   assert.equal((await execute('prepare-release.mjs', ['--output', output])).status, 1);
 });
@@ -189,7 +189,7 @@ test('通过current目录链接调用配置和数据CLI时仍实际执行并校�
   } finally { fixture.db.close(); }
 });
 
-test('真实v6数据库可快照恢复，保留邮箱验证、取消下架状态、协议、会话、图片与超过十段AI历史', async () => {
+test('真实v7数据库可快照恢复，保留邮箱验证、取消下架状态、协议、会话、图片与超过十段AI历史', async () => {
   const { openDatabase } = await import(pathToFileURL(join(repo, 'backend/api/dist/src/db.js')));
   const { Store } = await import(pathToFileURL(join(repo, 'backend/api/dist/src/store.js')));
   const root = directory(), source = join(root, 'live-data');
@@ -213,12 +213,17 @@ test('真实v6数据库可快照恢复，保留邮箱验证、取消下架状态
       .run(image, owner.id, 'image/png', 'png', bytes.length, Date.now());
     writeFileSync(join(config.uploadDir, `${image}.png`), bytes);
     const product = store.publish(owner, { title: '迁移教材', description: '合成数据', price: 20, imageIds: [image] });
+    const originalUploadTime = Date.now() - 100 * 86400000;
+    db.prepare('UPDATE product_images SET created_at=? WHERE id=?').run(originalUploadTime,image);
     const trade = store.createTransaction(customer, { productId: product.id });
     store.transition(trade.id, customer, 'cancel'); store.delistProduct(product.id, owner);
     for (let index = 0; index < 12; index++) store.saveAgentTurn(`session_backup_${index}`, owner, '保留问题', { requestId: `request_${index}` });
     const bundle = join(root, 'bundle-v5');
     const snapshot = await snapshotData({ database: config.databasePath, uploads: config.uploadDir, output: bundle, apiStopped: true });
-    assert.equal(snapshot.schema, 6); assert.equal(snapshot.counts.agent_sessions, 12);
+    assert.equal(snapshot.schema, 7); assert.equal(snapshot.counts.agent_sessions, 12);
+    const manifest = JSON.parse(readFileSync(join(bundle, 'manifest.json'), 'utf8'));
+    assert.equal(manifest.retention.kind,'one-year-v1');
+    assert.equal(manifest.retention.expiresAt,originalUploadTime + 365 * 86400000);
     const restored = join(root, 'restored-v5'); restoreData({ bundle, destination: restored });
     const restoredDb = openDatabase({ ...config, databasePath: join(restored, 'campusbazaar.sqlite'), uploadDir: join(restored, 'uploads') });
     try {

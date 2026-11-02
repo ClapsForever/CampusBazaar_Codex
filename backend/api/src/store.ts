@@ -87,6 +87,13 @@ export class Store {
     return this.db.prepare('SELECT * FROM users WHERE id=?').get(id) as UserRow | undefined;
   }
 
+  assertActiveUser(id: string): void {
+    const current = this.findUser(id);
+    if (!current?.enabled || !current.email || !current.password_hash) {
+      throw new ApiError(401, 'UNAUTHORIZED', '登录已失效，请重新登录');
+    }
+  }
+
   private issueSession(row: UserRow): { user: Record<string, unknown>; token: string; expiresAt: number } {
     const token = randomBytes(32).toString('base64url');
     const expiresAt = Date.now() + 7 * 86_400_000;
@@ -128,6 +135,7 @@ export class Store {
   }
 
   updateProfile(user: UserRow, body: Record<string, unknown>): Record<string, unknown> {
+    this.assertActiveUser(user.id);
     const nickname = body.nickname === undefined ? user.nickname : text(body.nickname, '昵称', 1, 24);
     const avatar = body.avatarId === undefined ? user.avatar : text(body.avatarId, '头像', 1, 100);
     if (body.avatarId !== undefined) {
@@ -147,9 +155,9 @@ export class Store {
     }
     const hash = await hashPassword(password);
     return transaction(this.db, () => {
+      this.authenticate(token);
       const fresh = this.findUser(user.id)!;
       if (fresh.password_hash !== user.password_hash) throw new ApiError(409, 'PASSWORD_CHANGED', '密码已变更，请刷新后重试');
-      this.authenticate(token);
       this.db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hash, user.id);
       this.db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL')
         .run(Date.now(), user.id, tokenHash(token, this.config));
@@ -267,6 +275,7 @@ export class Store {
   }
 
   publish(user: UserRow, body: Record<string, unknown>): Record<string, unknown> {
+    this.assertActiveUser(user.id);
     const title = text(body.title, '商品名称', 1, 100);
     const description = text(body.description, '商品描述', 1, 3000);
     const priceCents = moneyToCents(body.price);
@@ -365,6 +374,7 @@ export class Store {
   }
 
   createTransaction(user: UserRow, body: Record<string, unknown>, key?: string): Record<string, unknown> {
+    this.assertActiveUser(user.id);
     const productId = text(body.productId, '商品 ID', 1, 100);
     return transaction(this.db, () => {
       const replay = this.replay('create_transaction', user.id, key, body);
@@ -422,6 +432,7 @@ export class Store {
   }
 
   sendMessage(id: string, user: UserRow, body: Record<string, unknown>, key?: string): Record<string, unknown> {
+    this.assertActiveUser(user.id);
     const content = text(body.content, '消息', 1, 2000);
     return transaction(this.db, () => {
       const row = this.findTransaction(id, user);
@@ -465,6 +476,7 @@ export class Store {
   }
 
   saveAgentTurn(sessionId: string, user: UserRow, question: string, response: Record<string, unknown>): void {
+    this.assertActiveUser(user.id);
     transaction(this.db, () => {
       this.rememberAgentSession(sessionId, user);
       const previous = this.db.prepare('SELECT question FROM agent_turns WHERE session_id=? AND request_id=?')

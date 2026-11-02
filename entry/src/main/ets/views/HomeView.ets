@@ -247,9 +247,9 @@ export struct HomeView {
         .bindSheet($$this.profileSettingsVisible, this.profileSettingsContent(), {
           radius: UI_CORNERS, detents: [SheetSize.LARGE], showClose: false
         });
-        this.legalLink('用户协议（草案）', 'user-agreement');
-        this.legalLink('隐私政策（草案）', 'privacy-policy');
-        this.legalLink('社区与交易规则（草案）', 'community-rules');
+        this.legalLink('用户协议', 'user-agreement');
+        this.legalLink('隐私政策', 'privacy-policy');
+        this.legalLink('社区与交易规则', 'community-rules');
         Button('退出登录').type(ButtonType.Normal).width('100%').height(46).margin({ top: 12 })
           .fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
           .borderRadius(UI_RADIUS).onClick(async () => {

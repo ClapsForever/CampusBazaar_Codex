@@ -141,6 +141,7 @@ function grade(result, expected) {
   if (expected.page && result.searchPage !== expected.page) problems.push(`页码应为 ${expected.page}，实际 ${result.searchPage}`);
   if (expected.action && result.action !== expected.action) problems.push(`意图应为 ${expected.action}，实际 ${result.action}`);
   if (expected.noTools && result.tools.length) problems.push('该轮应不调用工具');
+  if (expected.searchCalls !== undefined && result.tools.filter(call => call.tool === 'searchListings').length !== expected.searchCalls) problems.push(`检索次数应为 ${expected.searchCalls}`);
   if (expected.replyPattern && !new RegExp(expected.replyPattern, 'u').test(response.reply)) problems.push('回复未包含期望说明');
   return problems;
 }
@@ -173,6 +174,7 @@ const report = {
   sourceHashes: Object.fromEntries([
     'backend/agent/dist/agent/service.js', 'backend/agent/dist/agent/policy.js',
     'backend/agent/dist/agent/prompts.js', 'backend/agent/dist/intent/parser.js',
+    'backend/agent/dist/agent/retrieval.js',
     'backend/api/dist/src/store.js', 'backend/api/dist/src/search.js',
   ].map(path => [path, createHash('sha256').update(readFileSync(resolve(projectRoot, path))).digest('hex')])),
   catalog: dataset.fixtures, presets: [], cases: [],
@@ -202,6 +204,13 @@ try {
   });
   await workers(cases, async c => {
     const session = sessions.create(user);
+    // Replay a synthetic legacy retrieval state, without creating production
+    // identities or depending on a model to generate the same old mistake.
+    if (c.initialFilters) {
+      assert.ok(!c.preset, 'Use either a preset conversation or initial filters');
+      session.filters = structuredClone(c.initialFilters);
+      session.needs = structuredClone(c.initialNeeds ?? []);
+    }
     if (c.preset && !presetStates.has(c.preset)) {
       const entry = { ...c, blocked: true, passed: false, problems: [`前置对话 ${c.preset} 未通过，未执行本例`] };
       report.cases.push(entry); save(); print(JSON.stringify({ case: c.id, blocked: true })); return;

@@ -38,7 +38,7 @@ test('v1 数据库升级保留旧用户与会话，且重复启动不会重复�
   old.close();
   for (let index = 0; index < 2; index++) {
     const db = openDatabase(config);
-    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 6);
+    assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 7);
     assert.equal(db.prepare('SELECT nickname FROM users').get()!.nickname, '旧昵称');
     assert.equal(db.prepare('SELECT password_hash FROM users').get()!.password_hash, null);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM agent_sessions').get()!.count, 1);
@@ -101,12 +101,13 @@ test('头像昵称密码与对话历史：持久化、分页、越权、失败�
     assert.equal((await fetch(profile.body.avatar)).status, 200);
     assert.equal((await call('POST', '/api/v1/products', a.token, {
       title: '不能复用头像', description: '测试', price: 2, imageIds: [image.id] })).status, 403);
-    // Restarts and authentication migrations must preserve uploaded files.
-    app.db.prepare('UPDATE product_images SET created_at=1 WHERE id=?').run(image.id);
+    // Restarts preserve images still within the one-year retention window.
+    const retainedImageTime = Date.now() - 10 * 86400000;
+    app.db.prepare('UPDATE product_images SET created_at=? WHERE id=?').run(retainedImageTime, image.id);
     const draftUpload = await fetch(base + '/api/v1/uploads', { method: 'POST', headers: {
       authorization: `Bearer ${a.token}`, 'content-type': 'image/png' }, body: png });
     const draftImage = await draftUpload.json() as any;
-    app.db.prepare('UPDATE product_images SET created_at=1 WHERE id=?').run(draftImage.id);
+    app.db.prepare('UPDATE product_images SET created_at=? WHERE id=?').run(retainedImageTime, draftImage.id);
 
     assert.equal((await call('POST', '/api/v1/me/password', a.token, { newPassword: 'short', smsCode: '123456' })).status, 400);
     assert.equal((await call('POST', '/api/v1/me/password', a.token, { newPassword: 'Campus123', smsCode: '000000' })).status, 401);

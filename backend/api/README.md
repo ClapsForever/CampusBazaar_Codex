@@ -72,7 +72,7 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 | 修改密码 | `POST /api/v1/me/password` | `newPassword`（6–64 位且非全空白）和 `currentPassword`；撤销其他会话 |
 | 对话历史列表 | `GET /api/v1/agent/conversations?limit=20&cursor=...` | 当前账号按开始时间倒序；每项 `sessionId,title,createdAt,updatedAt,turnCount` |
 | 历史对话详情 | `GET /api/v1/agent/conversations/{sessionId}?limit=50&cursor=...` | 时间正序的 `{question,createdAt,response}`；仅归属用户可读 |
-| 删除对话历史 | `DELETE /api/v1/agent/conversations/{sessionId}` | 仅本人可删除，删除该段对话及其全部轮次；保留原有分页和数量策略，不自动删旧记录 |
+| 删除对话历史 | `DELETE /api/v1/agent/conversations/{sessionId}` | 仅本人可删除，删除该段对话及其全部轮次；保留原有分页和数量策略，按一年（365天）保留规则清理到期轮次 |
 | 当前用户、退出 | `GET /api/v1/me`、`POST /api/v1/auth/logout` | 退出后令牌失效 |
 | 商品流、搜索 | `GET /api/v1/products?q=...&categories=教材,数码&campuses=江湾校区&priceRanges=0-100,100-1000&limit=20&cursor=...` | 只显示本校可购买商品；同维度多选取并集、不同维度取交集；价格区间单位为分，左闭右开，空上界表示无上限 |
 | 商品详情、我的商品 | `GET /api/v1/products/{id}`、`GET /api/v1/me/products` | 商品包含 ArkTS `Product` 字段及分类、成色、校区 |
@@ -105,10 +105,14 @@ npm test
 
 测试会在系统临时目录创建独立数据库和模拟 Agent，不调用 DeepSeek，也不读取本机 `.env`；保留临时数据，不递归删除目录。真实 DeepSeek 与模拟器联调需在两个服务启动后单独验证。
 
-本版统一使用数据库 schema v6，在 v5 基础上增加邮箱验证码和发码限流表。支持从 v1/v2/v3、商品管理分支的 v4 及注册分支的 v4 升级；按实际表结构补齐状态约束和缺少的注册表，保留已有协议记录及业务数据。v1/v2 先执行 v3 邮箱迁移并撤销此前签发的会话；v3/v4/v5 升级保留已有账号、会话、图片、登录及注册限流。旧手机号账号须由管理员确认归属后绑定邮箱才能登录，旧账号不补造注册协议记录。暂停验证码不删除兼容表或历史数据。更新前备份数据库与图片；旧 API 无法直接打开 v6 数据库，回滚须同时恢复升级前数据库。
+本版统一使用数据库 schema v7，在 v6 邮箱验证码表基础上增加文件清理重试队列与时间索引。支持从 v1/v2/v3、商品管理分支的 v4 及注册分支的 v4 升级；按实际表结构补齐状态约束和缺少的注册表，保留已有协议记录及业务数据。v1/v2 先执行 v3 邮箱迁移并撤销此前签发的会话；v3/v4/v5 升级保留已有账号、会话、图片、登录及注册限流。旧手机号账号须由管理员确认归属后绑定邮箱才能登录，旧账号不补造注册协议记录。暂停验证码不删除兼容表或历史数据。更新前备份数据库与图片；旧 API 无法直接打开 v7 数据库，回滚须同时恢复升级前数据库。
 
 停止业务 API 后，将整个 `.local-data` 目录复制到安全位置即可同时备份 SQLite 和图片。恢复时停止 API，用备份覆盖该目录再启动。若在 API 运行期间备份，请先使用 SQLite 的在线备份机制，避免只复制主数据库文件而遗漏 WAL 数据。
 
 ## 上传 GitHub 前
 
 在仓库根目录运行 `git status --short`、`git diff --check` 和 `git check-ignore backend/api/.env backend/api/.local-data/campusbazaar.sqlite backend/agent/.env`。只提交源码、两个 `package-lock.json`、`.env.example`、文档和必要的测试；不要提交 `.env`、本机 SQLite、图片、`node_modules` 或 `dist`。
+
+## 一年保留期自动清理
+
+默认在启动及每小时按各条记录原始创建/上传时间清理满 365 天的业务数据和图片，支持文件失败重试及可选的受管理备份清理。账号资料也按原始注册时间到期，不因登录重新计时。正式部署前先在副本运行 `npm run retention:cleanup -- --dry-run`；详见[规则、配置和部署边界](../../docs/data-retention.md)。本次源码更新不表示共享服务器已部署或历史副本已处理。

@@ -47,7 +47,7 @@ function databaseSummary(file) {
     if (integrity.length !== 1 || integrity[0].integrity_check !== 'ok') throw new Error('SQLite integrity check failed');
     if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('SQLite foreign key check failed');
     const schema = Number(db.prepare('PRAGMA user_version').get().user_version);
-    if (schema < 1 || schema > 6) throw new Error('Unsupported database schema; review the target API first');
+    if (schema < 1 || schema > 7) throw new Error('Unsupported database schema; review the target API first');
     const counts = {};
     for (const { name } of db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()) {
       counts[name] = Number(db.prepare(`SELECT COUNT(*) AS n FROM "${name.replaceAll('"', '""')}"`).get().n);
@@ -87,7 +87,28 @@ export async function snapshotData({ database, uploads, output, apiStopped = fal
   const files = filesIn(join(directory, 'data')).map(name => ({
     path: `data/${name}`, bytes: lstatSync(join(directory, 'data', name)).size, sha256: digest(join(directory, 'data', name))
   }));
+  // A copy never resets the original row's one-year clock. Retire the whole
+  // managed snapshot when its oldest constituent record reaches that deadline.
+  const expiryDb = new DatabaseSync(join(directory, 'data/campusbazaar.sqlite'), { readOnly: true });
+  let oldestDataAt = Date.now();
+  try {
+    for (const [table, column] of [['users','created_at'], ['products','published_at'], ['product_images','created_at'],
+      ['transactions','create_time'], ['messages','send_time'], ['agent_sessions','created_at'],
+      ['agent_turns','created_at'], ['registration_consents','accepted_at'], ['idempotency_records','created_at'],
+      ['email_verifications','created_at']]) {
+      const columns = expiryDb.prepare(`PRAGMA table_info(${table})`).all();
+      if (!columns.some(item => item.name === column)) continue;
+      const row = expiryDb.prepare(`SELECT MIN(${column}) AS oldest FROM ${table}`).get();
+      if (typeof row?.oldest === 'number' && Number.isSafeInteger(row.oldest)) oldestDataAt = Math.min(oldestDataAt, row.oldest);
+    }
+    const sessions = expiryDb.prepare('PRAGMA table_info(auth_sessions)').all();
+    if (sessions.some(item => item.name === 'expires_at')) {
+      const row = expiryDb.prepare('SELECT MIN(expires_at) AS oldest FROM auth_sessions').get();
+      if (typeof row?.oldest === 'number') oldestDataAt = Math.min(oldestDataAt, row.oldest - 7 * 86400000);
+    }
+  } finally { expiryDb.close(); }
   writeFileSync(join(directory, 'manifest.json'), JSON.stringify({ format: 1, createdAt: new Date().toISOString(),
+    retention: { kind: 'one-year-v1', expiresAt: oldestDataAt + 365 * 86400000 },
     schema: summary.schema, counts: summary.counts, files }, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   verifyData(directory);
   return { directory, schema: summary.schema, counts: summary.counts, files: files.length };

@@ -8,7 +8,8 @@ import { priceText, type AgentResponse, type ListingSummary, type Recommendation
 import type { SessionRecord } from "../sessions/store.js";
 import { requestModelText } from "./model.js";
 import { withTurnSignal } from "./deadline.js";
-import { PLAN_PROMPT, SYSTEM_PROMPT } from "./prompts.js";
+import { PLAN_PROMPT, RETRIEVAL_REPAIR_PROMPT, SYSTEM_PROMPT } from "./prompts.js";
+import { RetrievalRepairSchema, repairedQueryTerms } from "./retrieval.js";
 import { noResultsReply, normalizeReply } from "./reply.js";
 import { createAgentTools } from "../tools/index.js";
 import { priceDelta, relativePriceRequested, requestedPage } from "../intent/constraints.js";
@@ -124,9 +125,10 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     if (targetIds.length === 0 || targetIds.some((id) => !id) || (plan.action === "compare" && targetIds.length < 2)) return finish("请指出上一次展示中的有效商品顺序；比较时至少选择两件商品。", "clarification");
     if (targetIds.length > config.maxToolCalls) return finish(`一次最多读取 ${config.maxToolCalls} 件商品，请缩小比较范围。`, "clarification");
   }
-  const tools = createAgentTools({ client: options.client, user: options.user, maxResults: config.maxResults,
+  const toolRuntime = { client: options.client, user: options.user, maxResults: config.maxResults,
     action: plan.action, filters, allowedListingIds: new Set(targetIds.filter((id): id is string => Boolean(id))),
-  });
+  };
+  const tools = createAgentTools(toolRuntime);
   // Results are local to this call. Historical messages are never scanned for recommendations.
   let search: SearchDetails | undefined;
   const details: DetailDetails[] = [];
@@ -136,6 +138,7 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     const tool = tools.find((item) => item.name === name);
     if (!tool) throw new AppError("TOOL_INPUT_INVALID", "当前意图不允许此工具");
     if (++calls > config.maxToolCalls) throw new AppError("TOOL_LIMIT_EXCEEDED", "已达到本轮工具调用上限");
+    toolRuntime.filters = filters;
     signal.throwIfAborted();
     const startedAt = Date.now();
     options.log("tool_start", { requestId: options.requestId, toolName: name, toolCallCount: calls });
@@ -155,6 +158,24 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
   if (plan.action === "search" || plan.action === "refine") await execute("searchListings", { page: searchPage, pageSize: config.maxResults });
   else if (plan.action === "preference") await execute("getUserPreferences", {});
   else for (const listingId of targetIds) await execute("getListingDetail", { listingId });
+
+  const firstSearch = search as SearchDetails | undefined;
+  // One bounded vocabulary repair, only for a genuinely empty first page.
+  // Empty later pages must not restart pagination or change the retrieval union.
+  if (firstSearch?.result.total === 0 && searchPage === 1 && filters.queryTerms && calls < config.maxToolCalls) {
+    const text = await requestModelText(config,
+      RETRIEVAL_REPAIR_PROMPT.replace("SCHEMA_PLACEHOLDER", JSON.stringify(RetrievalRepairSchema)),
+      JSON.stringify({ question: message, needs, filters,
+        recentRequests: session.messages.filter(item => item.role === "user").slice(-3).map(item => item.content) }),
+      signal, JSON.stringify({ scope: "specific", topicTerms: [filters.queryTerms[0]], queryTerms: filters.queryTerms }));
+    const queryTerms = repairedQueryTerms(text, filters.queryTerms);
+    if (queryTerms) {
+      filters = { ...filters, queryTerms };
+      modelResults.length = 0;
+      options.log("retrieval_repair", { requestId: options.requestId, queryCount: queryTerms.length });
+      await execute("searchListings", { page: 1, pageSize: config.maxResults });
+    }
+  }
 
   const currentSearch = search as SearchDetails | undefined;
   const recommendations: Recommendation[] = currentSearch

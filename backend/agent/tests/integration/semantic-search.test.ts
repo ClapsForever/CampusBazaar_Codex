@@ -79,6 +79,69 @@ async function fixture(maxResults = 10) {
 const ids = (response: any): string[] => response.recommendations.map((item: any) => item.listingId);
 
 describe("semantic retrieval through the business HTTP API", () => {
+  it("repairs the reported exam-goal false negative against real HTTP and SQLite", async () => {
+    const f = await fixture();
+    f.add("materials", "六级资料");
+    f.plan({ keyword: "英语六级", category: "教材",
+      queryTerms: ["英语六级真题", "英语六级词汇", "英语六级阅读"] }, "search", ["六级真题", "六级词汇", "六级听力"])
+      .mockResolvedValueOnce(JSON.stringify({ scope: "goal", topicTerms: ["六级", "CET6", "CET-6", "CET 6"], queryTerms: ["六级 真题", "六级 词汇"] }));
+    const result = await f.chat("我快要考六级了，想准备一下，你有什么推荐的资料吗");
+    expect(result.status).toBe("completed");
+    expect(ids(result).sort()).toEqual(["listing_cet_listening", "listing_cet_reading", "listing_cet_tests", "listing_cet_vocab", "listing_materials"]);
+    expect(f.search).toHaveBeenCalledTimes(2);
+    expect(f.search.mock.calls[0]?.[0].queryTerms).not.toContain("六级");
+    expect(f.search.mock.calls[1]?.[0].queryTerms).toContain("六级");
+    expect(f.sessions.get(result.sessionId, f.user).filters.queryTerms).toContain("六级");
+    await f.chat("预算改成20元", result.sessionId);
+    expect(ids(await f.chat("只找六级词汇书", result.sessionId))).toEqual(["listing_cet_vocab"]);
+    expect(f.search.mock.calls[2]?.[0]).toMatchObject({ maxPriceCents: 2000, queryTerms: expect.arrayContaining(["六级"]) });
+  });
+  it("repairs compound wording without widening an explicit subtype, budget, campus, condition or exclusion", async () => {
+    const f = await fixture();
+    f.add("vocab_expensive", "六级词汇书", 3000);
+    f.add("vocab_other_campus", "六级词汇书", 1000, "教材", "江湾校区");
+    f.add("vocab_excluded", "六级词汇讲义", 1000);
+    f.plan({ keyword: "英语六级词汇", category: "教材", queryTerms: ["英语六级词汇书"],
+      maxPriceCents: 2000, campus: "邯郸校区", condition: "like_new", excludeKeywords: ["讲义"] }, "search", ["六级词汇书"])
+      .mockResolvedValueOnce(JSON.stringify({ scope: "specific", topicTerms: ["六级", "CET-6"], queryTerms: ["六级 词汇", "六级 单词", "CET-6 vocabulary"] }));
+    const result = await f.chat("只找20元以内、邯郸校区、九成新以上的六级词汇书，不要讲义");
+    expect(ids(result)).toEqual(["listing_cet_vocab"]);
+    const [initial, repaired] = f.search.mock.calls.map(([input]) => input);
+    expect(initial).toBeDefined();
+    expect(repaired).toEqual({ ...initial, queryTerms: expect.arrayContaining(["六级 词汇"]) });
+    expect(f.search).toHaveBeenCalledTimes(2);
+    expect(f.sessions.get(result.sessionId, f.user).filters.queryTerms).not.toContain("六级");
+  });
+  it("bounds vocabulary repair to one retry even when both queries are empty", async () => {
+    const f = await fixture();
+    f.plan({ keyword: "不存在的课程", category: "教材", queryTerms: ["不存在的课程讲义"] }, "search", ["课程讲义"])
+      .mockResolvedValueOnce(JSON.stringify({ scope: "specific", topicTerms: ["不存在的课程"], queryTerms: ["不存在的课程 教材"] }));
+    const result = await f.chat("找不存在的课程讲义");
+    expect(result.status).toBe("no_results");
+    expect(ids(result)).toEqual([]);
+    expect(f.search).toHaveBeenCalledTimes(2);
+  });
+  it("does not accept a repair that tries to change hard filters", async () => {
+    const f = await fixture();
+    f.plan({ keyword: "英语六级词汇", category: "教材", queryTerms: ["英语六级词汇书"], maxPriceCents: 1000 }, "search", ["六级词汇书"])
+      .mockResolvedValueOnce(JSON.stringify({ scope: "goal", topicTerms: ["六级"], queryTerms: ["六级"], maxPriceCents: null }));
+    const result = await f.chat("只找10元以内的六级词汇书");
+    expect(result.status).toBe("no_results");
+    expect(f.search).toHaveBeenCalledTimes(1);
+    expect(f.sessions.get(result.sessionId, f.user).filters.maxPriceCents).toBe(1000);
+  });
+  it("leaves an exhausted page and its retrieval union unchanged", async () => {
+    const f = await fixture(2);
+    const first = await f.chat("我想考六级");
+    const before = f.sessions.get(first.sessionId, f.user).filters;
+    f.plan({}, "refine");
+    const result = await f.chat("第三页", first.sessionId);
+    expect(result.status).toBe("no_results");
+    expect(f.search).toHaveBeenCalledTimes(2);
+    expect(f.search.mock.calls[1]?.[0]).toMatchObject({ ...before, page: 3 });
+    expect(f.sessions.get(first.sessionId, f.user).filters).toEqual(before);
+  });
+
   it("finds the published full-name textbook from an abbreviation without mixing in other maths", async () => {
     const f = await fixture();
     const result = await f.chat("帮我找一本线代教材");

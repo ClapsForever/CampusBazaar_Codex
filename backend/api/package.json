@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node --env-file=.env dist/src/main.js",
     "accounts:import": "node --env-file-if-exists=.env dist/src/account-cli.js",
+    "retention:cleanup": "node --env-file=.env dist/src/retention-cli.js",
     "test": "npm run build && node --test dist/test/*.test.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

@@ -17,6 +17,7 @@ export interface SessionRecord {
 }
 
 export interface SessionStore {
+  cleanup?(): void;
   create(user: UserContext): SessionRecord;
   get(sessionId: string, user: UserContext): SessionRecord;
   save(record: SessionRecord): void;
@@ -60,7 +61,7 @@ export class MemorySessionStore implements SessionStore {
   get(sessionId: string, user: UserContext): SessionRecord {
     this.sweep();
     const record = this.sessions.get(sessionId);
-    if (!record || (!record.busy && Date.now() - record.updatedAt >= this.ttlMs)) {
+    if (!record || this.tooOld(record.createdAt) || (!record.busy && Date.now() - record.updatedAt >= this.ttlMs)) {
       this.sessions.delete(sessionId);
       throw new AppError("SESSION_NOT_FOUND", "会话不存在或已过期");
     }
@@ -69,6 +70,11 @@ export class MemorySessionStore implements SessionStore {
   }
 
   save(record: SessionRecord): void {
+    // A late model response must not resurrect an absolutely expired session.
+    if (this.tooOld(record.createdAt)) {
+      this.sessions.delete(record.sessionId);
+      return;
+    }
     record.updatedAt = Date.now();
     this.sessions.set(record.sessionId, record);
   }
@@ -112,12 +118,21 @@ export class MemorySessionStore implements SessionStore {
     this.responses.set(request.requestId, { user: { ...user }, request: { ...request }, response, createdAt: Date.now() });
   }
 
+  private tooOld(createdAt: number): boolean {
+    return Date.now() - createdAt >= 365 * 24 * 60 * 60_000;
+  }
+
+  cleanup(): void {
+    this.lastSweep = -Infinity;
+    this.sweep();
+  }
+
   private sweep(): void {
     const now = Date.now();
     if (now - this.lastSweep < Math.min(this.ttlMs, 60_000)) return;
     this.lastSweep = now;
     for (const [id, session] of this.sessions) {
-      if (!session.busy && now - session.updatedAt >= this.ttlMs) this.sessions.delete(id);
+      if (this.tooOld(session.createdAt) || (!session.busy && now - session.updatedAt >= this.ttlMs)) this.sessions.delete(id);
     }
     for (const [id, cached] of this.responses) {
       if (now - cached.createdAt >= this.ttlMs) this.responses.delete(id);

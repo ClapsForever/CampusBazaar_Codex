@@ -1,0 +1,1000 @@
+{
+  "startedAt": "2026-10-31T06:46:51.522Z",
+  "modelMode": "real",
+  "provider": "openai-compatible",
+  "modelName": "deepseek-flash",
+  "temperature": 0,
+  "maxResults": 10,
+  "turnTimeoutMs": 60000,
+  "nodeVersion": "v24.21.0",
+  "projectRoot": "D:\\Dev\\DevEco_Repos\\CampusBazaar_Codex",
+  "datasetSha256": "ca339c172a58404f67d2cac499191e2b6d475bbac49894896d33d1339d08cb15",
+  "sourceHashes": {
+    "backend/agent/dist/agent/service.js": "8df1141a4085a93c1efb38403fe9f0a5a37de7391979a1ae3c0ae267953d41a4",
+    "backend/agent/dist/agent/policy.js": "31e2daa04665583022b1fff6c6889ee65746de13b9975bbe6b4180d185941d81",
+    "backend/agent/dist/agent/prompts.js": "6c0dd1aff5dce72be21aee0560f6c87b7aacd4f7f5319423d2fd44acb38947c3",
+    "backend/agent/dist/intent/parser.js": "885a98c5c5c04207ecc79db736efd969b9b2d8d076a870be9cba683cb1e7286f",
+    "backend/api/dist/src/store.js": "694c56b7e0197efaf4f593acdfde05b478977053d38e43291680110a60a04d1c",
+    "backend/api/dist/src/search.js": "45cda065dea3e9df21f3930bbea26b0fb4685a7ac106e7e2422ea6770b09419e"
+  },
+  "catalog": [
+    {
+      "id": "listing_cet_materials",
+      "title": "六级资料",
+      "description": "备考整理资料，书页完整。",
+      "category": "教材",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_cet_vocab",
+      "title": "六级词汇书",
+      "description": "单词记忆和复习。",
+      "category": "教材",
+      "price": 15,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_cet_tests",
+      "title": "六级历年真题试卷",
+      "description": "含答案解析。",
+      "category": "教材",
+      "price": 25,
+      "condition": "good",
+      "campus": "江湾校区"
+    },
+    {
+      "id": "listing_cet_reading",
+      "title": "CET-6 阅读专项训练",
+      "description": "阅读理解练习册。",
+      "category": "教材",
+      "price": 35,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_cet4",
+      "title": "四级词汇书",
+      "description": "英语四级单词复习。",
+      "category": "教材",
+      "price": 5,
+      "condition": "new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_grammar",
+      "title": "英语语法教材",
+      "description": "通用英语语法学习。",
+      "category": "教材",
+      "price": 10,
+      "condition": "new",
+      "campus": "邯郸校区"
+    },
+    {
+      "id": "listing_lamp",
+      "title": "便携小台灯",
+      "description": "看书用的充电灯。",
+      "category": "日用",
+      "price": 20,
+      "condition": "like_new",
+      "campus": "邯郸校区"
+    }
+  ],
+  "presets": [],
+  "cases": [
+    {
+      "id": "cet-user-report",
+      "scope": "core",
+      "message": "我快要考六级了，想准备一下，你有什么推荐的资料吗",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_cet_materials",
+          "listing_cet_vocab",
+          "listing_cet_tests",
+          "listing_cet_reading"
+        ]
+      },
+      "result": {
+        "message": "我快要考六级了，想准备一下，你有什么推荐的资料吗",
+        "response": {
+          "requestId": "req_eval_3d2ea9f3-c1a8-4edd-af57-04eb8e92dd52",
+          "sessionId": "session_ec8017c1-ba86-4bdd-8a55-60be18211b92",
+          "status": "completed",
+          "reply": "我理解你可能需要：六级真题、六级词汇、六级听力、六级阅读、六级写作、六级翻译、六级模拟题。\n本轮在教材品类下找到4件与六级备考相关的商品：\n\n1. 六级历年真题试卷，25元，成色良好，江湾校区，描述含答案解析。\n2. 六级词汇书，15元，几乎全新，邯郸校区，描述用于单词记忆和复习。\n3. CET-6 阅读专项训练，35元，几乎全新，邯郸校区，阅读理解练习册。\n4. 六级资料，20元，几乎全新，邯郸校区，描述为备考整理资料、书页完整。\n\n本轮没有找到专门标注听力、写作、翻译或模拟题的商品。商品是否适合你的备考安排、具体版本和内容完整度，结果未提供，需以商品实物信息为准。",
+          "recommendations": [
+            {
+              "listingId": "listing_cet_reading",
+              "reasons": [
+                "售价 35 元",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_tests",
+              "reasons": [
+                "售价 25 元",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_vocab",
+              "reasons": [
+                "售价 15 元",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_materials",
+              "reasons": [
+                "售价 20 元",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "六级备考资料",
+          "category": "教材",
+          "queryTerms": [
+            "六级",
+            "CET6",
+            "CET-6",
+            "CET 6",
+            "六级 真题",
+            "六级 词汇",
+            "六级 听力",
+            "六级 阅读",
+            "六级 写作",
+            "六级 翻译",
+            "六级 模拟",
+            "CET-6 真题"
+          ]
+        },
+        "displayedListingIds": [
+          "listing_cet_reading",
+          "listing_cet_tests",
+          "listing_cet_vocab",
+          "listing_cet_materials"
+        ],
+        "displayedProducts": [
+          {
+            "listingId": "listing_cet_reading",
+            "title": "CET-6 阅读专项训练"
+          },
+          {
+            "listingId": "listing_cet_tests",
+            "title": "六级历年真题试卷"
+          },
+          {
+            "listingId": "listing_cet_vocab",
+            "title": "六级词汇书"
+          },
+          {
+            "listingId": "listing_cet_materials",
+            "title": "六级资料"
+          }
+        ],
+        "searchPage": 1,
+        "needs": [
+          "六级真题",
+          "六级词汇",
+          "六级听力",
+          "六级阅读",
+          "六级写作",
+          "六级翻译",
+          "六级模拟题"
+        ],
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "六级备考资料",
+              "category": "教材",
+              "queryTerms": [
+                "六级",
+                "CET6",
+                "CET-6",
+                "CET 6",
+                "六级 真题",
+                "六级 词汇",
+                "六级 听力",
+                "六级 阅读",
+                "六级 写作",
+                "六级 翻译",
+                "六级 模拟",
+                "CET-6 真题"
+              ],
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_cet_reading",
+              "listing_cet_tests",
+              "listing_cet_vocab",
+              "listing_cet_materials"
+            ],
+            "total": 4,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 2533,
+              "completion_tokens": 1066,
+              "total_tokens": 3599,
+              "prompt_tokens_details": {
+                "cached_tokens": 1152
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 956
+              },
+              "prompt_cache_hit_tokens": 1152,
+              "prompt_cache_miss_tokens": 1381
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"六级备考资料\",\"category\":\"教材\",\"queryTerms\":[\"六级\",\"CET6\",\"CET-6\",\"CET 6\",\"六级 真题\",\"六级 词汇\",\"六级 听力\",\"六级 阅读\",\"六级 写作\",\"六级 翻译\",\"六级 模拟\",\"CET-6 真题\"]},\"positions\":[],\"page\":1,\"needs\":[\"六级真题\",\"六级词汇\",\"六级听力\",\"六级阅读\",\"六级写作\",\"六级翻译\",\"六级模拟题\"]}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "六级备考资料",
+                "category": "教材",
+                "queryTerms": [
+                  "六级",
+                  "CET6",
+                  "CET-6",
+                  "CET 6",
+                  "六级 真题",
+                  "六级 词汇",
+                  "六级 听力",
+                  "六级 阅读",
+                  "六级 写作",
+                  "六级 翻译",
+                  "六级 模拟",
+                  "CET-6 真题"
+                ]
+              },
+              "positions": [],
+              "page": 1,
+              "needs": [
+                "六级真题",
+                "六级词汇",
+                "六级听力",
+                "六级阅读",
+                "六级写作",
+                "六级翻译",
+                "六级模拟题"
+              ]
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 1096,
+              "completion_tokens": 390,
+              "total_tokens": 1486,
+              "prompt_tokens_details": {
+                "cached_tokens": 384
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 241
+              },
+              "prompt_cache_hit_tokens": 384,
+              "prompt_cache_miss_tokens": 712
+            }
+          }
+        ],
+        "elapsedMs": 9970
+      },
+      "passed": true,
+      "problems": []
+    },
+    {
+      "id": "cet-short-goal",
+      "scope": "core",
+      "message": "我想考六级",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_cet_materials",
+          "listing_cet_vocab",
+          "listing_cet_tests",
+          "listing_cet_reading"
+        ]
+      },
+      "result": {
+        "message": "我想考六级",
+        "response": {
+          "requestId": "req_eval_a9065800-975b-4de9-b8e7-ba626b5eabcf",
+          "sessionId": "session_a3042aee-a235-4410-a04b-09861fd63d80",
+          "status": "completed",
+          "reply": "我理解你可能需要：六级真题练习、六级词汇积累、六级听力训练、六级写作与翻译。\n本轮在教材类中查到 4 件六级相关商品：\n\n1. 六级词汇书，15 元，成色 like_new，邯郸校区；描述为单词记忆和复习，可能适合词汇积累。\n2. 六级资料，20 元，成色 like_new，邯郸校区；描述为备考整理资料、书页完整，具体包含哪些题型未注明。\n3. 六级历年真题试卷，25 元，成色 good，江湾校区；描述含答案解析，可能适合真题练习。\n4. CET-6 阅读专项训练，35 元，成色 like_new，邯郸校区；描述为阅读理解练习册，偏向阅读专项。\n\n这批结果中没有明确标注听力、写作或翻译专项的商品；“六级资料”的具体内容也未知。需要的话，我可以按价格从低到高排序，或按你给定的预算再筛选。",
+          "recommendations": [
+            {
+              "listingId": "listing_cet_reading",
+              "reasons": [
+                "售价 35 元",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_tests",
+              "reasons": [
+                "售价 25 元",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_vocab",
+              "reasons": [
+                "售价 15 元",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_materials",
+              "reasons": [
+                "售价 20 元",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "六级备考",
+          "category": "教材",
+          "queryTerms": [
+            "六级",
+            "CET6",
+            "CET-6",
+            "CET 6",
+            "大学英语六级",
+            "六级 真题",
+            "六级 词汇",
+            "六级 听力",
+            "CET-6 真题",
+            "CET-6 vocabulary",
+            "六级 写作",
+            "六级 翻译"
+          ]
+        },
+        "displayedListingIds": [
+          "listing_cet_reading",
+          "listing_cet_tests",
+          "listing_cet_vocab",
+          "listing_cet_materials"
+        ],
+        "displayedProducts": [
+          {
+            "listingId": "listing_cet_reading",
+            "title": "CET-6 阅读专项训练"
+          },
+          {
+            "listingId": "listing_cet_tests",
+            "title": "六级历年真题试卷"
+          },
+          {
+            "listingId": "listing_cet_vocab",
+            "title": "六级词汇书"
+          },
+          {
+            "listingId": "listing_cet_materials",
+            "title": "六级资料"
+          }
+        ],
+        "searchPage": 1,
+        "needs": [
+          "六级真题练习",
+          "六级词汇积累",
+          "六级听力训练",
+          "六级写作与翻译"
+        ],
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "六级备考",
+              "category": "教材",
+              "queryTerms": [
+                "六级",
+                "CET6",
+                "CET-6",
+                "CET 6",
+                "大学英语六级",
+                "六级 真题",
+                "六级 词汇",
+                "六级 听力",
+                "CET-6 真题",
+                "CET-6 vocabulary",
+                "六级 写作",
+                "六级 翻译"
+              ],
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_cet_reading",
+              "listing_cet_tests",
+              "listing_cet_vocab",
+              "listing_cet_materials"
+            ],
+            "total": 4,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 2522,
+              "completion_tokens": 1288,
+              "total_tokens": 3810,
+              "prompt_tokens_details": {
+                "cached_tokens": 1152
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 1182
+              },
+              "prompt_cache_hit_tokens": 1152,
+              "prompt_cache_miss_tokens": 1370
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"六级备考\",\"category\":\"教材\",\"queryTerms\":[\"六级\",\"CET6\",\"CET-6\",\"CET 6\",\"大学英语六级\",\"六级 真题\",\"六级 词汇\",\"六级 听力\",\"CET-6 真题\",\"CET-6 vocabulary\",\"六级 写作\",\"六级 翻译\"]},\"positions\":[],\"page\":1,\"needs\":[\"六级真题练习\",\"六级词汇积累\",\"六级听力训练\",\"六级写作与翻译\"]}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "六级备考",
+                "category": "教材",
+                "queryTerms": [
+                  "六级",
+                  "CET6",
+                  "CET-6",
+                  "CET 6",
+                  "大学英语六级",
+                  "六级 真题",
+                  "六级 词汇",
+                  "六级 听力",
+                  "CET-6 真题",
+                  "CET-6 vocabulary",
+                  "六级 写作",
+                  "六级 翻译"
+                ]
+              },
+              "positions": [],
+              "page": 1,
+              "needs": [
+                "六级真题练习",
+                "六级词汇积累",
+                "六级听力训练",
+                "六级写作与翻译"
+              ]
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 1082,
+              "completion_tokens": 542,
+              "total_tokens": 1624,
+              "prompt_tokens_details": {
+                "cached_tokens": 384
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 359
+              },
+              "prompt_cache_hit_tokens": 384,
+              "prompt_cache_miss_tokens": 698
+            }
+          }
+        ],
+        "elapsedMs": 12187
+      },
+      "passed": true,
+      "problems": []
+    },
+    {
+      "id": "cet-vocab-only",
+      "scope": "core",
+      "message": "只找六级词汇书，不要试卷",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_cet_vocab"
+        ]
+      },
+      "result": {
+        "message": "只找六级词汇书，不要试卷",
+        "response": {
+          "requestId": "req_eval_1dee94d9-1cb2-4620-9038-e08133ef28cc",
+          "sessionId": "session_a43832b0-1764-4e6f-8f32-b7a2401b826d",
+          "status": "completed",
+          "reply": "我理解你可能需要：六级词汇书。\n符合条件的有 1 件：\n\n1. 六级词汇书\n价格 15 元，成色为几乎全新，邯郸校区，商品描述为“单词记忆和复习”。未包含试卷类商品。\n\n如果需要，我可以继续帮你按价格排序或比较其他词汇类教材。",
+          "recommendations": [
+            {
+              "listingId": "listing_cet_vocab",
+              "reasons": [
+                "售价 15 元",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "六级词汇书",
+          "category": "教材",
+          "queryTerms": [
+            "六级 词汇",
+            "六级 单词",
+            "六级 词汇书",
+            "大学英语六级 词汇",
+            "CET6 词汇",
+            "CET-6 词汇",
+            "CET6 vocabulary",
+            "CET-6 vocabulary",
+            "CET 6 vocabulary"
+          ],
+          "excludeKeywords": [
+            "试卷"
+          ]
+        },
+        "displayedListingIds": [
+          "listing_cet_vocab"
+        ],
+        "displayedProducts": [
+          {
+            "listingId": "listing_cet_vocab",
+            "title": "六级词汇书"
+          }
+        ],
+        "searchPage": 1,
+        "needs": [
+          "六级词汇书"
+        ],
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "六级词汇书",
+              "category": "教材",
+              "queryTerms": [
+                "六级 词汇",
+                "六级 单词",
+                "六级 词汇书",
+                "大学英语六级 词汇",
+                "CET6 词汇",
+                "CET-6 词汇",
+                "CET6 vocabulary",
+                "CET-6 vocabulary",
+                "CET 6 vocabulary"
+              ],
+              "excludeKeywords": [
+                "试卷"
+              ],
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_cet_vocab"
+            ],
+            "total": 1,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 2527,
+              "completion_tokens": 849,
+              "total_tokens": 3376,
+              "prompt_tokens_details": {
+                "cached_tokens": 2304
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 749
+              },
+              "prompt_cache_hit_tokens": 2304,
+              "prompt_cache_miss_tokens": 223
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"六级词汇书\",\"category\":\"教材\",\"queryTerms\":[\"六级 词汇\",\"六级 单词\",\"六级 词汇书\",\"大学英语六级 词汇\",\"CET6 词汇\",\"CET-6 词汇\",\"CET6 vocabulary\",\"CET-6 vocabulary\",\"CET 6 vocabulary\"],\"excludeKeywords\":[\"试卷\",\"真题\"]},\"positions\":[],\"page\":1,\"needs\":[\"六级词汇书\"]}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "六级词汇书",
+                "category": "教材",
+                "queryTerms": [
+                  "六级 词汇",
+                  "六级 单词",
+                  "六级 词汇书",
+                  "大学英语六级 词汇",
+                  "CET6 词汇",
+                  "CET-6 词汇",
+                  "CET6 vocabulary",
+                  "CET-6 vocabulary",
+                  "CET 6 vocabulary"
+                ],
+                "excludeKeywords": [
+                  "试卷",
+                  "真题"
+                ]
+              },
+              "positions": [],
+              "page": 1,
+              "needs": [
+                "六级词汇书"
+              ]
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 874,
+              "completion_tokens": 61,
+              "total_tokens": 935,
+              "prompt_tokens_details": {
+                "cached_tokens": 384
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              },
+              "prompt_cache_hit_tokens": 384,
+              "prompt_cache_miss_tokens": 490
+            }
+          }
+        ],
+        "elapsedMs": 6945
+      },
+      "passed": true,
+      "problems": []
+    },
+    {
+      "id": "cet-papers-only",
+      "scope": "core",
+      "message": "想找六级真题",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_cet_tests"
+        ]
+      },
+      "result": {
+        "message": "想找六级真题",
+        "response": {
+          "requestId": "req_eval_6b33c670-35eb-4c2b-870f-c0ac5b4b73ab",
+          "sessionId": "session_6c1a8171-27f1-4c0d-b08a-3a4645a4d444",
+          "status": "completed",
+          "reply": "我理解你可能需要：六级真题。\n本轮找到 1 件符合“六级真题”条件的教材：\n\n1. 六级历年真题试卷\n价格 25 元\n成色良好\n江湾校区\n商品描述称含答案解析，具体内容以实物为准\n\n目前只有这一件结果，没有更多分页。如需按价格排序或查看其他校区，可以继续告诉我。",
+          "recommendations": [
+            {
+              "listingId": "listing_cet_tests",
+              "reasons": [
+                "售价 25 元",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "六级真题",
+          "category": "教材",
+          "queryTerms": [
+            "六级 真题",
+            "六级 历年真题",
+            "CET6 真题",
+            "CET-6 真题",
+            "CET 6 真题",
+            "英语六级 真题"
+          ]
+        },
+        "displayedListingIds": [
+          "listing_cet_tests"
+        ],
+        "displayedProducts": [
+          {
+            "listingId": "listing_cet_tests",
+            "title": "六级历年真题试卷"
+          }
+        ],
+        "searchPage": 1,
+        "needs": [
+          "六级真题"
+        ],
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "六级真题",
+              "category": "教材",
+              "queryTerms": [
+                "六级 真题",
+                "六级 历年真题",
+                "CET6 真题",
+                "CET-6 真题",
+                "CET 6 真题",
+                "英语六级 真题"
+              ],
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_cet_tests"
+            ],
+            "total": 1,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 2523,
+              "completion_tokens": 443,
+              "total_tokens": 2966,
+              "prompt_tokens_details": {
+                "cached_tokens": 2304
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 370
+              },
+              "prompt_cache_hit_tokens": 2304,
+              "prompt_cache_miss_tokens": 219
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"六级真题\",\"category\":\"教材\",\"queryTerms\":[\"六级 真题\",\"六级 历年真题\",\"CET6 真题\",\"CET-6 真题\",\"CET 6 真题\",\"英语六级 真题\"]},\"positions\":[],\"page\":1,\"needs\":[\"六级真题\"]}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "六级真题",
+                "category": "教材",
+                "queryTerms": [
+                  "六级 真题",
+                  "六级 历年真题",
+                  "CET6 真题",
+                  "CET-6 真题",
+                  "CET 6 真题",
+                  "英语六级 真题"
+                ]
+              },
+              "positions": [],
+              "page": 1,
+              "needs": [
+                "六级真题"
+              ]
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 814,
+              "completion_tokens": 276,
+              "total_tokens": 1090,
+              "prompt_tokens_details": {
+                "cached_tokens": 384
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 203
+              },
+              "prompt_cache_hit_tokens": 384,
+              "prompt_cache_miss_tokens": 430
+            }
+          }
+        ],
+        "elapsedMs": 5915
+      },
+      "passed": true,
+      "problems": []
+    },
+    {
+      "id": "cet-budget-campus",
+      "scope": "core",
+      "message": "我想考六级，资料预算30元以内，只要邯郸校区",
+      "expect": {
+        "status": "completed",
+        "ids": [
+          "listing_cet_materials",
+          "listing_cet_vocab"
+        ],
+        "filters": {
+          "maxPriceCents": 3000,
+          "campus": "邯郸校区"
+        }
+      },
+      "result": {
+        "message": "我想考六级，资料预算30元以内，只要邯郸校区",
+        "response": {
+          "requestId": "req_eval_58d28877-3bf1-438b-98f4-c77469bbc1c9",
+          "sessionId": "session_2d482284-f90a-4e59-afa9-8ab6296c4678",
+          "status": "completed",
+          "reply": "我理解你可能需要：六级真题、六级词汇、六级听力、六级写作、六级备考资料。\n在邯郸校区、30 元以内找到 2 件六级相关教材：\n\n1. 六级词汇书，15 元，成色 like_new，邯郸校区\n2. 六级资料，20 元，成色 like_new，邯郸校区\n\n两件都在预算内。本轮没有看到专门的六级真题、听力或写作资料，商品是否正版及具体考试适用性未知。需要的话，我可以继续帮你比较这两件。",
+          "recommendations": [
+            {
+              "listingId": "listing_cet_vocab",
+              "reasons": [
+                "售价 15 元，符合 30 元 以内预算",
+                "类别为 教材"
+              ]
+            },
+            {
+              "listingId": "listing_cet_materials",
+              "reasons": [
+                "售价 20 元，符合 30 元 以内预算",
+                "类别为 教材"
+              ]
+            }
+          ],
+          "relaxedConditions": []
+        },
+        "filters": {
+          "keyword": "六级资料",
+          "category": "教材",
+          "queryTerms": [
+            "六级",
+            "CET6",
+            "CET-6",
+            "CET 6",
+            "六级 真题",
+            "六级 词汇",
+            "六级 单词",
+            "六级 试卷",
+            "六级 听力",
+            "六级 写作"
+          ],
+          "maxPriceCents": 3000,
+          "campus": "邯郸校区"
+        },
+        "displayedListingIds": [
+          "listing_cet_vocab",
+          "listing_cet_materials"
+        ],
+        "displayedProducts": [
+          {
+            "listingId": "listing_cet_vocab",
+            "title": "六级词汇书"
+          },
+          {
+            "listingId": "listing_cet_materials",
+            "title": "六级资料"
+          }
+        ],
+        "searchPage": 1,
+        "needs": [
+          "六级真题",
+          "六级词汇",
+          "六级听力",
+          "六级写作",
+          "六级备考资料"
+        ],
+        "action": "search",
+        "tools": [
+          {
+            "tool": "searchListings",
+            "input": {
+              "keyword": "六级资料",
+              "category": "教材",
+              "queryTerms": [
+                "六级",
+                "CET6",
+                "CET-6",
+                "CET 6",
+                "六级 真题",
+                "六级 词汇",
+                "六级 单词",
+                "六级 试卷",
+                "六级 听力",
+                "六级 写作"
+              ],
+              "maxPriceCents": 3000,
+              "campus": "邯郸校区",
+              "page": 1,
+              "pageSize": 10
+            },
+            "ids": [
+              "listing_cet_vocab",
+              "listing_cet_materials"
+            ],
+            "total": 2,
+            "page": 1,
+            "hasMore": false
+          }
+        ],
+        "model": [
+          {
+            "stage": "plan",
+            "usage": {
+              "prompt_tokens": 2532,
+              "completion_tokens": 998,
+              "total_tokens": 3530,
+              "prompt_tokens_details": {
+                "cached_tokens": 2304
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 892
+              },
+              "prompt_cache_hit_tokens": 2304,
+              "prompt_cache_miss_tokens": 228
+            },
+            "rawPlan": "{\"action\":\"search\",\"changes\":{\"keyword\":\"六级资料\",\"category\":\"教材\",\"queryTerms\":[\"六级\",\"CET6\",\"CET-6\",\"CET 6\",\"六级 真题\",\"六级 词汇\",\"六级 单词\",\"六级 试卷\",\"六级 听力\",\"六级 写作\"],\"maxPriceCents\":3000,\"campus\":\"邯郸校区\"},\"positions\":[],\"page\":1,\"needs\":[\"六级真题\",\"六级词汇\",\"六级听力\",\"六级写作\",\"六级备考资料\"]}",
+            "plan": {
+              "action": "search",
+              "changes": {
+                "keyword": "六级资料",
+                "category": "教材",
+                "queryTerms": [
+                  "六级",
+                  "CET6",
+                  "CET-6",
+                  "CET 6",
+                  "六级 真题",
+                  "六级 词汇",
+                  "六级 单词",
+                  "六级 试卷",
+                  "六级 听力",
+                  "六级 写作"
+                ],
+                "maxPriceCents": 3000,
+                "campus": "邯郸校区"
+              },
+              "positions": [],
+              "page": 1,
+              "needs": [
+                "六级真题",
+                "六级词汇",
+                "六级听力",
+                "六级写作",
+                "六级备考资料"
+              ]
+            }
+          },
+          {
+            "stage": "reply",
+            "usage": {
+              "prompt_tokens": 954,
+              "completion_tokens": 364,
+              "total_tokens": 1318,
+              "prompt_tokens_details": {
+                "cached_tokens": 384
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 270
+              },
+              "prompt_cache_hit_tokens": 384,
+              "prompt_cache_miss_tokens": 570
+            }
+          }
+        ],
+        "elapsedMs": 9698
+      },
+      "passed": true,
+      "problems": []
+    }
+  ],
+  "completedAt": "2026-10-31T06:47:18.145Z",
+  "summary": {
+    "core": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "blocked": 0
+    },
+    "extension": {
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "blocked": 0
+    }
+  },
+  "modelRequests": 10
+}

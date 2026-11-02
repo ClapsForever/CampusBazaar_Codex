@@ -9,6 +9,7 @@ import { openDatabase } from './db.js';
 import { ApiError, bearer, equalToken, fail, readBytes, readJson, requestId, send, text } from './http.js';
 import { Store } from './store.js';
 import type { VerificationEmailSender } from './mailer.js';
+import { cleanupExpiredData, RETENTION_INTERVAL_MS } from './retention.js';
 
 export interface ApiApp { server: Server; db: DatabaseSync; close(): Promise<void> }
 
@@ -97,6 +98,7 @@ async function proxyAgent(store: Store, user: ReturnType<Store['authenticate']>,
   if (sessionId && sessionId !== value.sessionId) throw new ApiError(502, 'AGENT_BAD_RESPONSE', 'Agent 会话 ID 异常', true);
   // An existing conversation may have been deleted while the Agent was running.
   // Check again before storing the result so a late response cannot recreate it.
+  store.assertActiveUser(user.id);
   if (sessionId) store.agentSessionOwned(sessionId, user);
   store.saveAgentTurn(value.sessionId, user, message, value);
   return { status: 200, body: value };
@@ -174,6 +176,7 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'GET' && productMatch?.[1]) { send(res, 200, store.publicProduct(productMatch[1], user), rid); return; }
   if (method === 'POST' && path === '/api/v1/uploads') {
     const bytes = await readBytes(req, 5_000_000);
+    store.assertActiveUser(user.id);
     const type = imageType(bytes);
     if (!type || bytes.length === 0 || req.headers['content-type'] !== type.mime) {
       throw new ApiError(400, 'INVALID_IMAGE', '只接受内容匹配的 JPEG、PNG 或 WebP 图片');
@@ -227,14 +230,26 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
 export function createApiApp(config: Config, options: { emailSender?: VerificationEmailSender } = {}): ApiApp {
   const db = openDatabase(config);
   const store = new Store(db, config, options.emailSender);
+  const runRetention = () => {
+    if (config.retentionEnabled === false) return;
+    const report = cleanupExpiredData(db, config);
+    if (report.filesDeleted || report.fileFailures || report.backupsDeleted || report.backupFailures ||
+        Object.values(report.removed).some(Boolean) || Object.values(report.redacted).some(Boolean)) {
+      console.log(JSON.stringify({ event: 'data_retention_cleanup', ...report }));
+    }
+  };
+  try { runRetention(); } catch (error) { db.close(); throw error; }
   store.emailVerifications.cleanup();
   const cleanupTimer = setInterval(() => {
     try { store.emailVerifications.cleanup(); }
     catch { console.error(JSON.stringify({ event: 'email_verification_cleanup_failed' })); }
   }, 60_000);
   cleanupTimer.unref();
-  // Authentication upgrades and service restarts must not delete upload files.
-  // Any storage maintenance is a separate, explicitly reviewed operation.
+  const retentionTimer = setInterval(() => {
+    try { runRetention(); }
+    catch { console.error(JSON.stringify({ event: 'data_retention_cleanup_failed' })); }
+  }, RETENTION_INTERVAL_MS);
+  retentionTimer.unref();
   const server = createServer((req, res) => {
     const rid = requestId(req);
     const started = Date.now();
@@ -244,6 +259,7 @@ export function createApiApp(config: Config, options: { emailSender?: Verificati
   });
   return { server, db, close: () => new Promise<void>((resolve, reject) => server.close(error => {
     clearInterval(cleanupTimer);
+    clearInterval(retentionTimer);
     if (error) reject(error); else { db.close(); resolve(); }
   })) };
 }

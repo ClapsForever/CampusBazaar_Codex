@@ -224,7 +224,7 @@ test('v3 升级 v6 保留原账号、会话和登录预算，新表可重复打�
   for (let n = 0; n < 2; n++) {
     const db = openDatabase(config);
     try {
-      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 6);
+      assert.equal(db.prepare('PRAGMA user_version').get()!.user_version, 7);
       assert.deepEqual(db.prepare('SELECT * FROM users').all(), before);
       assert.equal(db.prepare('SELECT revoked_at FROM auth_sessions').get()!.revoked_at, null);
       assert.equal(db.prepare('SELECT count FROM auth_login_attempts').get()!.count, 4);

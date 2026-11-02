@@ -7,16 +7,17 @@ export function openDatabase(config: Pick<Config, 'databasePath' | 'uploadDir'>)
   mkdirSync(dirname(config.databasePath), { recursive: true });
   mkdirSync(config.uploadDir, { recursive: true });
   const db = new DatabaseSync(config.databasePath);
-  db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;');
+  db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA secure_delete=ON;');
   try { migrate(db); } catch (error) { db.close(); throw error; }
   return db;
 }
 
 function migrate(db: DatabaseSync): void {
   const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  if (version.user_version > 6) throw new Error('Database schema is newer than this API');
-  if (version.user_version === 6) return;
-  if (version.user_version === 5) { migrateEmailVerification(db); return; }
+  if (version.user_version > 7) throw new Error('Database schema is newer than this API');
+  if (version.user_version === 7) return;
+  if (version.user_version === 6) { migrateRetention(db); return; }
+  if (version.user_version === 5) { migrateEmailVerification(db); migrateRetention(db); return; }
   if (version.user_version === 0) db.exec(`
     BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -193,6 +194,24 @@ function migrate(db: DatabaseSync): void {
     db.exec('PRAGMA user_version=5');
   });
   migrateEmailVerification(db);
+  migrateRetention(db);
+}
+
+function migrateRetention(db: DatabaseSync): void {
+  transaction(db, () => {
+    db.exec(`CREATE TABLE IF NOT EXISTS retention_file_deletions (
+      filename TEXT PRIMARY KEY, queued_at INTEGER NOT NULL
+    )`);
+    // Early development schemas can omit optional feature tables entirely.
+    for (const [table, column] of [['users','created_at'], ['products','published_at'], ['product_images','created_at'],
+      ['transactions','create_time'], ['messages','send_time'], ['agent_turns','created_at'],
+      ['registration_consents','accepted_at'], ['idempotency_records','created_at']] as const) {
+      if (db.prepare(`PRAGMA table_info(${table})`).all().some(item => item.name === column)) {
+        db.exec(`CREATE INDEX IF NOT EXISTS retention_${table}_time ON ${table}(${column})`);
+      }
+    }
+    db.exec('PRAGMA user_version=7');
+  });
 }
 
 function migrateEmailVerification(db: DatabaseSync): void {

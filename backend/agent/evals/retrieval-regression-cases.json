@@ -1,0 +1,22 @@
+{
+  "description": "商品召回回归：使用用户反馈原话及合成商品，检查泛化需求、明确子类和硬条件，不注入模型计划。",
+  "fixtures": [
+    { "id": "listing_cet_materials", "title": "六级资料", "description": "备考整理资料，书页完整。", "category": "教材", "price": 20, "condition": "like_new", "campus": "邯郸校区" },
+    { "id": "listing_cet_vocab", "title": "六级词汇书", "description": "单词记忆和复习。", "category": "教材", "price": 15, "condition": "like_new", "campus": "邯郸校区" },
+    { "id": "listing_cet_tests", "title": "六级历年真题试卷", "description": "含答案解析。", "category": "教材", "price": 25, "condition": "good", "campus": "江湾校区" },
+    { "id": "listing_cet_reading", "title": "CET-6 阅读专项训练", "description": "阅读理解练习册。", "category": "教材", "price": 35, "condition": "like_new", "campus": "邯郸校区" },
+    { "id": "listing_cet4", "title": "四级词汇书", "description": "英语四级单词复习。", "category": "教材", "price": 5, "condition": "new", "campus": "邯郸校区" },
+    { "id": "listing_grammar", "title": "英语语法教材", "description": "通用英语语法学习。", "category": "教材", "price": 10, "condition": "new", "campus": "邯郸校区" },
+    { "id": "listing_lamp", "title": "便携小台灯", "description": "看书用的充电灯。", "category": "日用", "price": 20, "condition": "like_new", "campus": "邯郸校区" }
+  ],
+  "presets": {},
+  "cases": [
+    { "id": "cet-user-report", "scope": "core", "message": "我快要考六级了，想准备一下，你有什么推荐的资料吗", "expect": { "status": "completed", "ids": ["listing_cet_materials", "listing_cet_vocab", "listing_cet_tests", "listing_cet_reading"] } },
+    { "id": "cet-short-goal", "scope": "core", "message": "我想考六级", "expect": { "status": "completed", "ids": ["listing_cet_materials", "listing_cet_vocab", "listing_cet_tests", "listing_cet_reading"] } },
+    { "id": "cet-vocab-only", "scope": "core", "message": "只找六级词汇书，不要试卷", "expect": { "status": "completed", "ids": ["listing_cet_vocab"] } },
+    { "id": "cet-papers-only", "scope": "core", "message": "想找六级真题", "expect": { "status": "completed", "ids": ["listing_cet_tests"] } },
+    { "id": "cet-budget-campus", "scope": "core", "message": "我想考六级，资料预算30元以内，只要邯郸校区", "expect": { "status": "completed", "ids": ["listing_cet_materials", "listing_cet_vocab"], "filters": { "maxPriceCents": 3000, "campus": "邯郸校区" } } },
+    { "id": "cet-legacy-goal-repair", "scope": "core", "initialFilters": { "keyword": "英语六级备考资料", "category": "教材", "queryTerms": ["英语六级备考资料"] }, "initialNeeds": ["六级真题", "六级词汇", "六级听力"], "message": "预算改成30元", "expect": { "status": "completed", "ids": ["listing_cet_materials", "listing_cet_vocab", "listing_cet_tests"], "filters": { "maxPriceCents": 3000 }, "searchCalls": 2 } },
+    { "id": "cet-legacy-subtype-repair", "scope": "core", "initialFilters": { "keyword": "六级词汇书", "category": "教材", "queryTerms": ["英语六级词汇书"] }, "initialNeeds": ["六级词汇书"], "message": "预算改成20元", "expect": { "status": "completed", "ids": ["listing_cet_vocab"], "filters": { "maxPriceCents": 2000 }, "searchCalls": 2 } }
+  ]
+}

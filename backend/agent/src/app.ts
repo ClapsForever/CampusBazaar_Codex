@@ -64,6 +64,9 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
       }));
   const sessionStore = options.sessionStore ?? new MemorySessionStore(config.sessionTtlMs);
   const app = Fastify({ logger: { level: config.logLevel }, bodyLimit: Math.max(64 * 1024, config.maxMessageChars * 4) });
+  const sessionCleanupTimer = setInterval(() => sessionStore.cleanup?.(), 60_000);
+  sessionCleanupTimer.unref();
+  app.addHook('onClose', async () => { clearInterval(sessionCleanupTimer); });
 
   app.get("/health", async () => ({
     status: "ok",

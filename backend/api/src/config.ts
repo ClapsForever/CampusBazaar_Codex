@@ -20,6 +20,8 @@ export interface Config {
   agentBaseUrl: string; agentServiceToken: string; internalAgentToken: string; schoolId: string;
   mail?: MailConfig;
   emailSendDailyLimit?: number;
+  retentionEnabled?: boolean;
+  retentionBackupDir?: string;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -74,11 +76,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!Number.isSafeInteger(emailSendDailyLimit) || emailSendDailyLimit < 1 || emailSendDailyLimit > 100_000) {
     throw new Error('EMAIL_SEND_DAILY_LIMIT must be an integer between 1 and 100000');
   }
+  const retentionEnabled = env.DATA_RETENTION_ENABLED?.trim() || 'true';
+  if (!['true', 'false'].includes(retentionEnabled)) throw new Error('DATA_RETENTION_ENABLED must be true or false');
   return {
     mode: 'local', host, port,
     databasePath: resolve(required(env, 'DATABASE_PATH')),
     uploadDir: resolve(required(env, 'UPLOAD_DIR')),
     publicBaseUrl, sessionSecret, agentBaseUrl, agentServiceToken, internalAgentToken,
-    schoolId: env.AGENT_SCHOOL_ID?.trim() || 'school_demo', mail, emailSendDailyLimit
+    schoolId: env.AGENT_SCHOOL_ID?.trim() || 'school_demo', mail, emailSendDailyLimit,
+    retentionEnabled: retentionEnabled === 'true',
+    retentionBackupDir: env.RETENTION_BACKUP_DIR?.trim() ? resolve(env.RETENTION_BACKUP_DIR.trim()) : undefined
   };
 }
