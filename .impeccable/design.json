@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T11:51:35.280795+00:00",
+  "title": "Design System: 同窗集 · Blue",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "同窗钴蓝",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0814 266.47)",
+          "oklch(26% 0.1410 266.47)",
+          "oklch(38% 0.2061 266.47)",
+          "oklch(50% 0.2441 266.47)",
+          "oklch(62% 0.2441 266.47)",
+          "oklch(74% 0.2441 266.47)",
+          "oklch(86% 0.1367 266.47)",
+          "oklch(95% 0.0488 266.47)"
+        ]
+      },
+      "primary-strong": {
+        "role": "primary",
+        "displayName": "深钴蓝",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0712 266.39)",
+          "oklch(26% 0.1234 266.39)",
+          "oklch(38% 0.1804 266.39)",
+          "oklch(50% 0.2136 266.39)",
+          "oklch(62% 0.2136 266.39)",
+          "oklch(74% 0.2136 266.39)",
+          "oklch(86% 0.1196 266.39)",
+          "oklch(95% 0.0427 266.39)"
+        ]
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "浅蓝选中面",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0071 268.43)",
+          "oklch(26% 0.0122 268.43)",
+          "oklch(38% 0.0179 268.43)",
+          "oklch(50% 0.0212 268.43)",
+          "oklch(62% 0.0212 268.43)",
+          "oklch(74% 0.0212 268.43)",
+          "oklch(86% 0.0119 268.43)",
+          "oklch(95% 0.0042 268.43)"
+        ]
+      },
+      "error": {
+        "role": "semantic",
+        "displayName": "错误红",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0572 17.43)",
+          "oklch(26% 0.0992 17.43)",
+          "oklch(38% 0.1450 17.43)",
+          "oklch(50% 0.1717 17.43)",
+          "oklch(62% 0.1717 17.43)",
+          "oklch(74% 0.1717 17.43)",
+          "oklch(86% 0.0961 17.43)",
+          "oklch(95% 0.0343 17.43)"
+        ]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "状态绿",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0326 160.37)",
+          "oklch(26% 0.0565 160.37)",
+          "oklch(38% 0.0826 160.37)",
+          "oklch(50% 0.0978 160.37)",
+          "oklch(62% 0.0978 160.37)",
+          "oklch(74% 0.0978 160.37)",
+          "oklch(86% 0.0548 160.37)",
+          "oklch(95% 0.0196 160.37)"
+        ]
+      },
+      "success-bg": {
+        "role": "semantic",
+        "displayName": "成功浅绿面",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0055 162.75)",
+          "oklch(26% 0.0096 162.75)",
+          "oklch(38% 0.0140 162.75)",
+          "oklch(50% 0.0166 162.75)",
+          "oklch(62% 0.0166 162.75)",
+          "oklch(74% 0.0166 162.75)",
+          "oklch(86% 0.0093 162.75)",
+          "oklch(95% 0.0033 162.75)"
+        ]
+      },
+      "rejected-bg": {
+        "role": "semantic",
+        "displayName": "拒绝浅红面",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0059 4.52)",
+          "oklch(26% 0.0103 4.52)",
+          "oklch(38% 0.0150 4.52)",
+          "oklch(50% 0.0178 4.52)",
+          "oklch(62% 0.0178 4.52)",
+          "oklch(74% 0.0178 4.52)",
+          "oklch(86% 0.0099 4.52)",
+          "oklch(95% 0.0036 4.52)"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "深蓝灰正文",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0163 261.92)",
+          "oklch(26% 0.0282 261.92)",
+          "oklch(38% 0.0412 261.92)",
+          "oklch(50% 0.0488 261.92)",
+          "oklch(62% 0.0488 261.92)",
+          "oklch(74% 0.0488 261.92)",
+          "oklch(86% 0.0274 261.92)",
+          "oklch(95% 0.0098 261.92)"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "蓝灰辅助文字",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0148 260.55)",
+          "oklch(26% 0.0256 260.55)",
+          "oklch(38% 0.0375 260.55)",
+          "oklch(50% 0.0444 260.55)",
+          "oklch(62% 0.0444 260.55)",
+          "oklch(74% 0.0444 260.55)",
+          "oklch(86% 0.0249 260.55)",
+          "oklch(95% 0.0089 260.55)"
+        ]
+      },
+      "text-tertiary": {
+        "role": "neutral",
+        "displayName": "蓝灰元信息",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0134 260.30)",
+          "oklch(26% 0.0232 260.30)",
+          "oklch(38% 0.0339 260.30)",
+          "oklch(50% 0.0401 260.30)",
+          "oklch(62% 0.0401 260.30)",
+          "oklch(74% 0.0401 260.30)",
+          "oklch(86% 0.0225 260.30)",
+          "oklch(95% 0.0080 260.30)"
+        ]
+      },
+      "page-bg": {
+        "role": "neutral",
+        "displayName": "冷白页面",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0023 268.55)",
+          "oklch(26% 0.0040 268.55)",
+          "oklch(38% 0.0059 268.55)",
+          "oklch(50% 0.0070 268.55)",
+          "oklch(62% 0.0070 268.55)",
+          "oklch(74% 0.0070 268.55)",
+          "oklch(86% 0.0039 268.55)",
+          "oklch(95% 0.0014 268.55)"
+        ]
+      },
+      "card-bg": {
+        "role": "neutral",
+        "displayName": "纯白内容面",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(26% 0.0000 0.00)",
+          "oklch(38% 0.0000 0.00)",
+          "oklch(50% 0.0000 0.00)",
+          "oklch(62% 0.0000 0.00)",
+          "oklch(74% 0.0000 0.00)",
+          "oklch(86% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "input-bg": {
+        "role": "neutral",
+        "displayName": "浅蓝灰输入面",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0042 255.51)",
+          "oklch(26% 0.0072 255.51)",
+          "oklch(38% 0.0106 255.51)",
+          "oklch(50% 0.0125 255.51)",
+          "oklch(62% 0.0125 255.51)",
+          "oklch(74% 0.0125 255.51)",
+          "oklch(86% 0.0070 255.51)",
+          "oklch(95% 0.0025 255.51)"
+        ]
+      },
+      "divider-disabled": {
+        "role": "neutral",
+        "displayName": "细分隔灰",
+        "description": "原生常量的角色索引；八级色阶仅供面板展示推导，不是新增运行 token。",
+        "tonalRamp": [
+          "oklch(15% 0.0060 261.34)",
+          "oklch(26% 0.0104 261.34)",
+          "oklch(38% 0.0152 261.34)",
+          "oklch(50% 0.0180 261.34)",
+          "oklch(62% 0.0180 261.34)",
+          "oklch(74% 0.0180 261.34)",
+          "oklch(86% 0.0101 261.34)",
+          "oklch(95% 0.0036 261.34)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "brand": {
+        "displayName": "认证品牌",
+        "purpose": "登录页品牌标题。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "title": {
+        "displayName": "页面标题",
+        "purpose": "首页与个人页标题。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "section": {
+        "displayName": "分组标题",
+        "purpose": "表单及页面分组。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "feed-heading": {
+        "displayName": "商品区标题",
+        "purpose": "商品列表分区。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "body": {
+        "displayName": "正文",
+        "purpose": "通用说明与会话。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "product": {
+        "displayName": "商品名称",
+        "purpose": "卡片两行标题。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "price": {
+        "displayName": "卡片价格",
+        "purpose": "商品卡片价格。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "action": {
+        "displayName": "主操作",
+        "purpose": "认证与发布提交文字。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      },
+      "meta": {
+        "displayName": "元信息",
+        "purpose": "成色、校区、时间、说明。 HarmonyOS 系统默认无衬线，字号在 DESIGN.md 中按真实 fp 记录；浏览器 token 磁贴不支持 fp。"
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "主操作",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "原生 ButtonType.Normal 的已实现层级。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">登录</button>",
+      "css": ".ds-btn-primary{border:0;border-radius:14px;padding:0 24px;font:500 16px system-ui,sans-serif;cursor:pointer;height:50px;background:#2D55F7;color:#FFFFFF;}.ds-btn-primary:hover{filter:brightness(.98);}.ds-btn-primary:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-btn-primary:active{filter:brightness(.94);}.ds-btn-primary:disabled{opacity:.5;cursor:default;}"
+    },
+    {
+      "name": "次操作",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "原生 ButtonType.Normal 的已实现层级。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">完成</button>",
+      "css": ".ds-btn-secondary{border:0;border-radius:14px;padding:0 24px;font:500 16px system-ui,sans-serif;cursor:pointer;height:44px;background:#EAF0FF;color:#2D55F7;}.ds-btn-secondary:hover{filter:brightness(.98);}.ds-btn-secondary:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-btn-secondary:active{filter:brightness(.94);}.ds-btn-secondary:disabled{opacity:.5;cursor:default;}"
+    },
+    {
+      "name": "文字操作",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "原生 ButtonType.Normal 的已实现层级。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<button class=\"ds-btn-text\" type=\"button\">已有账号？返回登录</button>",
+      "css": ".ds-btn-text{border:0;border-radius:14px;padding:0 24px;font:500 16px system-ui,sans-serif;cursor:pointer;height:44px;background:transparent;color:#2D55F7;}.ds-btn-text:hover{filter:brightness(.98);}.ds-btn-text:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-btn-text:active{filter:brightness(.94);}.ds-btn-text:disabled{opacity:.5;cursor:default;}"
+    },
+    {
+      "name": "拒绝操作",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "原生 ButtonType.Normal 的已实现层级。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<button class=\"ds-btn-destructive\" type=\"button\">拒绝</button>",
+      "css": ".ds-btn-destructive{border:0;border-radius:14px;padding:0 24px;font:500 16px system-ui,sans-serif;cursor:pointer;height:48px;background:#BD3548;color:#FFFFFF;}.ds-btn-destructive:hover{filter:brightness(.98);}.ds-btn-destructive:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-btn-destructive:active{filter:brightness(.94);}.ds-btn-destructive:disabled{opacity:.5;cursor:default;}"
+    },
+    {
+      "name": "输入字段",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "登录、设置和搜索使用浅蓝灰原生输入面。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">昵称</span><input class=\"ds-field-input\" placeholder=\"请输入昵称\" aria-label=\"昵称\" /></label>",
+      "css": ".ds-field{display:grid;gap:8px;max-width:300px;color:#17243C;font:14px system-ui,sans-serif;}.ds-field-label{font-weight:500;}.ds-field-input{height:48px;padding:0 14px;background:#EAF0F8;color:#17243C;border:0;border-radius:14px;font:14px system-ui,sans-serif;caret-color:#2D55F7;}.ds-field-input::placeholder{color:#5E6C83;}.ds-field-input:hover{filter:brightness(.99);}.ds-field-input:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-field-input:disabled{background:#DCE3EF;}"
+    },
+    {
+      "name": "首页分类",
+      "kind": "chip",
+      "refersTo": "chip-category-selected",
+      "description": "首页浅蓝选中分类；搜索多选筛选另用深蓝底白字。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<div class=\"ds-categories\"><button class=\"ds-category ds-category-selected\" aria-pressed=\"true\">全部</button><button class=\"ds-category\" aria-pressed=\"false\">教材</button></div>",
+      "css": ".ds-categories{display:flex;gap:6px;}.ds-category{min-height:44px;padding:10px 13px;border:0;border-radius:12px;background:transparent;color:#52617A;font:500 14px system-ui,sans-serif;cursor:pointer;}.ds-category-selected{background:#EAF0FF;color:#2345CE;}.ds-category:hover{filter:brightness(.98);}.ds-category:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-category:active{filter:brightness(.94);}"
+    },
+    {
+      "name": "在售状态",
+      "kind": "chip",
+      "refersTo": "chip-success",
+      "description": "卖家列表和商品详情共用的在售状态配对。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<span class=\"ds-status\">在售</span>",
+      "css": ".ds-status{display:inline-block;padding:3px 8px;border-radius:14px;background:#E7F4ED;color:#20734F;font:12px system-ui,sans-serif;}"
+    },
+    {
+      "name": "底部导航",
+      "kind": "nav",
+      "refersTo": "nav-bottom",
+      "description": "首页与我的是页签；中间发布直接进入发布页面。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"主导航\"><button class=\"ds-nav-item ds-nav-selected\" aria-current=\"page\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><g stroke=\"#2D55F7\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 11 9-8 9 8v9H3Zm6 9v-7h6v7\"/></g></svg><span>首页</span></button><button class=\"ds-nav-item\"><span class=\"ds-publish\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><g stroke=\"#FFFFFF\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></g></svg></span><span class=\"ds-publish-label\">发布</span></button><button class=\"ds-nav-item\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><g stroke=\"#52617A\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2\"/></g></svg><span>我的</span></button></nav>",
+      "css": ".ds-nav{display:flex;justify-content:space-around;align-items:center;width:320px;max-width:100%;padding:10px 0;background:#FFFFFF;border-top:1px solid #DCE3EF;}.ds-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:80px;min-height:60px;border:0;border-radius:14px;background:transparent;color:#5E6C83;font:500 12px system-ui,sans-serif;cursor:pointer;}.ds-nav-item svg{width:22px;height:22px;}.ds-nav-selected,.ds-publish-label{color:#2D55F7;}.ds-publish{display:flex;align-items:center;justify-content:center;width:50px;height:44px;background:#2D55F7;border-radius:14px;}.ds-publish svg{width:28px;height:22px;}.ds-nav-item:hover{filter:brightness(.98);}.ds-nav-item:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-nav-item:active{filter:brightness(.94);}"
+    },
+    {
+      "name": "双列商品卡片",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "ProductCard 默认模式；样本文字为独立面板夹具。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<button class=\"ds-product\" type=\"button\" aria-label=\"查看商品\"><span class=\"ds-product-image\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><g stroke=\"#52617A\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"3\"/><circle cx=\"8\" cy=\"9\" r=\"1.5\"/><path d=\"m4 17 5-5 4 4 3-3 5 5\"/></g></svg><span>暂无图片</span></span><span class=\"ds-product-copy\"><span class=\"ds-product-title\">高等数学教材（上下册）</span><span class=\"ds-product-price\">¥28</span><span class=\"ds-product-condition\">成色良好</span><span class=\"ds-product-campus\">邯郸校区</span></span></button>",
+      "css": ".ds-product{display:flex;flex-direction:column;align-items:stretch;width:154px;padding:0;border:0;background:#FFFFFF;border-radius:14px;overflow:hidden;text-align:left;font-family:system-ui,sans-serif;cursor:pointer;}.ds-product-image{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;aspect-ratio:1;background:#EAF0F8;color:#5E6C83;border-radius:14px;font-size:12px;}.ds-product-image svg{width:28px;height:28px;}.ds-product-copy{display:flex;flex-direction:column;gap:7px;padding:12px 12px 14px;min-width:0;}.ds-product-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:500;color:#17243C;}.ds-product-price{font-size:21px;font-weight:700;color:#2345CE;}.ds-product-condition,.ds-product-campus{font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.ds-product-condition{color:#52617A;}.ds-product-campus{color:#5E6C83;}.ds-product:hover{filter:brightness(.99);}.ds-product:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-product:active{filter:brightness(.97);}"
+    },
+    {
+      "name": "紧凑商品卡片",
+      "kind": "card",
+      "refersTo": "card-product-compact",
+      "description": "同一个 ProductCard 的 compact 模式；搜索与 AI 推荐共用。 仅面板视觉近似；px 按原生基础尺寸映射，交互反馈不替代 ArkUI。",
+      "html": "<button class=\"ds-product ds-product-compact\" type=\"button\" aria-label=\"查看商品\"><span class=\"ds-product-image\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><g stroke=\"#52617A\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"3\"/><circle cx=\"8\" cy=\"9\" r=\"1.5\"/><path d=\"m4 17 5-5 4 4 3-3 5 5\"/></g></svg><span>暂无图片</span></span><span class=\"ds-product-copy\"><span class=\"ds-product-title\">高等数学教材（上下册）</span><span class=\"ds-product-price\">¥28</span><span class=\"ds-product-condition\">成色良好</span><span class=\"ds-product-campus\">邯郸校区</span></span></button>",
+      "css": ".ds-product{display:flex;flex-direction:column;align-items:stretch;width:154px;padding:0;border:0;background:#FFFFFF;border-radius:14px;overflow:hidden;text-align:left;font-family:system-ui,sans-serif;cursor:pointer;}.ds-product-image{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;aspect-ratio:1;background:#EAF0F8;color:#5E6C83;border-radius:14px;font-size:12px;}.ds-product-image svg{width:28px;height:28px;}.ds-product-copy{display:flex;flex-direction:column;gap:7px;padding:12px 12px 14px;min-width:0;}.ds-product-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:500;color:#17243C;}.ds-product-price{font-size:21px;font-weight:700;color:#2345CE;}.ds-product-condition,.ds-product-campus{font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.ds-product-condition{color:#52617A;}.ds-product-campus{color:#5E6C83;}.ds-product:hover{filter:brightness(.99);}.ds-product:focus-visible{outline:2px solid #2345CE;outline-offset:3px;}.ds-product:active{filter:brightness(.97);}.ds-product-compact{flex-direction:row;width:300px;max-width:100%;padding:12px;}.ds-product-compact .ds-product-image{width:104px;height:104px;flex-shrink:0;}.ds-product-compact .ds-product-copy{flex:1;padding:0 0 0 12px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "图标同源的校园蓝",
+    "overview": "冷白页面、白色内容面、钴蓝操作与深蓝灰文字服务快速浏览、发布和沟通。商品照片与真实状态构成内容层级，文字使用 HarmonyOS 系统默认无衬线。现有名称与蓝色应用图标是确认保留的品牌资产；方向依据见 `design/blue-ui-brief.md`。\n\n本系统记录当前启用的 `entry/src/main/ets/ui/editorial`，以该目录 `common/Constants.ets` 及真实组件为依据。原 UI、独立的旧 token 与 `design_` 图标保持独立，不能据此推断原 UI 也采用本系统。布局数值使用原生 vp，字号使用 fp；前置 token 中保留真实单位。`.impeccable/design.json` 的 HTML/CSS 仅为设计面板的视觉近似，不是原生组件、运行实现或交互验收。",
+    "keyCharacteristics": [
+      "图标同源蓝统一主操作、AI 入口、选中导航和价格。",
+      "冷白底与白色内容面以色阶、留白和细分隔线形成层次。",
+      "原生无衬线、明确的字段组、双列与紧凑横排商品卡片。",
+      "原生 Navigation、Sheet、输入与对话框承载交互。"
+    ],
+    "rules": [
+      {
+        "name": "The 同源蓝 Rule",
+        "body": "主操作和选中态沿用同一蓝色家族；错误与成功色只表达语义，不充当第二套品牌色。",
+        "section": "colors"
+      },
+      {
+        "name": "The 状态配对 Rule",
+        "body": "状态文字、底色和明确标签同时出现；标签与终态规则由既有业务常量提供，视觉代码只改变呈现。",
+        "section": "colors"
+      },
+      {
+        "name": "The 原生文字 Rule",
+        "body": "保留 fp 与系统文字行为；长商品标题在卡片中最多两行并省略，成色和校区各一行。详情与会话正文按内容换行。",
+        "section": "typography"
+      },
+      {
+        "name": "The 色阶层次 Rule",
+        "body": "卡片静止时以背景与留白分层；原生浮层沿用平台行为。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 从启用 UI 的 `Constants.ets` 读取颜色、圆角、间距和常用字号，保留原生 vp / fp。",
+      "**Do** 让浏览、搜索和 AI 共用商品卡片、格式化方法、真实状态与详情入口。",
+      "**Do** 保持返回、原生输入、键盘避让、Sheet 和对话框的 HarmonyOS 行为。",
+      "**Do** 把 API 24 Previewer 的 320 / 360 / 390 vp 截图作为布局证据；合成数据只留在预览夹具中，截图不进入应用资源包。"
+    ],
+    "donts": [
+      "**Don't** 将橙色操作、暖纸底或衬线显示文字重新引入已确认的蓝色活动 UI。",
+      "**Don't** 修改原 UI 的独立 token、`design_` 资源或既有业务、权限和交易终态规则来匹配新外观。",
+      "**Don't** 将 API 24 编译、预览或 HTML/CSS 面板近似展示称为目标 HarmonyOS 6.1.0 / API 23 真机交互验收；键盘、摄像头、签名安装、系统字体放大和完整在线交易仍需目标环境验证。",
+      "**Don't** 把既有 `app_icon.png` 当成本轮新生成资产：它是保留的用户原有图；本轮新增可见图标为 `tc_` SVG，没有新增或替换交付用栅格图。"
+    ]
+  }
+}

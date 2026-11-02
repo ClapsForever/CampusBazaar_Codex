@@ -2,7 +2,7 @@ import { ProductDetailViewModel } from '../../../viewmodel/ProductDetailViewMode
 import { StateView } from '../components/StateView';
 import { formatCondition, formatPrice } from '../../../common/Utils';
 import {
-  UI_RADIUS, CIRCLE_RADIUS, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+  UI_RADIUS, COLOR_SUCCESS, COLOR_SUCCESS_BG, COLOR_PRIMARY_SOFT, COLOR_INPUT_BG, CIRCLE_RADIUS, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
   COLOR_TEXT_TERTIARY, COLOR_DIVIDER, LoadState
 } from '../common/Constants';
 
@@ -27,7 +27,7 @@ export struct ProductDetailView {
                 .indicator(true).width('100%').backgroundColor(Color.White);
               } else {
                 Column({ space: 8 }) {
-                  Text('📷').fontSize('48fp');
+                  Image($r('app.media.tc_photo')).width(40).height(40);
                   Text('暂无图片').fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY);
                 }
                 .width('100%').aspectRatio(1).justifyContent(FlexAlign.Center).backgroundColor(Color.White);
@@ -92,7 +92,7 @@ export struct ProductDetailView {
                     .fontSize('12fp').lineHeight('18fp').fontColor(COLOR_TEXT_SECONDARY);
                 }
                 .width('100%').alignItems(HorizontalAlign.Start)
-                .padding(14).backgroundColor('#FFF4EB').borderRadius(UI_RADIUS)
+                .padding(14).backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(UI_RADIUS)
                 .margin({ top: 12, bottom: 20 });
               }
               .width('100%').padding({ left: 20, right: 20 });
@@ -111,7 +111,7 @@ export struct ProductDetailView {
               } else {
                 Button(this.vm.detail.product.status === 'DELISTED' ? '该商品已下架' : '该商品已售出')
                   .type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
-                  .fontColor(COLOR_TEXT_SECONDARY).backgroundColor('#F1F0ED').borderRadius(UI_RADIUS);
+                  .fontColor(COLOR_TEXT_SECONDARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
               }
             } else if (this.vm.detail.product.status === 'SOLD') {
               Button('已售出').type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
@@ -191,12 +191,12 @@ export struct ProductDetailView {
 
   private statusColor(): string {
     if (this.vm.detail !== null && this.vm.detail.product.status !== 'ACTIVE') return COLOR_TEXT_TERTIARY;
-    return '#2E9E5B';
+    return COLOR_SUCCESS;
   }
 
   private statusBackground(): string {
     if (this.vm.detail !== null && this.vm.detail.product.status !== 'ACTIVE') return COLOR_PAGE_BG;
-    return '#EAF6ED';
+    return COLOR_SUCCESS_BG;
   }
 
   private showDelistDialog(): void {

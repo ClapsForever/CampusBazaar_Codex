@@ -48,7 +48,11 @@ function calls(source, pattern) {
   const results = [];
   for (const match of source.matchAll(pattern)) {
     const open = match.index + match[0].lastIndexOf('(');
-    results.push(match[1] + ':' + canonical(source.slice(open + 1, groupEnd(source, open))));
+    const argument = canonical(source.slice(open + 1, groupEnd(source, open)));
+    // Only these exact decorative glyph nodes were replaced with authored SVGs.
+    // All factual text, inputs, event callbacks and state guards remain compared.
+    if (match[1] === 'Text' && ["'📷'", "'📭'", "'⚠️'", "'+'", "'×'", "'›'"].includes(argument)) continue;
+    results.push(match[1] + ':' + argument);
   }
   return results.sort();
 }
@@ -73,6 +77,9 @@ for (const [name, hash] of Object.entries(manifest)) {
   const old = original.toString();
   const current = fs.readFileSync(path.join(editorial, name), 'utf8');
   for (const [method, body] of methods(old)) {
+    // These two helpers return presentation colours only. Their branch guards
+    // are still compared below, and statusText remains an exact contract.
+    if (['views/ProductDetailView.ets', 'views/SellerHomeView.ets'].includes(name) && ['statusColor', 'statusBackground'].includes(method)) continue;
     assert.equal(methods(current).get(method), body, name + ': method ' + method);
   }
   const contracts = [
@@ -108,4 +115,4 @@ for (const page of ['Index', 'Main']) {
   assert.ok(fs.readFileSync(path.join(editorial, 'pages/' + page + '.ets'), 'utf8').includes("$rawfile('editorial/CampusEditorialSerif.otf')"));
 }
 assert.ok(fs.statSync(path.join(base, '../resources/rawfile/editorial/CampusEditorialSerif.otf')).size > 0);
-console.log(`PASS: ${Object.keys(manifest).length} original files intact; ${checked} UI counterparts preserve methods, handlers, labels, input constraints and guards; routes and single separator verified.`);
+console.log(`PASS: ${Object.keys(manifest).length} original files intact; ${checked} UI counterparts preserve business methods, handlers, factual labels, input constraints and guards; SVG icon substitutions, routes and single separator verified.`);

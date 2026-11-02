@@ -1,5 +1,7 @@
 # 同窗集（CampusBazaar）
 
+> 2026-11-02：当前启用 UI 已统一为图标同源的蓝色，更新系统字体层级、首页与导航、商品卡片、搜索和 AI 推荐及全部业务页面。保留原 UI 开关与现有业务逻辑。见 [改版、备份与验证说明](docs/ui-blue-redesign-2026-11-02.md)及 [当前 UI 使用说明](entry/src/main/ets/ui/editorial/README.md)。
+
 > 2026-10-30：新增 A「校园生活刊」UI，新页面与组件独立放在 `entry/src/main/ets/ui/editorial/`，通过 `ui/UiVariant.ets` 切换新旧布局。新旧 UI、系统显示名称及随包协议已统一为“同窗集”，线上注册邮件名称也已更新。构建与回归通过，已完成部分页面的原生预览自查，模拟器／真机完整交互仍待验收。见 [新 UI、切换与模拟器部署说明](entry/src/main/ets/ui/editorial/README.md)、[预览记录](design/editorial-a/review/README.md)及[邮件名称更新记录](docs/mail-brand-rollout-2026-10-30.md)。
 
 > 2026-10-28：阿里云 Agent 已单独更新到本仓库 `7dd371b` 中的需求理解与语义检索实现，16:59 完成切换。176 项回归通过，真实模型验证了相关商品返回及预算、校区追问，但发现部分候选漏查，不能视为完整召回率保证。App 中请使用“新对话”开始。部署位置、验收结果与回退方式见 [Agent 更新记录](docs/agent-rollout-2026-10-28.md)。

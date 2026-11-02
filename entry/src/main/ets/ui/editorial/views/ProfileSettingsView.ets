@@ -47,7 +47,7 @@ export struct ProfileSettingsView {
             .width('100%');
             Text('昵称').fontSize('14fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY).width('100%');
             TextInput({ placeholder: '请输入昵称', text: this.vm.nickname }).maxLength(24)
-              .height(48).fontSize('14fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+              .height(48).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
               .enabled(!this.vm.loading && !this.vm.saving)
               .onChange((value: string) => { this.vm.nickname = value; this.vm.profileError = ''; this.vm.message = ''; });
             Text(this.vm.user === null ? '' : `邮箱：${this.vm.user.email || ''}`)
@@ -69,15 +69,15 @@ export struct ProfileSettingsView {
               .fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY).width('100%');
             Text('6–64 位，不能全部为空白').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
             TextInput({ placeholder: '当前密码', text: this.vm.currentPassword }).type(InputType.Password).maxLength(64)
-              .height(48).fontSize('14fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+              .height(48).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
               .enabled(!this.vm.loading && !this.vm.saving)
               .onChange((value: string) => { this.vm.currentPassword = value; this.vm.passwordError = ''; this.vm.message = ''; });
             TextInput({ placeholder: '新密码', text: this.vm.newPassword }).type(InputType.Password).maxLength(64)
-              .height(48).fontSize('14fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+              .height(48).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
               .enabled(!this.vm.loading && !this.vm.saving)
               .onChange((value: string) => { this.vm.newPassword = value; this.vm.passwordError = ''; this.vm.message = ''; });
             TextInput({ placeholder: '再次输入新密码', text: this.vm.confirmPassword }).type(InputType.Password).maxLength(64)
-              .height(48).fontSize('14fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+              .height(48).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
               .enabled(!this.vm.loading && !this.vm.saving)
               .onChange((value: string) => { this.vm.confirmPassword = value; this.vm.passwordError = ''; this.vm.message = ''; });
             if (this.vm.passwordError !== '') {

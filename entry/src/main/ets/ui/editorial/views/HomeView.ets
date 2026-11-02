@@ -12,7 +12,7 @@ import { PAGE_LEGAL } from '../common/LegalDocuments';
 import { UI_INDEX_PAGE } from '../../UiVariant';
 import {
   UI_RADIUS, UI_CORNERS, CIRCLE_RADIUS, FONT_TITLE, FONT_EDITORIAL, PAGE_PADDING, COLOR_DIVIDER, COLOR_PAGE_BG,
-  COLOR_INPUT_BG, COLOR_PRIMARY_STRONG, COLOR_PRIMARY,
+  COLOR_INPUT_BG, COLOR_CARD_BG, COLOR_PRIMARY_STRONG, COLOR_PRIMARY,
   COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, LoadState,
   ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
 } from '../common/Constants';
@@ -71,26 +71,28 @@ export struct HomeView {
 
   @Builder
   marketHeader(): void {
-    Column({ space: 22 }) {
-      Row() {
-        Column({ space: 6 }) {
-          Text('同窗集').fontSize(FONT_TITLE).fontFamily(FONT_EDITORIAL)
-            .fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
+    Column({ space: 18 }) {
+      Row({ space: 10 }) {
+        Image($r('app.media.app_icon')).width(42).height(42).borderRadius(12).clip(true);
+        Column({ space: 4 }) {
+          Text('同窗集').fontSize(FONT_TITLE)
+            .fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
           Text('同校好物 · 当面交易').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
         }
         .layoutWeight(1).alignItems(HorizontalAlign.Start);
         Column({ space: 2 }) {
-          Image($r('app.media.design_bell')).width(20).height(20);
+          Image($r('app.media.tc_bell')).width(20).height(20);
           Text('消息').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY);
         }
         .width(52).constraintSize({ minHeight: 44 }).justifyContent(FlexAlign.Center)
-        .backgroundColor(Color.Transparent).borderRadius(UI_RADIUS)
+        .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS)
+        .accessibilityText('消息，查看交易沟通')
         .onClick(() => this.pathStack.pushPathByName(ROUTE_TRADE_LIST, ''));
       }
       .width('100%');
       Row({ space: 10 }) {
         Row({ space: 8 }) {
-          Image($r('app.media.design_search')).width(18).height(18);
+          Image($r('app.media.tc_search')).width(18).height(18);
           Text('搜索同学们发布的闲置物品').fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY)
             .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         }
@@ -100,12 +102,13 @@ export struct HomeView {
         .bindSheet($$this.searchSheetVisible, this.searchSheetContent(), {
           radius: UI_CORNERS, detents: [SheetSize.LARGE]
         });
-        Column({ space: 1 }) {
-          Text('AI 找物').fontSize('13fp').fontWeight(FontWeight.Medium).fontColor(COLOR_PRIMARY_STRONG);
+        Row({ space: 5 }) {
+          Image($r('app.media.tc_sparkles')).width(17).height(17);
+          Text('AI 找物').fontSize('13fp').fontWeight(FontWeight.Medium).fontColor(Color.White);
         }
-        .constraintSize({ minWidth: 72, minHeight: 52 }).padding({ left: 8, right: 8 })
-        .justifyContent(FlexAlign.Center).backgroundColor(Color.Transparent).borderRadius(UI_RADIUS)
-        .border({ width: 1, color: COLOR_PRIMARY_STRONG })
+        .constraintSize({ minWidth: 88, minHeight: 52 }).padding({ left: 10, right: 10 })
+        .justifyContent(FlexAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)
+        .accessibilityText('AI 找物，描述你需要的商品')
         .onClick(() => this.agentSheetVisible = true)
         .bindSheet($$this.agentSheetVisible, this.agentSheetContent(), {
           radius: UI_CORNERS, detents: [SheetSize.LARGE], showClose: false
@@ -113,19 +116,20 @@ export struct HomeView {
       }
       .width('100%');
     }
-    .width('100%').padding({ left: PAGE_PADDING, right: PAGE_PADDING, top: 20, bottom: 8 })
-    .backgroundColor(COLOR_PAGE_BG);
+    .width('100%').padding({ left: PAGE_PADDING, right: PAGE_PADDING, top: 18, bottom: 14 })
+    .backgroundColor(COLOR_CARD_BG);
   }
 
   @Builder
   categoryBar(): void {
     Scroll() {
-      Row({ space: 20 }) {
+      Row({ space: 6 }) {
         ForEach(this.categories, (item: string) => {
           Text(item).fontSize('14fp').fontWeight(FontWeight.Medium).constraintSize({ minHeight: 44 })
             .fontColor(this.category === item ? COLOR_PRIMARY_STRONG : COLOR_TEXT_SECONDARY)
-            .padding({ left: 4, right: 4, top: 10, bottom: 10 })
-            .border({ width: { bottom: 2 }, color: this.category === item ? COLOR_PRIMARY_STRONG : Color.Transparent })
+            .padding({ left: 13, right: 13, top: 10, bottom: 10 })
+            .backgroundColor(this.category === item ? COLOR_PRIMARY_SOFT : Color.Transparent)
+            .borderRadius(12)
             .onClick(() => {
               this.category = item;
               this.visibleProductId = '';
@@ -137,7 +141,7 @@ export struct HomeView {
       .padding({ left: PAGE_PADDING, right: PAGE_PADDING });
     }
     .scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).width('100%')
-    .padding({ top: 4, bottom: 0 });
+    .padding({ top: 0, bottom: 10 }).backgroundColor(COLOR_CARD_BG);
   }
 
   @Builder
@@ -147,7 +151,7 @@ export struct HomeView {
       Divider().strokeWidth(1).color(COLOR_DIVIDER);
       Row() {
         Text(this.category === '全部' ? '最新闲置' : `${this.category}好物`)
-          .fontSize('18fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
+          .fontSize('18fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
           .layoutWeight(1);
       }
       .width('100%');
@@ -216,8 +220,8 @@ export struct HomeView {
   profilePage(): void {
     Scroll() {
       Column({ space: 0 }) {
-        Text('我的').fontSize(FONT_TITLE).fontFamily(FONT_EDITORIAL)
-          .fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
+        Text('我的').fontSize(FONT_TITLE)
+          .fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
           .width('100%').margin({ top: 20 });
         Row({ space: 14 }) {
           if (this.user !== null && this.user.avatar !== '') {
@@ -228,14 +232,14 @@ export struct HomeView {
           }
           Column({ space: 6 }) {
             Text(this.user === null ? '校园同学' : this.user.nickname)
-              .fontSize('18fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
+              .fontSize('18fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
             Text('欢迎来到同窗集').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
           }
           .alignItems(HorizontalAlign.Start).layoutWeight(1);
         }
-        .width('100%').padding({ top: 24, bottom: 24 })
-        .border({ width: { bottom: 1 }, color: COLOR_DIVIDER });
-        Text('我的闲置').fontSize('18fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
+        .width('100%').padding(18).margin({ top: 20, bottom: 4 })
+        .backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(UI_RADIUS);
+        Text('我的闲置').fontSize('18fp').fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY)
           .width('100%').margin({ top: 24, bottom: 8 });
         this.profileLink('我发布的', '管理在售商品', ROUTE_SELLER_HOME);
         this.profileLink('我的交易', '查看预约与聊天消息', ROUTE_TRADE_LIST);
@@ -245,7 +249,7 @@ export struct HomeView {
             Text('上传头像、修改昵称、设置或修改密码').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
           }
           .layoutWeight(1).alignItems(HorizontalAlign.Start);
-          Text('›').fontSize('24fp').fontColor(COLOR_TEXT_TERTIARY);
+          Image($r('app.media.tc_chevron')).width(18).height(18);
         }
         .width('100%').padding({ top: 18, bottom: 18 })
         .border({ width: { bottom: 1 }, color: COLOR_DIVIDER })
@@ -277,7 +281,7 @@ export struct HomeView {
 
   @Builder
   legalLink(title: string, document: string): void {
-    Button(title).type(ButtonType.Normal).width('100%').height(46).borderRadius(UI_RADIUS)
+    Button(title).type(ButtonType.Normal).width('100%').height(44).borderRadius(UI_RADIUS)
       .fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.Transparent)
       .onClick(() => this.getUIContext().getRouter().pushUrl({ url: PAGE_LEGAL, params: { document: document } }));
   }
@@ -290,7 +294,7 @@ export struct HomeView {
         Text(hint).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
       }
       .layoutWeight(1).alignItems(HorizontalAlign.Start);
-      Text('›').fontSize('24fp').fontColor(COLOR_TEXT_TERTIARY);
+      Image($r('app.media.tc_chevron')).width(18).height(18);
     }
     .width('100%').padding({ top: 18, bottom: 18 })
     .border({ width: { bottom: 1 }, color: COLOR_DIVIDER })
@@ -302,15 +306,16 @@ export struct HomeView {
     Row() {
       this.tabItem(0, '首页');
       Column({ space: 4 }) {
-        Text('+').fontSize('28fp').fontColor(Color.White).height(48).width(48)
-          .textAlign(TextAlign.Center).backgroundColor(COLOR_PRIMARY).borderRadius(CIRCLE_RADIUS);
+        Image($r('app.media.tc_plus')).width(50).height(44).padding(11)
+          .backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS);
         Text('发布').fontSize('12fp').fontWeight(FontWeight.Medium).fontColor(COLOR_PRIMARY);
       }
-      .width(72).onClick(() => this.pathStack.pushPathByName(ROUTE_PUBLISH_PAGE, ''));
+      .width(80).constraintSize({ minHeight: 60 }).accessibilityText('发布闲置商品')
+      .onClick(() => this.pathStack.pushPathByName(ROUTE_PUBLISH_PAGE, ''));
       this.tabItem(1, '我的');
     }
     .width('100%').justifyContent(FlexAlign.SpaceAround)
-    .padding({ top: 8, bottom: 16 })
+    .padding({ top: 10, bottom: 10 })
     .backgroundColor(Color.White)
     .border({ width: { top: 1 }, color: COLOR_DIVIDER });
   }
@@ -318,13 +323,13 @@ export struct HomeView {
   @Builder
   tabItem(index: number, label: string): void {
     Column({ space: 4 }) {
-      Image(index === 0 ? (this.selectedTab === 0 ? $r('app.media.design_house_selected') :
-        $r('app.media.design_house_idle')) : (this.selectedTab === 1 ? $r('app.media.design_user_selected') :
-        $r('app.media.design_user_idle'))).width(22).height(22);
+      Image(index === 0 ? (this.selectedTab === 0 ? $r('app.media.tc_house_selected') :
+        $r('app.media.tc_house_idle')) : (this.selectedTab === 1 ? $r('app.media.tc_user_selected') :
+        $r('app.media.tc_user_idle'))).width(22).height(22);
       Text(label).fontSize('12fp').fontWeight(FontWeight.Medium)
         .fontColor(this.selectedTab === index ? COLOR_PRIMARY : COLOR_TEXT_TERTIARY);
     }
-    .width(72).constraintSize({ minHeight: 48 }).onClick(() => {
+    .width(80).constraintSize({ minHeight: 60 }).accessibilityText(label).onClick(() => {
       const changed: boolean = this.selectedTab !== index;
       this.selectedTab = index;
       if (index === 0 && changed) {

@@ -2,13 +2,14 @@ import { Product } from '../../../model/Models';
 import { formatCondition, formatPrice } from '../../../common/Utils';
 import {
   UI_RADIUS, FONT_PRODUCT, FONT_PRICE, FONT_META, COLOR_INPUT_BG, COLOR_PRICE, COLOR_TEXT_PRIMARY,
-  COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY
+  COLOR_CARD_BG, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY
 } from '../common/Constants';
 
 @ComponentV2
 export struct ProductCard {
   @Require @Param product: Product;
   @Param cardWidth: number | string = '100%';
+  @Param compact: boolean = false;
   @Event onCardClick: (product: Product) => void = (_product: Product): void => {
   };
 
@@ -20,10 +21,10 @@ export struct ProductCard {
   }
 
   build() {
-    Column() {
+    Flex({ direction: this.compact ? FlexDirection.Row : FlexDirection.Column, alignItems: ItemAlign.Start }) {
       if (this.product.images.length > 0 && !this.imageFailed) {
         Image(this.product.images[0])
-          .width(this.cardWidth)
+          .width(this.compact ? 104 : this.cardWidth)
           .aspectRatio(1)
           .objectFit(ImageFit.Cover)
           .borderRadius(UI_RADIUS)
@@ -31,10 +32,10 @@ export struct ProductCard {
           .onError(() => this.imageFailed = true);
       } else {
         Column({ space: 4 }) {
-          Image($r('app.media.design_photo')).width(28).height(28);
+          Image($r('app.media.tc_photo')).width(28).height(28);
           Text('暂无图片').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
         }
-        .width(this.cardWidth)
+        .width(this.compact ? 104 : this.cardWidth)
         .aspectRatio(1)
         .justifyContent(FlexAlign.Center)
         .backgroundColor(COLOR_INPUT_BG)
@@ -52,7 +53,7 @@ export struct ProductCard {
           .width('100%')
           .fontSize(FONT_PRICE)
           .fontColor(COLOR_PRICE)
-          .fontWeight(FontWeight.Medium);
+          .fontWeight(FontWeight.Bold);
         Text(formatCondition(this.product.condition)).fontSize(FONT_META)
           .fontColor(COLOR_TEXT_SECONDARY).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%');
@@ -61,12 +62,13 @@ export struct ProductCard {
             .width('100%').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         }
       }
-      .width('100%')
+      .width(this.compact ? 'calc(100% - 104vp)' : '100%')
       .alignItems(HorizontalAlign.Start)
-      .padding({ top: 12, bottom: 10 });
+      .padding({ left: 12, right: this.compact ? 0 : 12, top: this.compact ? 0 : 12, bottom: this.compact ? 0 : 14 });
     }
-    .width(this.cardWidth).alignItems(HorizontalAlign.Start)
-    .backgroundColor(Color.Transparent)
+    .width(this.cardWidth)
+    .padding(this.compact ? 12 : 0)
+    .backgroundColor(COLOR_CARD_BG).borderRadius(UI_RADIUS)
     .clip(true)
     .onClick(() => this.onCardClick(this.product));
   }

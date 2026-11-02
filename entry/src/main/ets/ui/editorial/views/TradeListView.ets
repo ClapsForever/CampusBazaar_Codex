@@ -4,7 +4,7 @@ import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../../../common/Utils';
 import { authService } from '../../../service/AuthenticationService';
 import {
-  UI_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
+  UI_RADIUS, COLOR_INPUT_BG, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY,
   LoadState, ROUTE_TRADE_DETAIL, TradeStatusUI
 } from '../common/Constants';
 
@@ -93,8 +93,8 @@ export struct TradeListView {
         Image(item.product.images[0]).width(76).height(76).borderRadius(UI_RADIUS)
           .objectFit(ImageFit.Cover);
       } else {
-        Text('📷').fontSize('24fp').width(76).height(76).textAlign(TextAlign.Center)
-          .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
+        Image($r('app.media.tc_photo')).width(76).height(76).padding(24)
+          .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
       }
       Column({ space: 7 }) {
         Text(item.product.title).fontSize('15fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)

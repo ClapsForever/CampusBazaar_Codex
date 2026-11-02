@@ -21,10 +21,10 @@ export struct AgentSheetView {
         Text(this.vm.historyVisible ? '历史记录' : 'AI 找物').fontSize('24fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
           .layoutWeight(1);
         Button({ type: ButtonType.Normal }) {
-          Image($r('app.media.design_close')).width(20).height(20);
+          Image($r('app.media.tc_close')).width(20).height(20);
         }
         .width(SHEET_ACTION_HEIGHT).height(SHEET_ACTION_HEIGHT)
-        .backgroundColor('#E5E4E1').borderRadius(UI_RADIUS)
+        .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
         .accessibilityText('关闭 AI 找物').onClick(() => this.onClose());
       }
       .width('100%').alignItems(VerticalAlign.Center).margin({ top: 8 });
@@ -92,7 +92,7 @@ export struct AgentSheetView {
         }
         Row({ space: 8 }) {
           TextInput({ placeholder: '继续提问或补充条件', text: this.vm.query, controller: this.inputController })
-            .height(48).layoutWeight(1).fontSize('14fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+            .height(48).layoutWeight(1).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
             .padding({ left: 12, right: 12 })
             .onChange((value: string) => {
               this.vm.query = value;
@@ -112,7 +112,7 @@ export struct AgentSheetView {
   @Builder
   suggestion(prompt: string): void {
     Text(prompt).fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY)
-      .width('100%').padding({ top: 16, bottom: 16 })
+      .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS)
       .onClick(() => {
         this.vm.query = prompt;
         this.sendMessage();
@@ -140,7 +140,7 @@ export struct AgentSheetView {
             Row() {
               if (item.product !== null) {
                 ProductCard({
-                  product: item.product,
+                  product: item.product, compact: true,
                   onCardClick: (product: Product): void => {
                     this.onClose();
                     this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, product.id);

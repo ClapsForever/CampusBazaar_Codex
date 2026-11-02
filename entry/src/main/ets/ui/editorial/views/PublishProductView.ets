@@ -3,7 +3,7 @@ import { PublishViewModel } from '../../../viewmodel/PublishViewModel';
 import { CAMPUS_OPTIONS, CONDITION_OPTIONS, PRODUCT_CATEGORIES, publishCategoryHint } from '../../../common/MarketOptions';
 import { formatCondition } from '../../../common/Utils';
 import {
-  UI_RADIUS, COLOR_DIVIDER, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+  UI_RADIUS, COLOR_PRIMARY_SOFT, COLOR_DIVIDER, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
   COLOR_TEXT_TERTIARY, MAX_PRODUCT_PHOTOS
 } from '../common/Constants';
 
@@ -20,7 +20,7 @@ export struct PublishProductView {
             this.photoSection();
             this.fieldLabel('商品标题');
             TextInput({ placeholder: '写出品牌、型号和物品名称', text: this.vm.title })
-              .height(50).fontSize('14fp').backgroundColor(Color.White).borderRadius(UI_RADIUS)
+              .height(50).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(Color.White).borderRadius(UI_RADIUS)
               .padding({ left: 14, right: 14 })
               .onChange((value: string) => {
                 this.vm.title = value;
@@ -30,7 +30,7 @@ export struct PublishProductView {
 
             this.fieldLabel('商品描述');
             TextArea({ placeholder: '介绍使用情况和瑕疵；图书馆门口等见面地点也可写在这里', text: this.vm.description })
-              .height(118).fontSize('14fp').backgroundColor(Color.White).borderRadius(UI_RADIUS)
+              .height(118).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(Color.White).borderRadius(UI_RADIUS)
               .padding(14)
               .onChange((value: string) => {
                 this.vm.description = value;
@@ -78,11 +78,11 @@ export struct PublishProductView {
             this.errorText(this.vm.campusError);
             this.fieldLabel('见面地点（选填）');
             TextInput({ placeholder: '例如：图书馆门口，会追加到商品描述', text: this.vm.meetingPlace })
-              .height(50).fontSize('14fp').backgroundColor(Color.White).borderRadius(UI_RADIUS)
+              .height(50).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(Color.White).borderRadius(UI_RADIUS)
               .padding({ left: 14, right: 14 })
               .onChange((value: string) => this.vm.meetingPlace = value);
             Text('当面交易 · 线下付款').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY)
-              .width('100%').padding(14).backgroundColor('#FFF4EB').borderRadius(UI_RADIUS)
+              .width('100%').padding(14).backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(UI_RADIUS)
               .margin({ bottom: 16 });
           }
           .width('100%').padding({ left: 20, right: 20, top: 16 });
@@ -127,18 +127,19 @@ export struct PublishProductView {
           ForEach(this.vm.images, (source: string, index: number) => {
             Stack() {
               Image(source).width(86).height(86).borderRadius(UI_RADIUS).objectFit(ImageFit.Cover);
-              Text('×').fontSize('18fp').fontColor(Color.White)
-                .backgroundColor('#00000088').borderRadius(UI_RADIUS)
-                .width(44).height(44).textAlign(TextAlign.Center).align(Alignment.TopEnd)
+              Image($r('app.media.tc_close_white')).padding(12)
+                .backgroundColor('#17243CB3').borderRadius(UI_RADIUS)
+                .width(44).height(44).align(Alignment.TopEnd).accessibilityText('移除照片')
                 .onClick(() => this.vm.removeImage(index));
             }
           }, (source: string, index: number): string => `${source}_${index}`);
           if (this.vm.canAddPhoto) {
             Column({ space: 3 }) {
-              Text('+').fontSize('28fp').fontColor(COLOR_PRIMARY);
+              Image($r('app.media.tc_add_photo')).width(26).height(26);
               Text('添加照片').fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
             }
             .width(86).height(86).justifyContent(FlexAlign.Center)
+            .backgroundColor(COLOR_PRIMARY_SOFT)
             .border({ width: 1, color: COLOR_DIVIDER, style: BorderStyle.Dashed })
             .borderRadius(UI_RADIUS).onClick(() => this.showPhotoActions());
           }
@@ -157,7 +158,7 @@ export struct PublishProductView {
   @Builder
   fieldLabel(label: string): void {
     Text(label).fontSize('16fp').fontWeight(FontWeight.Medium)
-      .fontColor(COLOR_TEXT_PRIMARY).width('100%').margin({ top: 12 });
+      .fontColor(COLOR_TEXT_PRIMARY).width('100%').margin({ top: 8 });
   }
 
   @Builder

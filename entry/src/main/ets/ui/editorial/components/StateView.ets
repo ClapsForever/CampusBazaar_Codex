@@ -16,21 +16,21 @@ export struct StateView {
     if (this.state === LoadState.LOADING) {
       Column({ space: 12 }) {
         LoadingProgress().width(36).height(36).color(COLOR_PRIMARY);
-        Text(this.loadingText).fontSize('14fp').fontColor(COLOR_TEXT_TERTIARY);
+        Text(this.loadingText).fontSize('14fp').fontColor(COLOR_TEXT_TERTIARY).textAlign(TextAlign.Center).padding({ left: 24, right: 24 });
       }
       .width('100%').height('100%').justifyContent(FlexAlign.Center);
     } else if (this.state === LoadState.EMPTY) {
       Column({ space: 8 }) {
-        Text('📭').fontSize('40fp');
+        Image($r('app.media.tc_box')).width(44).height(44).margin({ bottom: 8 });
         Text(this.emptyText).fontSize('15fp').fontColor(COLOR_TEXT_SECONDARY);
         if (this.emptyHint !== '') {
-          Text(this.emptyHint).fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY);
+          Text(this.emptyHint).fontSize('13fp').fontColor(COLOR_TEXT_TERTIARY).textAlign(TextAlign.Center).padding({ left: 24, right: 24 });
         }
       }
       .width('100%').height('100%').justifyContent(FlexAlign.Center);
     } else if (this.state === LoadState.ERROR) {
       Column({ space: 12 }) {
-        Text('⚠️').fontSize('40fp');
+        Image($r('app.media.tc_error')).width(44).height(44).margin({ bottom: 8 });
         Text(this.errorText).fontSize('15fp').fontColor(COLOR_TEXT_SECONDARY);
         Button('重试').type(ButtonType.Normal)
           .height(48).fontSize('14fp').fontColor(Color.White).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS)

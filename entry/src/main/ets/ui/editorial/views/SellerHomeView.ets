@@ -3,7 +3,7 @@ import { SellerHomeViewModel } from '../../../viewmodel/SellerHomeViewModel';
 import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../../../common/Utils';
 import {
-  UI_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY, LoadState,
+  UI_RADIUS, COLOR_SUCCESS, COLOR_SUCCESS_BG, COLOR_INPUT_BG, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_TERTIARY, LoadState,
   COLOR_TEXT_SECONDARY, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE
 } from '../common/Constants';
 
@@ -43,8 +43,8 @@ export struct SellerHomeView {
                       Image(item.images[0]).width(72).height(72).borderRadius(UI_RADIUS)
                         .objectFit(ImageFit.Cover);
                     } else {
-                      Text('📷').fontSize('26fp').width(72).height(72).textAlign(TextAlign.Center)
-                        .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
+                      Image($r('app.media.tc_photo')).width(72).height(72).padding(24)
+                        .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
                     }
                     Column({ space: 5 }) {
                       Text(item.title).fontSize('15fp').fontWeight(FontWeight.Medium)
@@ -116,11 +116,11 @@ export struct SellerHomeView {
   }
 
   private statusColor(item: Product): string {
-    return item.status === 'ACTIVE' ? '#2E9E5B' : COLOR_TEXT_TERTIARY;
+    return item.status === 'ACTIVE' ? COLOR_SUCCESS : COLOR_TEXT_TERTIARY;
   }
 
   private statusBackground(item: Product): string {
-    return item.status === 'ACTIVE' ? '#EAF6ED' : COLOR_PAGE_BG;
+    return item.status === 'ACTIVE' ? COLOR_SUCCESS_BG : COLOR_PAGE_BG;
   }
 
   private showDelistDialog(item: Product): void {

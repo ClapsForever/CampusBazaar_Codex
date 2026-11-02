@@ -3,7 +3,7 @@ import { TradeViewModel } from '../../../viewmodel/TradeViewModel';
 import { StateView } from '../components/StateView';
 import { formatPrice, formatTime } from '../../../common/Utils';
 import {
-  UI_RADIUS, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+  UI_RADIUS, COLOR_INPUT_BG, COLOR_DIVIDER, COLOR_PAGE_BG, COLOR_PRICE, COLOR_PRIMARY, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
   COLOR_TEXT_TERTIARY, LoadState, TradeStatusUI, STATUS_ACCEPTED_TEXT_COLOR, STATUS_REJECTED_TEXT_COLOR
 } from '../common/Constants';
 
@@ -61,8 +61,8 @@ export struct TradeDetailView {
           Image(this.vm.detail.product.images[0]).width(76).height(76).borderRadius(UI_RADIUS)
             .objectFit(ImageFit.Cover);
         } else {
-          Text('📷').fontSize('26fp').width(76).height(76).textAlign(TextAlign.Center)
-            .backgroundColor(COLOR_PAGE_BG).borderRadius(UI_RADIUS);
+          Image($r('app.media.tc_photo')).width(76).height(76).padding(24)
+            .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
         }
         Column({ space: 6 }) {
           Text(this.vm.detail.product.title).fontSize('16fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
@@ -88,7 +88,7 @@ export struct TradeDetailView {
     if (this.vm.detail !== null && (this.vm.isSeller || this.vm.isBuyer)) {
       Row({ space: 10 }) {
         if (this.vm.isSeller && this.vm.detail.transaction.status === TransactionStatus.PENDING) {
-          Button('接受').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(STATUS_ACCEPTED_TEXT_COLOR)
+          Button('接受').type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White).backgroundColor(COLOR_PRIMARY)
             .borderRadius(UI_RADIUS).enabled(!this.vm.actioning).onClick(async () => {
               const success: boolean = await this.vm.accept();
               this.showActionToast(success, '交易已接受');
@@ -116,8 +116,8 @@ export struct TradeDetailView {
 
   @Builder
   cancelButton(label: string): void {
-    Button(label).type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(Color.White)
-      .backgroundColor(STATUS_REJECTED_TEXT_COLOR).borderRadius(UI_RADIUS)
+    Button(label).type(ButtonType.Normal).layoutWeight(1).height(48).fontColor(COLOR_TEXT_SECONDARY)
+      .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
       .enabled(!this.vm.actioning).onClick(() => this.showCancelDialog());
   }
 

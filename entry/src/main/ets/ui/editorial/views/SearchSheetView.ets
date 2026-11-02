@@ -36,7 +36,7 @@ export struct SearchSheetView {
       Text('搜索商品').fontSize('20fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
         .width('100%').margin({ top: 8 });
       TextInput({ placeholder: '搜索同学们发布的闲置物品', text: this.keyword })
-        .height(50).fontSize('14fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+        .height(50).fontSize('14fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {
           this.keyword = value;
@@ -79,7 +79,7 @@ export struct SearchSheetView {
           ForEach(this.results, (item: Product) => {
             ListItem() {
               ProductCard({
-                product: item,
+                product: item, compact: true,
                 onCardClick: (product: Product): void => {
                   this.onClose();
                   this.pathStack.pushPathByName(ROUTE_PRODUCT_DETAIL, product.id);

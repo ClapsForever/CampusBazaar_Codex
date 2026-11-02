@@ -45,14 +45,14 @@ struct Index {
       Scroll() {
         Column({ space: 16 }) {
           Column({ space: 12 }) {
-            Image($r('app.media.app_icon')).width(48).height(48).objectFit(ImageFit.Contain)
+            Image($r('app.media.app_icon')).width(64).height(64).objectFit(ImageFit.Contain)
               .borderRadius(UI_RADIUS).clip(true).accessibilityText('同窗集图标');
-            Text('同窗集').fontSize('30fp').fontFamily(FONT_EDITORIAL)
-              .fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
+            Text('同窗集').fontSize('30fp')
+              .fontWeight(FontWeight.Bold).fontColor(COLOR_TEXT_PRIMARY);
             Text('同校好物 · 当面交易').fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY);
           }
           .width('100%').alignItems(HorizontalAlign.Start)
-          .margin({ top: this.vm.registering ? 20 : 32, bottom: 16 });
+          .margin({ top: this.vm.registering ? 16 : 36, bottom: this.vm.registering ? 12 : 24 });
 
           Text(this.vm.registering ? '注册账号' : '邮箱登录')
             .fontSize('20fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY).width('100%');
@@ -68,8 +68,7 @@ struct Index {
               Text(this.vm.formError).fontSize('12fp').fontColor(COLOR_ERROR).width('100%');
             }
           }
-          .width('100%').padding({ top: 16, bottom: 20 })
-          .border({ width: { top: 1, bottom: 1 }, color: COLOR_DIVIDER });
+          .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS);
           Text(this.vm.registering ? '注册须验证邮箱，邮箱验证不代表学生身份认证。' :
             '忘记密码请联系项目组。没有账号可点击下方「立即注册」。')
             .fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
@@ -96,7 +95,7 @@ struct Index {
       Button(this.vm.registering ? '已有账号？返回登录' : '没有账号？立即注册')
         .type(ButtonType.Normal).width('86%').height(44).margin({ bottom: 6 })
         .fontSize('14fp').fontWeight(FontWeight.Medium).fontColor(COLOR_PRIMARY)
-        .backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(UI_RADIUS)
+        .backgroundColor(Color.Transparent).borderRadius(UI_RADIUS)
         .enabled(!this.vm.loggingIn)
         .onClick(() => this.vm.setRegistering(!this.vm.registering));
       this.legalLinks();
@@ -199,7 +198,7 @@ struct Index {
       TextInput({ placeholder: this.vm.registering ? '设置登录密码（6–64 位）' : '请输入密码', text: this.vm.password })
         .type(InputType.Password).maxLength(64)
         .enabled(!this.vm.loggingIn)
-        .height(48).width('100%').fontSize('15fp').backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
+        .height(48).width('100%').fontSize('15fp').fontColor(COLOR_TEXT_PRIMARY).placeholderColor(COLOR_TEXT_TERTIARY).caretColor(COLOR_PRIMARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {
           this.vm.password = value; this.vm.passwordError = ''; this.vm.confirmPasswordError = ''; this.vm.formError = '';
