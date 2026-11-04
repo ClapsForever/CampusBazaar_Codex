@@ -1,5 +1,7 @@
 # 同窗集（CampusBazaar）
 
+> 2026-11-04：正式域名已恢复访问，App 默认后端切回 `https://api.campus-bazzar.work`。北京时间 13:21 实测 HTTPS 健康检查返回 200，HTTP 正常跳转 HTTPS。重新构建、签名并安装后生效，无需启动本机 SSH 桥接；见[接入与验证说明](docs/ip-direct-testing.md)。
+
 > 2026-11-02：蓝色 UI 已在本地启用，业务 API 与 Agent 已更新至整合版本，数据库升级到 schema v7。一年数据保留自动清理已启用；切换前备份及验收见 [后端更新记录](docs/backend-rollout-2026-11-02.md)。
 
 > 2026-10-31 15:02：阿里云 Agent 已更新六级资料召回与无结果补查修复。服务器 191 项回归、线上模型 7 项隔离评测通过，并用用户原话实际检出“六级资料”。业务 API、数据和配置保留；App 请点击“新对话”开始，无需为此次后端更新重新安装。见 [部署与回退记录](docs/agent-rollout-2026-10-31.md)。
@@ -132,7 +134,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 ## 5. 在 DevEco Studio 运行 App
 
 1. 打开本仓库根目录，等待工程与 OHPM 同步；选择匹配的 HarmonyOS SDK 和模拟器。
-2. 当前 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 使用模拟器演示地址 `http://127.0.0.1:18765`。启动本机模拟器和本机 Git 忽略目录中的 `backend/api/.local-data/demo-tunnel/start-demo.ps1` 后，App 才能通过 SSH 桥接访问共享后端；也可将地址改为 `https://api.campus-bazzar.work` 并重新构建。已有账号密码继续使用，新注册须配套邮件版 API。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`；配置真实邮件时还须使用可信 HTTPS 或回环开发环境。
+2. 当前 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 默认使用正式地址 `https://api.campus-bazzar.work`，模拟器和真机可直接连接共享后端，无需启动本机 SSH 桥接。已有账号密码继续使用，新注册须获取邮件验证码。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`；配置真实邮件时还须使用可信 HTTPS 或回环开发环境。修改地址后须重新构建并安装 App，旧包仍使用构建时的地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
 启动页可切换登录/注册，注册时填写邮箱并获取验证码，收到邮件后输入六位数字、密码和确认密码，主动同意协议后提交；成功后自动登录。已有账号可继续密码登录；新环境开发可先使用 [Demo 账号导入](docs/demo-auth.md)。真实注册接入及双方验收见 [注册说明](docs/registration.md) 与 [阿里云邮件交接清单](docs/aliyun-email-handoff.md)。
