@@ -116,7 +116,7 @@ components:
 
 冷白页面、白色内容面、钴蓝操作与深蓝灰文字服务快速浏览、发布和沟通。商品照片与真实状态构成内容层级，文字使用 HarmonyOS 系统默认无衬线。现有名称与蓝色应用图标是确认保留的品牌资产；方向依据见 `design/blue-ui-brief.md`。
 
-本系统记录当前启用的 `entry/src/main/ets/ui/editorial`，以该目录 `common/Constants.ets` 及真实组件为依据。原 UI、独立的旧 token 与 `design_` 图标保持独立，不能据此推断原 UI 也采用本系统。布局数值使用原生 vp，字号使用 fp；前置 token 中保留真实单位。`.impeccable/design.json` 的 HTML/CSS 仅为设计面板的视觉近似，不是原生组件、运行实现或交互验收。
+本系统记录当前启用的 `entry/src/main/ets/ui/editorial`，以该目录 `common/Constants.ets` 及真实组件为依据。提交版仅注册这里记录的蓝色 UI 页面。布局数值使用原生 vp，字号使用 fp；前置 token 中保留真实单位。`.impeccable/design.json` 的 HTML/CSS 仅为设计面板的视觉近似，不是原生组件、运行实现或交互验收。
 
 **Key Characteristics:**
 

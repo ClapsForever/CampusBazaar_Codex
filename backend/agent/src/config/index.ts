@@ -82,5 +82,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (nodeEnv === "production" && (config.mockBackend || config.modelMode === "mock")) {
     throw new AppError("BAD_REQUEST", "production 环境禁止启用 Mock 后端或 Mock 模型", { statusCode: 500 });
   }
+  if (nodeEnv === "production") {
+    const modelUrl = new URL(config.modelBaseUrl);
+    if (modelUrl.protocol !== "https:" || modelUrl.username || modelUrl.password || modelUrl.search || modelUrl.hash ||
+      !config.modelApiKey || config.modelApiKey.startsWith("replace-")) {
+      throw new Error("Production Agent requires an HTTPS model endpoint and a model API key");
+    }
+    const businessUrl = new URL(config.businessBackendUrl);
+    if (!["http:", "https:"].includes(businessUrl.protocol) ||
+      !["127.0.0.1", "[::1]", "localhost"].includes(businessUrl.hostname) ||
+      businessUrl.origin !== config.businessBackendUrl.replace(/\/$/, "")) {
+      throw new Error("Production Agent requires a loopback business API origin");
+    }
+    const businessToken = config.businessBackendToken ?? "";
+    if (config.serviceAuthToken === businessToken ||
+      [config.serviceAuthToken, businessToken].some(token => token.length < 24 || token.startsWith("replace-"))) {
+      throw new Error("Production Agent requires two distinct service tokens of at least 24 characters");
+    }
+  }
   return config;
 }

@@ -14,21 +14,21 @@ const secret = () => randomBytes(32).toString('hex');
 const sessionSecret = secret();
 const tokenA = secret();
 const tokenB = secret();
-const api = `APP_MODE=local
+const api = `APP_MODE=production
 HOST=127.0.0.1
 PORT=8080
 DATABASE_PATH=/var/lib/campusbazaar/campusbazaar.sqlite
 UPLOAD_DIR=/var/lib/campusbazaar/uploads
-PUBLIC_BASE_URL=http://YOUR_PUBLIC_IPV4
+PUBLIC_BASE_URL=https://YOUR_PUBLIC_HOST
 SESSION_SECRET=${sessionSecret}
 AGENT_BASE_URL=http://127.0.0.1:3000
 AGENT_SERVICE_TOKEN=${tokenA}
 INTERNAL_AGENT_TOKEN=${tokenB}
 AGENT_SCHOOL_ID=school_demo
-EMAIL_PROVIDER=disabled
+EMAIL_PROVIDER=aliyun
 EMAIL_SEND_DAILY_LIMIT=200
 ALIYUN_DM_REGION_ID=cn-hangzhou
-ALIYUN_DM_SENDER=noreply@notify.example.com
+ALIYUN_DM_SENDER=
 ALIYUN_DM_SENDER_NAME=同窗集
 ALIYUN_DM_CREDENTIAL_TYPE=ecs_ram_role
 ALIYUN_DM_ROLE_NAME=
@@ -57,4 +57,4 @@ SESSION_TTL_MS=86400000
 `;
 writeFileSync(apiPath, api, { mode: 0o600, flag: 'wx' });
 writeFileSync(agentPath, agent, { mode: 0o600, flag: 'wx' });
-console.log(`Created ${apiPath} and ${agentPath}. Set PUBLIC_BASE_URL and MODEL_API_KEY before starting services.`);
+console.log(`Created ${apiPath} and ${agentPath}. Configure the HTTPS origin, DirectMail sender and model API key before starting services.`);

@@ -6,6 +6,8 @@
 # Build output and generated packages
 **/build/
 **/.preview/
+/release/
+*.app
 *.hap
 *.hsp
 *.har

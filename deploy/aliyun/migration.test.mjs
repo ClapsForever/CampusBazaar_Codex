@@ -38,7 +38,7 @@ test('新环境保留会话密钥与学校，内部令牌配对，HTTPS代理包
   assert.equal(api.AGENT_SERVICE_TOKEN, agent.SERVICE_AUTH_TOKEN); assert.equal(api.INTERNAL_AGENT_TOKEN, agent.BUSINESS_BACKEND_TOKEN);
   assert.notEqual(api.AGENT_SERVICE_TOKEN, api.INTERNAL_AGENT_TOKEN);
   assert.equal(api.PUBLIC_BASE_URL, 'https://api.example.com'); assert.equal(api.HOST, '127.0.0.1');
-  assert.equal(agent.MODEL_API_KEY, 'synthetic-model-key'); assert.equal(api.APP_MODE, 'local');
+  assert.equal(agent.MODEL_API_KEY, 'synthetic-model-key'); assert.equal(api.APP_MODE, 'production');
   assert.equal(api.EMAIL_PROVIDER, 'aliyun'); assert.equal(api.EMAIL_SEND_DAILY_LIMIT, '150');
   assert.equal(api.ALIYUN_DM_REGION_ID, 'cn-hangzhou'); assert.equal(api.ALIYUN_DM_SENDER, 'noreply@notify.example.com');
   assert.equal(api.ALIYUN_DM_CREDENTIAL_TYPE, 'access_key'); assert.equal(api.ALIBABA_CLOUD_ACCESS_KEY_SECRET, 'synthetic-mail-secret');
@@ -47,6 +47,7 @@ test('新环境保留会话密钥与学校，内部令牌配对，HTTPS代理包
   assert.match(nginx, /listen 443 ssl/); assert.match(nginx, /api\.example\.com\/fullchain.pem/);
   assert.match(nginx, /location = \/api\/v1\/auth\/registrations/); assert.match(nginx, /location \^~ \/internal\//);
   assert.match(nginx, /location = \/api\/v1\/auth\/email-verifications/);
+  assert.match(nginx, /user-agreement\|privacy-policy/);
   assert.match(nginx, /X-Real-IP \$remote_addr/); assert.match(nginx, /X-User-Id ""/);
   assert(!nginx.includes(session)); assert(!JSON.stringify(report).includes(session));
   assert(!nginx.includes('synthetic-mail-secret')); assert(!JSON.stringify(report).includes('synthetic-mail-secret'));
@@ -62,8 +63,6 @@ test('配置拒绝隐式明文、带凭据或路径的入口及无效旧密钥�
   }
   const oldApi = join(root, 'old.env'); writeFileSync(oldApi, 'SESSION_SECRET=short\n');
   assert.throws(() => prepareConfig({ output: join(root, 'invalid'), publicBaseUrl: 'https://api.example.com', previousApiEnv: oldApi }), /no usable/);
-  const output = join(root, 'http-test');
-  assert.equal(prepareConfig({ output, publicBaseUrl: 'http://203.0.113.1', allowHttpTest: true }).requiresCertificate, false);
   const result = await execute('prepare-config.mjs', ['--output', join(root, 'cli'), '--public-base-url', 'https://api.example.com']);
   assert.equal(result.status, 0, result.stderr);
   const api = parseEnv(readFileSync(join(root, 'cli/env/api.env'), 'utf8'));
@@ -155,12 +154,13 @@ test('源码发布包按白名单生成，不带运行密钥、数据库或已�
   const files = readFileSync(join(output, 'source-files.txt'), 'utf8').trim().split('\n');
   assert(files.includes('backend/api/src/registration.ts')); assert(files.includes('backend/agent/package-lock.json'));
   assert(files.includes('deploy/aliyun/licx-ip-test/nginx.conf'));
+  assert(files.includes('docs/legal/web/user-agreement.html')); assert(files.includes('docs/legal/web/privacy-policy.html'));
   assert(files.every(name => !/(^|\/)(node_modules|dist|\.local-data|results)\//.test(name)));
   assert(files.every(name => !/(^|\/)\.env$/.test(name)));
   const metadata = JSON.parse(readFileSync(join(output, 'release.json')));
   assert.equal(metadata.sha256, createHash('sha256').update(readFileSync(join(output, metadata.archive))).digest('hex'));
   assert.equal(metadata.secretsIncluded, false); assert.equal(metadata.dataIncluded, false);
-  assert.equal(metadata.apiSchema, 7); assert.equal(metadata.legalVersion, '2026-10-23-draft-4');
+  assert.equal(metadata.apiSchema, 7); assert.equal(metadata.legalVersion, '2026-11-06');
   assert(!readFileSync(join(output, 'source/deploy/ubuntu/backup.sh'), 'utf8').includes('\r'));
   assert.equal((await execute('prepare-release.mjs', ['--output', output])).status, 1);
 });
@@ -204,7 +204,7 @@ test('真实v7数据库可快照恢复，保留邮箱验证、取消下架状态
     const register = async email => {
       const verification = await store.emailVerifications.issue({ email }, '203.0.113.15');
       return store.register({ email, password: 'Campus123', emailVerificationId: verification.verificationId, emailCode: codes.get(email),
-        agreementVersion: '2026-10-23-draft-4', privacyVersion: '2026-10-23-draft-4' }, '203.0.113.15');
+        agreementVersion: '2026-11-06', privacyVersion: '2026-11-06' }, '203.0.113.15');
     };
     const seller = await register('seller@example.invalid'), buyer = await register('buyer@example.invalid');
     const owner = store.findUser(seller.user.id), customer = store.findUser(buyer.user.id);
@@ -239,16 +239,22 @@ test('真实v7数据库可快照恢复，保留邮箱验证、取消下架状态
   } finally { db.close(); }
 });
 
-test('部署探针识别旧后端401，并在显式选择时验证新API拒绝无邮箱验证码注册', async () => {
+test('部署探针识别旧后端，验证公开协议网页和注册验证码', async () => {
   const { createApiApp } = await import(pathToFileURL(join(repo, 'backend/api/dist/src/server.js')));
   const root = directory();
   const app = createApiApp({ mode: 'local', host: '127.0.0.1', port: 0, databasePath: join(root, 'smoke.sqlite'), uploadDir: join(root, 'uploads'),
     publicBaseUrl: 'http://127.0.0.1:0', sessionSecret: 'synthetic-aliyun-smoke-session-secret', agentBaseUrl: 'http://127.0.0.1:1',
     agentServiceToken: 'test-agent-service-token-a', internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_smoke' });
   await new Promise(resolveStart => app.server.listen(0, '127.0.0.1', resolveStart));
-  let legacy = true;
+  let legacy = true, legalPages = false;
   const proxy = createServer(async (req, res) => {
     if (req.url.startsWith('/internal/')) { res.writeHead(404); res.end('{}'); return; }
+    const legal = /^\/legal\/(user-agreement|privacy-policy)\.html$/.exec(req.url);
+    if (legal && legalPages) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(readFileSync(join(repo, 'docs/legal/web', `${legal[1]}.html`)));
+      return;
+    }
     if (legacy && req.url === '/api/v1/auth/registrations') { res.writeHead(401); res.end('{"code":"UNAUTHORIZED"}'); return; }
     const chunks = []; for await (const chunk of req) chunks.push(chunk);
     const response = await fetch(`http://127.0.0.1:${app.server.address().port}${req.url}`, { method: req.method,
@@ -262,8 +268,12 @@ test('部署探针识别旧后端401，并在显式选择时验证新API拒绝�
     const old = await execute('smoke.mjs', ['--base-url', base]); assert.equal(old.status, 1); assert.match(old.stderr, /HTTP 401/);
     legacy = false;
     const readOnly = await execute('smoke.mjs', ['--base-url', base]); assert.equal(readOnly.status, 0, readOnly.stderr);
+    const missing = await execute('smoke.mjs', ['--base-url', base, '--legal-pages']);
+    assert.equal(missing.status, 1); assert.match(missing.stderr, /legal page is unavailable/);
+    legalPages = true;
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
-    const real = await execute('smoke.mjs', ['--base-url', base, '--registration-test']); assert.equal(real.status, 0, real.stderr);
+    const real = await execute('smoke.mjs', ['--base-url', base, '--legal-pages', '--registration-test']);
+    assert.equal(real.status, 0, real.stderr);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM auth_sessions WHERE revoked_at IS NULL').get().n, 0);
   } finally { await new Promise(resolveClose => proxy.close(resolveClose)); await app.close(); }

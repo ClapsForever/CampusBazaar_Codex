@@ -15,7 +15,7 @@ export interface MailConfig {
 }
 
 export interface Config {
-  mode: 'local'; host: string; port: number; databasePath: string; uploadDir: string;
+  mode: 'local' | 'production'; host: string; port: number; databasePath: string; uploadDir: string;
   publicBaseUrl: string; sessionSecret: string;
   agentBaseUrl: string; agentServiceToken: string; internalAgentToken: string; schoolId: string;
   mail?: MailConfig;
@@ -32,7 +32,10 @@ function required(env: NodeJS.ProcessEnv, key: string): string {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const mode = required(env, 'APP_MODE');
-  if (mode !== 'local') throw new Error('This API only supports APP_MODE=local');
+  if (mode !== 'local' && mode !== 'production') throw new Error('APP_MODE must be local or production');
+  if (env.NODE_ENV === 'production' && mode !== 'production') {
+    throw new Error('NODE_ENV=production requires APP_MODE=production');
+  }
   const port = Number(env.PORT ?? 8080);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid PORT');
   const host = env.HOST?.trim() || '127.0.0.1';
@@ -51,6 +54,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const provider = env.EMAIL_PROVIDER?.trim() || 'disabled';
   if (!['disabled', 'aliyun'].includes(provider)) throw new Error('EMAIL_PROVIDER must be disabled or aliyun');
+  if (mode === 'production') {
+    const publicUrl = new URL(publicBaseUrl);
+    const agentUrl = new URL(agentBaseUrl);
+    if (publicUrl.protocol !== 'https:' || publicUrl.origin !== publicBaseUrl) {
+      throw new Error('Production PUBLIC_BASE_URL must be an HTTPS origin');
+    }
+    if (!['127.0.0.1', '::1'].includes(host) ||
+      !['127.0.0.1', '[::1]', 'localhost'].includes(agentUrl.hostname) || agentUrl.origin !== agentBaseUrl) {
+      throw new Error('Production API and Agent must use loopback addresses');
+    }
+    if (provider !== 'aliyun') throw new Error('Production registration requires EMAIL_PROVIDER=aliyun');
+  }
   let mail: MailConfig | undefined;
   if (provider === 'aliyun') {
     const publicUrl = new URL(publicBaseUrl);
@@ -79,7 +94,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const retentionEnabled = env.DATA_RETENTION_ENABLED?.trim() || 'true';
   if (!['true', 'false'].includes(retentionEnabled)) throw new Error('DATA_RETENTION_ENABLED must be true or false');
   return {
-    mode: 'local', host, port,
+    mode, host, port,
     databasePath: resolve(required(env, 'DATABASE_PATH')),
     uploadDir: resolve(required(env, 'UPLOAD_DIR')),
     publicBaseUrl, sessionSecret, agentBaseUrl, agentServiceToken, internalAgentToken,

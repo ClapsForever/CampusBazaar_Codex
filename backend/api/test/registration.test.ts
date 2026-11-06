@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { inflateSync } from 'node:zlib';
 import { provisionAccounts } from '../src/accounts.js';
 import type { Config } from '../src/config.js';
 import { openDatabase } from '../src/db.js';
@@ -37,13 +35,6 @@ async function fixture() {
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
     return { status: response.status, body: await response.json() as any, headers: response.headers };
   }
-  // The deferred CAPTCHA implementation is tested directly, never exposed by HTTP.
-  async function challenge(previousId?: string, clientIp = '203.0.113.1') {
-    const captcha = new RegistrationProtection(app.db, config).issueCaptcha(previousId ? { previousId } : {}, clientIp);
-    app.db.prepare('UPDATE auth_captchas SET code_hash=? WHERE id=?')
-      .run(createHmac('sha256', config.sessionSecret).update(`${captcha.id}:AB3D`).digest('hex'), captcha.id);
-    return captcha;
-  }
   const registration = async (overrides: Record<string, unknown> = {}, clientIp = '203.0.113.1') => {
     const email = String(overrides.email ?? ' New.Member+Test@Example.COM ').trim().toLowerCase();
     if (!codes.has(email)) {
@@ -55,7 +46,7 @@ async function fixture() {
     return call('/api/v1/auth/registrations', { email: ' New.Member+Test@Example.COM ', password: ' demo password ',
       agreementVersion: AGREEMENT_VERSION, privacyVersion: PRIVACY_VERSION, ...codes.get(email), ...overrides }, { 'x-real-ip': clientIp });
   };
-  return { config, call, challenge, registration, get app() { return app; },
+  return { config, call, registration, get app() { return app; },
     async restart() { await app.close(); app = createApiApp(config, { emailSender: sender }); await start(); },
     async close() { await app.close(); } };
 }
@@ -92,51 +83,11 @@ test('图形验证码接口保持关闭；邮箱验证码注册、密码登录�
   } finally { await f.close(); }
 });
 
-test('待办验证码实现保留：PNG、摘要、过期、刷新、重放和来源绑定', async () => {
-  const f = await fixture();
-  try {
-    let captcha = await f.challenge();
-    const png = Buffer.from(captcha.imageBase64.split(',')[1]!, 'base64');
-    assert.deepEqual(png.subarray(0, 8), Buffer.from([137,80,78,71,13,10,26,10]));
-    assert.equal(png.readUInt32BE(16), 160); assert.equal(png.readUInt32BE(20), 56);
-    const chunks: string[] = [], data: Buffer[] = [];
-    for (let offset = 8; offset < png.length;) {
-      const length = png.readUInt32BE(offset), name = png.toString('ascii', offset + 4, offset + 8);
-      chunks.push(name);
-      if (name === 'IDAT') data.push(png.subarray(offset + 8, offset + 8 + length));
-      offset += 12 + length;
-    }
-    assert.deepEqual(chunks, ['IHDR','IDAT','IEND']);
-    assert.equal(inflateSync(Buffer.concat(data)).length, 56 * (160 * 3 + 1));
-    const stored = f.app.db.prepare('SELECT * FROM auth_captchas WHERE id=?').get(captcha.id)!;
-    assert.match(String(stored.code_hash), /^[a-f0-9]{64}$/); assert(!('code' in stored));
-    const consume = (id: string, code: unknown = 'ab3d', ip = '203.0.113.1') => new RegistrationProtection(f.app.db, f.config).consumeCaptcha(id, code, ip);
-    assert.throws(() => consume(captcha.id, 'ZZZZ'), { code: 'CAPTCHA_INVALID' });
-    assert.throws(() => consume(captcha.id), { code: 'CAPTCHA_INVALID' });
-    captcha = await f.challenge();
-    assert.throws(() => consume(captcha.id, null), { code: 'CAPTCHA_INVALID' });
-    assert.equal(f.app.db.prepare('SELECT 1 FROM auth_captchas WHERE id=?').get(captcha.id), undefined);
-    captcha = await f.challenge();
-    f.app.db.prepare('UPDATE auth_captchas SET expires_at=1 WHERE id=?').run(captcha.id);
-    assert.throws(() => consume(captcha.id), { code: 'CAPTCHA_INVALID' });
-    const old = await f.challenge(); captcha = await f.challenge(old.id);
-    assert.throws(() => consume(old.id), { code: 'CAPTCHA_INVALID' });
-    // Other sources cannot consume or invalidate the issuing client's challenge.
-    assert.throws(() => consume(captcha.id, 'ab3d', '203.0.113.2'), { code: 'CAPTCHA_INVALID' });
-    await f.challenge(captcha.id, '203.0.113.2');
-    assert(f.app.db.prepare('SELECT 1 FROM auth_captchas WHERE id=?').get(captcha.id));
-    await f.restart();
-    consume(captcha.id);
-    assert.throws(() => consume(captcha.id), { code: 'CAPTCHA_INVALID' });
-    assert.equal(f.app.db.prepare('SELECT COUNT(*) AS n FROM users').get()!.n, 0);
-  } finally { await f.close(); }
-});
-
 test('注册要求当前协议版本及合法邮箱密码，非学校邮箱也必须通过邮箱验证', async () => {
   const f = await fixture();
   try {
     for (const overrides of [{ agreementVersion: undefined }, { privacyVersion: undefined },
-      { agreementVersion: '2026-10-18-draft' }, { privacyVersion: 'old-version' },
+      { agreementVersion: '2026-10-23-draft-4' }, { privacyVersion: '2026-10-23-draft-4' },
       { email: 'invalid' }, { password: 'short' }, { password: ' '.repeat(6) }, { password: 'a'.repeat(65) }]) {
       const response = await f.registration(overrides);
       assert.equal(response.status, 400);
@@ -184,17 +135,17 @@ test('注册限流、并发不能超额、重启保留限制且忽略 x-forwarde
     assert.equal((await f.registration({}, '203.0.113.10')).status, 429);
     assert.equal((await f.registration({}, '203.0.113.11')).status, 201);
     f.app.db.prepare('UPDATE auth_registration_limits SET until_at=1').run();
-    f.app.db.prepare('UPDATE auth_captchas SET expires_at=1').run();
+    f.app.db.prepare('INSERT INTO auth_captchas VALUES(?,?,?,?)').run('legacy_captcha', '203.0.113.10', 'legacy-hash', 1);
     assert.equal((await f.registration({ email: 'after-limit@example.com' }, '203.0.113.10')).status, 201);
     assert.equal(f.app.db.prepare('SELECT COUNT(*) AS n FROM auth_captchas').get()!.n, 0);
   } finally { await f.close(); }
 });
 
-test('全局预算和存储容量限制阻止分散来源无限创建验证码或限流行', () => {
-  const config = configFor(), db = openDatabase(config), protection = new RegistrationProtection(db, config);
+test('注册限流覆盖全局预算和存储容量', () => {
+  const config = configFor(), db = openDatabase(config), protection = new RegistrationProtection(db);
   try {
-    db.prepare('INSERT INTO auth_registration_limits VALUES(?,?,?,?)').run('captcha_global', '*', 1000, Date.now() + 60_000);
-    assert.throws(() => protection.issueCaptcha({}, '203.0.113.1'), { status: 429 });
+    db.prepare('INSERT INTO auth_registration_limits VALUES(?,?,?,?)').run('registration_global', '*', 500, Date.now() + 60_000);
+    assert.throws(() => protection.reserveRegistration('203.0.113.1'), { status: 429 });
     db.exec('DELETE FROM auth_registration_limits');
     db.exec('BEGIN');
     for (let index = 0; index < 9999; index++) db.prepare('INSERT INTO auth_registration_limits VALUES(?,?,1,?)')
@@ -202,13 +153,6 @@ test('全局预算和存储容量限制阻止分散来源无限创建验证码�
     db.exec('COMMIT');
     assert.throws(() => protection.reserveRegistration('new-source'), { status: 429 });
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM auth_registration_limits').get()!.n, 9999);
-    db.exec('DELETE FROM auth_registration_limits');
-    db.exec('BEGIN');
-    for (let index = 0; index < 10000; index++) db.prepare('INSERT INTO auth_captchas VALUES(?,?,?,?)')
-      .run(`capacity_${index}`, 'other', '0'.repeat(64), Date.now() + 60_000);
-    db.exec('COMMIT');
-    assert.throws(() => protection.issueCaptcha({}, 'new-source'), { status: 429 });
-    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM auth_captchas').get()!.n, 10000);
   } finally { db.close(); }
 });
 

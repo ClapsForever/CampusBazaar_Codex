@@ -176,7 +176,7 @@ ALIBABA_CLOUD_ACCESS_KEY_SECRET=在服务器填写实际值
 POST /api/v1/auth/email-verifications
 Content-Type: application/json
 
-{"email":"用户自己的邮箱","purpose":"register"}
+{"email":"用户自己的邮箱","purpose":"register","agreementVersion":"2026-11-06","privacyVersion":"2026-11-06"}
 ```
 
 202 响应示例（不保证已进入收件箱）：
@@ -203,8 +203,8 @@ Content-Type: application/json
   "password":"用户设置的密码",
   "emailVerificationId":"发码接口返回的 verificationId",
   "emailCode":"用户收到的六位验证码",
-  "agreementVersion":"2026-10-23-draft-4",
-  "privacyVersion":"2026-10-23-draft-4"
+  "agreementVersion":"2026-11-06",
+  "privacyVersion":"2026-11-06"
 }
 ```
 

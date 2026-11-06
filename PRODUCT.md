@@ -19,7 +19,7 @@ HarmonyOS native — ArkTS / ArkUI ComponentV2. This platform is outside the ski
 - 已有邮箱登录与验证码注册、商品图片、组合搜索、多轮 AI 找物及历史、预约与交易聊天、个人资料和协议。
 - 当面交易、线下付款；不提供在线支付或物流。邮箱验证不等于学生身份认证。
 - 本轮覆盖当前启用 UI 的全部页面。用户确认布局可以调整，操作逻辑必须统一；保持业务、接口、状态规则及现有文案。
-- 保留原 UI 和 UiVariant 开关，修改前完整工程已独立归档并校验。禁止批量删除文件或目录。
+- 提交版仅注册蓝色 UI 页面。历史版本可通过 Git 提交或修改前的本机归档查阅。禁止批量删除文件或目录。
 - 项目目标 HarmonyOS 6.1.0 / API 23；本地 SDK 为 API 24，编译通过不能替代目标设备验收。
 
 ## Brand Commitments
@@ -28,7 +28,7 @@ HarmonyOS native — ArkTS / ArkUI ComponentV2. This platform is outside the ski
 
 ## Evidence on Hand
 
-现有 ArkUI 源码、design/editorial-a/review 原生截图、36 个原文件哈希保护、32 项 ViewModel 回归。图片和商品数据来自现有服务，不向正式应用写入演示数据。GitHub 交付仓库为 ClapsForever/CampusBazaar_Codex。
+现有 ArkUI 源码、`.impeccable/review` 蓝色版原生截图和 ViewModel 回归。图片和商品数据来自现有服务。GitHub 交付仓库为 ClapsForever/CampusBazaar_Codex。
 
 ## Product Principles
 

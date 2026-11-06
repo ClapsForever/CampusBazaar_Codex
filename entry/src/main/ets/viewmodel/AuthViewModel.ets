@@ -58,6 +58,10 @@ export class AuthViewModel {
   async sendEmailCode(): Promise<boolean> {
     this.refreshCooldown();
     if (!this.registering || this.loggingIn || this.sendingCode || this.resendSeconds > 0) return false;
+    if (!this.acceptedTerms) {
+      this.consentError = '请先阅读并同意用户协议与隐私政策，再获取验证码';
+      return false;
+    }
     this.emailError = isValidEmail(this.email) ? '' : '请输入正确的邮箱地址';
     if (this.emailError !== '') return false;
     this.clearVerification();

@@ -7,11 +7,11 @@ import { parseEnv } from 'node:util';
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
-function validUrl(value, allowHttp) {
+function validUrl(value) {
   const url = new URL(value);
   if (url.username || url.password || url.search || url.hash || url.pathname !== '/' ||
-    (!allowHttp && url.protocol !== 'https:') || !['https:', 'http:'].includes(url.protocol)) {
-    throw new Error('Use an HTTPS origin without credentials, query or path; HTTP needs --allow-http-test');
+    url.protocol !== 'https:') {
+    throw new Error('Use an HTTPS origin without credentials, query or path');
   }
   if (!/^[a-zA-Z0-9.-]+$/.test(url.hostname)) throw new Error('Use an IPv4 address or DNS hostname');
   return url;
@@ -28,8 +28,8 @@ function putEnv(source, updates) {
 }
 
 /** Prepare files only; never connect, install services, rotate the source env or modify the App. */
-export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousAgentEnv, allowHttpTest = false }) {
-  const url = validUrl(publicBaseUrl, allowHttpTest);
+export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousAgentEnv }) {
+  const url = validUrl(publicBaseUrl);
   const origin = url.origin, hostname = url.hostname;
   if (url.port) throw new Error('Templates use standard HTTP/HTTPS ports; omit a custom port');
   const oldApi = previousApiEnv ? parseEnv(readFileSync(previousApiEnv, 'utf8')) : {};
@@ -41,7 +41,7 @@ export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousA
   if (previousApiEnv) {
     apiUpdates.SESSION_SECRET = oldApi.SESSION_SECRET;
     if (oldApi.AGENT_SCHOOL_ID) apiUpdates.AGENT_SCHOOL_ID = oldApi.AGENT_SCHOOL_ID;
-    for (const key of ['EMAIL_PROVIDER', 'EMAIL_SEND_DAILY_LIMIT', 'ALIYUN_DM_REGION_ID', 'ALIYUN_DM_SENDER',
+    for (const key of ['EMAIL_SEND_DAILY_LIMIT', 'ALIYUN_DM_REGION_ID', 'ALIYUN_DM_SENDER',
       'ALIYUN_DM_SENDER_NAME', 'ALIYUN_DM_CREDENTIAL_TYPE', 'ALIYUN_DM_ROLE_NAME',
       'ALIBABA_CLOUD_ACCESS_KEY_ID', 'ALIBABA_CLOUD_ACCESS_KEY_SECRET']) {
       if (oldApi[key]) apiUpdates[key] = oldApi[key];
@@ -64,12 +64,10 @@ export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousA
   writeFileSync(apiPath, putEnv(readFileSync(apiPath, 'utf8'), apiUpdates), { mode: 0o600 });
   writeFileSync(agentPath, putEnv(readFileSync(agentPath, 'utf8'), agentUpdates), { mode: 0o600 });
   let proxy = readFileSync(join(repo, 'deploy/ubuntu/campusbazaar.nginx.conf'), 'utf8')
-    .replaceAll('cb_', 'cb_aliyun_').replaceAll('YOUR_PUBLIC_IPV4', hostname)
+    .replaceAll('cb_', 'cb_aliyun_').replaceAll('YOUR_PUBLIC_HOST', hostname)
     .replace('    location = /api/v1/auth/password/sessions {', `    location = /api/v1/auth/registrations {\n        limit_req zone=cb_aliyun_login_rate burst=10 nodelay;\n        proxy_pass http://127.0.0.1:8080;\n    }\n\n    location = /api/v1/auth/password/sessions {`);
-  if (url.protocol === 'https:') {
-    proxy = proxy.replace('    listen 80;', `    listen 443 ssl;\n    ssl_certificate /etc/letsencrypt/live/${hostname}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/${hostname}/privkey.pem;\n    ssl_protocols TLSv1.2 TLSv1.3;`);
-    proxy = `server {\n    listen 80;\n    server_name ${hostname};\n    location ^~ /.well-known/acme-challenge/ { root /var/www/letsencrypt; }\n    location / { return 301 https://$host$request_uri; }\n}\n\n${proxy}`;
-  }
+  proxy = proxy.replace('    listen 80;', `    listen 443 ssl;\n    ssl_certificate /etc/letsencrypt/live/${hostname}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/${hostname}/privkey.pem;\n    ssl_protocols TLSv1.2 TLSv1.3;`);
+  proxy = `server {\n    listen 80;\n    server_name ${hostname};\n    location ^~ /.well-known/acme-challenge/ { root /var/www/letsencrypt; }\n    location / { return 308 https://$host$request_uri; }\n}\n\n${proxy}`;
   const bootstrap = `# Temporary ACME-only server; no application API is exposed.\nserver {\n    listen 80;\n    server_name ${hostname};\n    location ^~ /.well-known/acme-challenge/ { root /var/www/letsencrypt; }\n    location / { return 503; }\n}\n`;
   writeFileSync(join(directory, 'nginx.conf'), proxy, { mode: 0o600, flag: 'wx' });
   writeFileSync(join(directory, 'nginx-bootstrap.conf'), bootstrap, { mode: 0o600, flag: 'wx' });
@@ -78,7 +76,7 @@ export function prepareConfig({ output, publicBaseUrl, previousApiEnv, previousA
     schoolId: previousApiEnv && oldApi.AGENT_SCHOOL_ID ? oldApi.AGENT_SCHOOL_ID : 'school_demo',
     modelKeyProvided: !!oldAgent.MODEL_API_KEY, target: 'Ubuntu 24.04 ECS, single API and Agent' }, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   return { directory, publicBaseUrl: origin, sessionSecretPreserved: !!previousApiEnv,
-    modelKeyProvided: !!oldAgent.MODEL_API_KEY, requiresCertificate: url.protocol === 'https:' };
+    modelKeyProvided: !!oldAgent.MODEL_API_KEY, requiresCertificate: true };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
@@ -86,8 +84,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const args = process.argv.slice(2), options = {};
     const keys = { '--output': 'output', '--public-base-url': 'publicBaseUrl', '--previous-api-env': 'previousApiEnv', '--previous-agent-env': 'previousAgentEnv' };
     for (let index = 0; index < args.length; index++) {
-      if (args[index] === '--allow-http-test') options.allowHttpTest = true;
-      else if (keys[args[index]] && args[index + 1]) {
+      if (keys[args[index]] && args[index + 1]) {
         const key = keys[args[index]]; options[key] = args[++index];
       }
       else throw new Error('Unknown or incomplete argument');

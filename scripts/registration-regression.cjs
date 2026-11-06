@@ -143,10 +143,11 @@ test('客户端匿名发码和注册提交挑战ID、验证码及当前协议版
   assert.equal((await service.registerByPassword(' Student@EXAMPLE.COM ', 'Campus123', verificationId, '012345')).id, 'registered');
   assert.deepEqual(requests, [
     { method: 'POST', route: '/api/v1/auth/email-verifications', authenticated: false,
-      body: { email: 'student@example.com', purpose: 'register' } },
+      body: { email: 'student@example.com', purpose: 'register',
+        agreementVersion: '2026-11-06', privacyVersion: '2026-11-06' } },
     { method: 'POST', route: '/api/v1/auth/registrations', authenticated: false,
       body: { email: 'student@example.com', password: 'Campus123', emailVerificationId: verificationId, emailCode: '012345',
-        agreementVersion: '2026-10-23-draft-4', privacyVersion: '2026-10-23-draft-4' } }]);
+        agreementVersion: '2026-11-06', privacyVersion: '2026-11-06' } }]);
   assert.deepEqual(tokens, ['registration-token']); assert.equal(service.getCurrentUser().id, 'registered');
 });
 
@@ -189,6 +190,10 @@ test('发码只提交一次，服务端倒计时按实际时间恢复，大小�
   const response = deferred();
   const model = modelWith({ async sendRegistrationEmail(email) { calls++; assert.equal(email, 'student@example.com'); return response.promise; } }, { Date: Clock });
   model.setRegistering(true); model.setEmail(' Student@EXAMPLE.COM ');
+  assert.equal(await model.sendEmailCode(), false);
+  assert.match(model.consentError, /请先阅读并同意/);
+  assert.equal(calls, 0);
+  model.acceptedTerms = true;
   const pending = model.sendEmailCode();
   assert.equal(await model.sendEmailCode(), false); assert.equal(calls, 1);
   assert.equal(await model.register(), false, '发送中禁止提交注册');
@@ -205,7 +210,8 @@ test('修改邮箱后，迟到的旧发码成功或失败都不覆盖新请求',
   for (const failOld of [false, true]) {
     const old = deferred(), fresh = deferred(); let calls = 0;
     const model = modelWith({ sendRegistrationEmail: () => (++calls === 1 ? old : fresh).promise });
-    model.setRegistering(true); model.setEmail('old@example.com'); const first = model.sendEmailCode();
+    model.setRegistering(true); model.acceptedTerms = true;
+    model.setEmail('old@example.com'); const first = model.sendEmailCode();
     model.setEmail('new@example.com'); const second = model.sendEmailCode();
     if (failOld) old.reject(new Error('旧请求失败')); else old.resolve(issued());
     assert.equal(await first, false); assert.equal(model.sendingCode, true); assert.equal(model.verificationError, '');
@@ -218,7 +224,8 @@ test('修改邮箱后，迟到的旧发码成功或失败都不覆盖新请求',
 test('切换登录或离开页面丢弃发码响应，返回表单不会恢复旧挑战', async () => {
   for (const action of ['login', 'dispose']) {
     const response = deferred(); const model = modelWith({ sendRegistrationEmail: () => response.promise });
-    model.setRegistering(true); model.setEmail('student@example.com'); const pending = model.sendEmailCode();
+    model.setRegistering(true); model.acceptedTerms = true;
+    model.setEmail('student@example.com'); const pending = model.sendEmailCode();
     if (action === 'login') { model.setRegistering(false); model.setRegistering(true); } else model.dispose();
     response.resolve(issued()); assert.equal(await pending, false);
     assert.equal(model.verificationId, ''); assert.equal(model.resendSeconds, 0); assert.equal(model.sendingCode, false);

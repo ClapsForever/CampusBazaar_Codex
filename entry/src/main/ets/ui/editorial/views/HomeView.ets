@@ -9,12 +9,11 @@ import { AgentSheetView } from './AgentSheetView';
 import { ProfileSettingsView } from './ProfileSettingsView';
 import { HOME_CATEGORIES, homeCategory } from '../../../common/MarketOptions';
 import { PAGE_LEGAL } from '../common/LegalDocuments';
-import { UI_INDEX_PAGE } from '../../UiVariant';
 import {
-  UI_RADIUS, UI_CORNERS, CIRCLE_RADIUS, FONT_TITLE, FONT_EDITORIAL, PAGE_PADDING, COLOR_DIVIDER, COLOR_PAGE_BG,
+  UI_RADIUS, UI_CORNERS, CIRCLE_RADIUS, FONT_TITLE, PAGE_PADDING, COLOR_DIVIDER, COLOR_PAGE_BG,
   COLOR_INPUT_BG, COLOR_CARD_BG, COLOR_PRIMARY_STRONG, COLOR_PRIMARY,
   COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_TEXT_TERTIARY, LoadState,
-  ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
+  PAGE_INDEX, ROUTE_PRODUCT_DETAIL, ROUTE_PUBLISH_PAGE, ROUTE_SELLER_HOME, ROUTE_TRADE_LIST
 } from '../common/Constants';
 
 @ComponentV2
@@ -254,6 +253,13 @@ export struct HomeView {
         this.legalLink('用户协议', 'user-agreement');
         this.legalLink('隐私政策', 'privacy-policy');
         this.legalLink('社区与交易规则', 'community-rules');
+        Button('注销账号与隐私申请').type(ButtonType.Normal).width('100%').height(44).borderRadius(UI_RADIUS)
+          .fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.Transparent)
+          .onClick(() => this.getUIContext().showAlertDialog({
+            title: '注销账号与隐私申请',
+            message: '请发送邮件至 wh1te6@163.com，说明账号邮箱和申请事项。周墨将在收到邮件后 7 日内首次回复。请勿提供密码或验证码。',
+            primaryButton: { value: '知道了', action: (): void => {} }
+          }));
         Button('退出登录').type(ButtonType.Normal).width('100%').height(46).margin({ top: 12 })
           .fontSize('14fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.White)
           .borderRadius(UI_RADIUS).onClick(async () => {
@@ -265,7 +271,7 @@ export struct HomeView {
             this.vm.clear();
             this.agentVm.resetConversation(true);
             this.pathStack.clear();
-            this.getUIContext().getRouter().replaceUrl({ url: UI_INDEX_PAGE });
+            this.getUIContext().getRouter().replaceUrl({ url: PAGE_INDEX });
           });
       }
       .width('100%').padding({ left: PAGE_PADDING, right: PAGE_PADDING, bottom: 24 });

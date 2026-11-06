@@ -31,13 +31,21 @@ export class PublishViewModel {
   }
 
   validate(): boolean {
-    this.titleError = this.title.trim() === '' ? '请输入商品名称' : '';
-    this.descriptionError = this.description.trim() === '' ? '请输入商品描述' : '';
-    this.priceError = isValidPrice(this.priceText) ? '' : '请输入大于 0 的合法价格';
+    const titleLength: number = this.title.trim().length;
+    this.titleError = titleLength === 0 ? '请输入商品名称' : (titleLength > 100 ? '商品名称最多 100 字' : '');
+    this.descriptionError = this.description.trim() === '' ? '请输入商品描述' :
+      (this.fullDescription().length > 3000 ? '商品描述和见面地点合计最多 3000 字' : '');
+    this.priceError = isValidPrice(this.priceText) ? '' : '价格须大于 0 且不超过 100000 元，最多两位小数';
     this.categoryError = isPublishCategory(this.category) ? '' : '请选择商品类别';
     this.campusError = CAMPUS_OPTIONS.includes(this.campus) ? '' : '请选择所在校区';
     return this.titleError === '' && this.descriptionError === '' && this.priceError === '' &&
       this.categoryError === '' && this.campusError === '';
+  }
+
+  private fullDescription(): string {
+    const description: string = this.description.trim();
+    const meetingPlace: string = this.meetingPlace.trim();
+    return meetingPlace === '' ? description : `${description}\n见面地点：${meetingPlace}`;
   }
 
   addImages(uris: string[]): void {
@@ -108,8 +116,7 @@ export class PublishViewModel {
     try {
       const draft: PublishDraft = {
         title: this.title.trim(),
-        description: this.description.trim() + (this.meetingPlace.trim() === '' ? '' :
-          `\n见面地点：${this.meetingPlace.trim()}`),
+        description: this.fullDescription(),
         price: parsePrice(this.priceText),
         images: [...this.images],
         category: this.category,

@@ -5,7 +5,8 @@ export const ROUTE_PUBLISH_PAGE: string = 'PublishPage';
 export const ROUTE_PRODUCT_DETAIL: string = 'ProductDetail';
 export const ROUTE_TRADE_LIST: string = 'TradeList';
 export const ROUTE_TRADE_DETAIL: string = 'TradeDetail';
-export const PAGE_MAIN: string = 'pages/Main';
+export const PAGE_INDEX: string = 'ui/editorial/pages/Index';
+export const PAGE_MAIN: string = 'ui/editorial/pages/Main';
 
 export const MAX_PRODUCT_PHOTOS: number = 3;
 export const CHAT_REFRESH_DELAY_MS: number = 1000;

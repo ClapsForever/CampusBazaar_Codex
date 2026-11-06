@@ -11,7 +11,7 @@
 - `/home/licx/campusbazaar/current` 仍指向 `releases/20261020-aliyun-c3301aa`；Agent 保留原发布和原进程，未整体切换链接。旧邮件发布目录没有 Agent 构建产物，不能直接用作整套服务的 `current`。
 - Nginx 只新增匿名发码接口的专用代理和登录级限流；Caddy 配置及三个私有环境文件内容未改动。
 
-API 覆盖配置位于 `/home/licx/.config/systemd/user/campusbazaar-licx-api.service.d/20-email-release.conf`，对应仓库模板见 [API 邮件发布覆盖配置](../deploy/aliyun/licx-ip-test/campusbazaar-licx-api-email.conf)。后续更新 API 时，应同时核对这一覆盖配置；仅修改 `current` 不再改变 API 运行版本。
+API 覆盖配置位于 `/home/licx/.config/systemd/user/campusbazaar-licx-api.service.d/20-email-release.conf`。后续更新 API 时，应同时核对这一覆盖配置；仅修改 `current` 不再改变 API 运行版本。
 
 ## 备份与数据保留
 

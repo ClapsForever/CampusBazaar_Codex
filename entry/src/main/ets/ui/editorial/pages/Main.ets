@@ -9,7 +9,7 @@ import { AgentViewModel } from '../../../viewmodel/AgentViewModel';
 import { BuyerHomeViewModel } from '../../../viewmodel/BuyerHomeViewModel';
 import {
   ROUTE_PRODUCT_DETAIL, ROUTE_SELLER_HOME, ROUTE_PUBLISH_PAGE,
-  ROUTE_TRADE_LIST, ROUTE_TRADE_DETAIL, FONT_EDITORIAL
+  ROUTE_TRADE_LIST, ROUTE_TRADE_DETAIL
 } from '../common/Constants';
 
 @Entry
@@ -25,9 +25,6 @@ struct Main {
   }
 
   aboutToAppear(): void {
-    this.getUIContext().getFont().registerFont({
-      familyName: FONT_EDITORIAL, familySrc: $rawfile('editorial/CampusEditorialSerif.otf')
-    });
     this.feedVm.ensureFeedLoaded();
   }
 

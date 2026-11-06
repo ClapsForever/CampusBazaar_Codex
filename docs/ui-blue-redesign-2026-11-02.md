@@ -27,23 +27,15 @@
 
 原版 pages/views/components/common、ViewModel、服务、模型、业务 API、Agent 和协议正文没有改动。原来的 UI 修改说明和旧截图保留为历史记录；当前规则以本文件和 DESIGN.md 为准。
 
-## 切换与回退
+## 历史版本
 
-`entry/src/main/ets/ui/UiVariant.ets`：
+提交版仅注册蓝色 UI。查看改版前的校园刊物版，可在独立副本检出提交 `2465490`，或使用上述完整备份。
 
-```ts
-export const USE_EDITORIAL_UI: boolean = true;
-```
-
-- true：当前蓝色版；false：保留的原 UI。修改后在 DevEco 完整重新运行，热重载当前页面不足以切换入口。
-- 回到改版前的校园刊物版：在独立工作副本检出提交 `2465490`，或使用上述完整备份。
-- 两版继续共用 bundleName、账号和线上数据，切换 UI 不会回退交易数据，不需要卸载、清库或部署后端。
-
-## 已完成验证
+## 2026-11-02 改版验证
 
 | 检查 | 结果与边界 |
 | --- | --- |
-| `node scripts/check-editorial-ui.cjs` | 36 个原文件哈希不变；15 组 UI 对照检查保留业务方法、事件、事实文案、输入约束、条件与路由。仅允许精确列举的装饰图标替换和展示颜色辅助方法变化。 |
+| 改版时的新旧 UI 对照 | 36 个原文件哈希不变；15 组对照检查覆盖业务方法、事件、文案、输入约束和路由。 |
 | `node --test scripts/ui-regression.cjs` | 32 项已有 ViewModel 回归通过，使用本机 SDK 的 TypeScript。 |
 | `assembleHap --no-daemon` | 正式工程成功；新旧 UI 均参与 ArkTS 编译，资源打包通过。保留既有异常处理警告。 |
 | 正式 HAP 内容检查 | 无 Review 路由、预览夹具 ID、截图或日志；临时预览工程不进入正式包。 |

@@ -10,6 +10,7 @@ Type=simple
 User=campusbazaar
 Group=campusbazaar
 WorkingDirectory=/srv/campusbazaar/current/backend/agent
+Environment=NODE_ENV=production
 EnvironmentFile=/etc/campusbazaar/agent.env
 ExecStart=/opt/campusbazaar-node/bin/node --max-old-space-size=1024 dist/server.js
 Restart=on-failure

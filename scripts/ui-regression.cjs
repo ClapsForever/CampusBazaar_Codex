@@ -6,6 +6,20 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const ts = require(process.env.ARK_TYPESCRIPT || require.resolve('typescript', { paths: [path.join(__dirname, '../backend/api')] }));
 const root = path.resolve(__dirname, '../entry/src/main/ets');
+
+test('页面配置仅注册蓝色版登录、首页和协议页', () => {
+  const load = harness();
+  const { PAGE_INDEX, PAGE_MAIN } = load('common/Constants');
+  const { PAGE_LEGAL } = load('common/LegalDocuments');
+  const profile = path.resolve(root, '../resources/base/profile/main_pages.json');
+  const routes = JSON.parse(fs.readFileSync(profile, 'utf8')).src;
+  assert.deepEqual(routes, [PAGE_INDEX, PAGE_MAIN, PAGE_LEGAL]);
+  for (const route of routes) {
+    assert.ok(route.startsWith('ui/editorial/pages/'));
+    assert.ok(fs.existsSync(path.join(root, `${route}.ets`)));
+  }
+});
+
 function harness(overrides = {}, runtime = {}) {
   const cache = new Map();
   function load(name) {
@@ -252,6 +266,34 @@ test('发布保存通用类别、拒绝旧小类，见面地点只追加到描�
     model.category = category; assert.equal(model.validate(), true);
   }
   model.category = '耳机'; assert.equal(model.validate(), false);
+});
+
+test('发布在上传照片前校验名称、完整描述和价格的 API 上限', async () => {
+  let calls = 0;
+  const load = harness({ 'service/ProductService': { productService: { publishProduct: async () => { calls++; } } } });
+  const model = new (load('viewmodel/PublishViewModel').PublishViewModel)();
+  Object.assign(model, { title: '耳机', description: '九成新', priceText: '100000', category: '外设',
+    campus: '江湾校区', images: ['photo'] });
+  for (const [field, value, error] of [
+    ['priceText', '100000.01', 'priceError'],
+    ['priceText', '9'.repeat(400), 'priceError'],
+    ['title', '物'.repeat(101), 'titleError'],
+    ['description', '新'.repeat(3001), 'descriptionError']
+  ]) {
+    const original = model[field];
+    model[field] = value;
+    assert.equal(await model.submit(), false, field);
+    assert.ok(model[error]);
+    model[field] = original;
+  }
+  model.description = '新'.repeat(3000);
+  model.meetingPlace = '图书馆';
+  assert.equal(await model.submit(), false);
+  assert.ok(model.descriptionError);
+  assert.equal(calls, 0);
+  model.meetingPlace = '';
+  assert.equal(await model.submit(), true);
+  assert.equal(calls, 1);
 });
 
 test('发布失败显示表单错误并保留输入，进行中禁止重复提交，照片限制三张', async () => {

@@ -6,7 +6,7 @@ import { ApiError, bodyHash, cursorDecode, cursorEncode, moneyToCents, optionalT
 import { categorySearchSpec, keywordGroups } from './search.js';
 import { hashPassword, validatePassword, verifyPassword } from './password.js';
 import { normalizeDeliveryEmail, normalizeEmail } from './accounts.js';
-import { AGREEMENT_VERSION, PRIVACY_VERSION, RegistrationProtection } from './registration.js';
+import { AGREEMENT_VERSION, PRIVACY_VERSION, RegistrationProtection, requireLegalVersions } from './registration.js';
 import { EmailVerificationService } from './email-verification.js';
 import { createVerificationEmailSender, type VerificationEmailSender } from './mailer.js';
 
@@ -44,7 +44,7 @@ export class Store {
   readonly registrationProtection: RegistrationProtection;
   readonly emailVerifications: EmailVerificationService;
   constructor(public db: DatabaseSync, public config: Config, emailSender?: VerificationEmailSender) {
-    this.registrationProtection = new RegistrationProtection(db, config);
+    this.registrationProtection = new RegistrationProtection(db);
     this.emailVerifications = new EmailVerificationService(db, config, emailSender ?? createVerificationEmailSender(config));
   }
 
@@ -52,9 +52,7 @@ export class Store {
     this.registrationProtection.reserveRegistration(clientIp);
     const email = normalizeDeliveryEmail(body.email);
     const password = validatePassword(body.password);
-    if (body.agreementVersion !== AGREEMENT_VERSION || body.privacyVersion !== PRIVACY_VERSION) {
-      throw new ApiError(400, 'AGREEMENT_REQUIRED', '请阅读并同意当前版本的用户协议与隐私政策');
-    }
+    requireLegalVersions(body);
     const verification = this.emailVerifications.requireInput(body);
     const passwordHash = await hashPassword(password);
     // Check and insert under the same write transaction after asynchronous hashing.

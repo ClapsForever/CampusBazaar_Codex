@@ -32,6 +32,15 @@ test('默认关闭发信；启用阿里云需合法地域、单个发件地址�
   assert.equal(keyed.mail!.accessKeyId, 'test-only-id'); assert.equal(keyed.emailSendDailyLimit, 200);
 });
 
+test('生产 API 要求 HTTPS、回环监听及真实邮件配置', () => {
+  const env = { ...baseEnv, NODE_ENV: 'production', APP_MODE: 'production', EMAIL_PROVIDER: 'aliyun',
+    ALIYUN_DM_REGION_ID: 'cn-hangzhou', ALIYUN_DM_SENDER: 'noreply@notify.example.com' };
+  assert.equal(loadConfig(env).mode, 'production');
+  for (const overrides of [{ APP_MODE: 'local' }, { HOST: '0.0.0.0' }, { EMAIL_PROVIDER: 'disabled' },
+    { PUBLIC_BASE_URL: 'http://127.0.0.1' }, { PUBLIC_BASE_URL: 'https://api.example.com/path' },
+    { AGENT_BASE_URL: 'https://agent.example.com' }]) assert.throws(() => loadConfig({ ...env, ...overrides }));
+});
+
 test('官方 SDK 真实 HTTP 序列化发送触发邮件，关闭追踪及自动重试', async () => {
   const received: { method: string | undefined; headers: import('node:http').IncomingHttpHeaders; parameters: URLSearchParams }[] = [];
   const server = createServer(async (req, res) => {

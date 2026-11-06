@@ -2,7 +2,9 @@
 
 基于 Node.js 24、TypeScript 和内置 SQLite 的单机开发后端。Pi Agent 源码位于同仓库的 `backend/agent/`，作为独立进程运行；DeepSeek Key 只在 `backend/agent/.env` 中配置。完整部署步骤见[仓库根目录说明](../../README.md)。
 
-## 首次启动
+线上使用 `APP_MODE=production` 与 `NODE_ENV=production`。API 仅监听回环地址，通过 HTTPS 反向代理对外服务。`PUBLIC_BASE_URL` 使用 HTTPS origin，Agent 地址使用回环 origin，注册发信使用 DirectMail。发布步骤见[上架准备](../../docs/legal/launch-checklist.md)。
+
+## 本地开发启动
 
 在 `backend/api` 目录运行：
 
@@ -25,7 +27,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-然后构建并启动。新注册须通过邮箱验证码；当前 App 注册控件尚未接入，新环境可先按 [Demo 认证说明](../../docs/demo-auth.md) 导入账号：
+然后构建并启动。新注册须通过邮箱验证码；当前 App 已接入邮箱发码；本地未配置邮件时可按[管理员账号说明](../../docs/demo-auth.md)导入账号：
 
 ```powershell
 npm run build
@@ -64,9 +66,9 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 
 | 操作 | 方法与路径 | 请求体/说明 |
 | --- | --- | --- |
-| 图形验证码（待办） | `POST /api/v1/auth/captchas` | 暂不开放，匿名请求也返回 404 `NOT_FOUND`；注册不再请求或校验图形验证码 |
-| 邮箱验证码 | `POST /api/v1/auth/email-verifications` | `email`、可选 `purpose=register`；202 返回 `verificationId,expiresAt,expiresIn,resendAfter`，不返回验证码；详见 [邮件交接清单](../../docs/aliyun-email-handoff.md) |
-| 自助注册 | `POST /api/v1/auth/registrations` | `email,password,emailVerificationId,emailCode,agreementVersion,privacyVersion`；201 返回 `{user,token,expiresAt}` 并登录；协议和政策版本都须为 `2026-10-23-draft-4`，保存对应用户及接受时间；无需 `captchaId`、`captchaCode` |
+| 旧图形验证码入口 | `POST /api/v1/auth/captchas` | 兼容响应为 404 `NOT_FOUND` |
+| 邮箱验证码 | `POST /api/v1/auth/email-verifications` | `email`、可选 `purpose=register`，生产环境另需 `agreementVersion,privacyVersion`；202 返回 `verificationId,expiresAt,expiresIn,resendAfter`，不返回验证码；详见 [邮件交接清单](../../docs/aliyun-email-handoff.md) |
+| 自助注册 | `POST /api/v1/auth/registrations` | `email,password,emailVerificationId,emailCode,agreementVersion,privacyVersion`；201 返回 `{user,token,expiresAt}` 并登录；协议和政策版本都须为 `2026-11-06`，保存对应用户及接受时间；无需 `captchaId`、`captchaCode` |
 | 密码登录 | `POST /api/v1/auth/password/sessions` | `email,password`，返回 `{user,token,expiresAt}`；账号须已注册或预置，邮箱统一去首尾空白并转小写；每邮箱连续失败 5 次后限流 15 分钟，来源 IP 也有限额，服务重启保留限制 |
 | 更新个人资料 | `PUT /api/v1/me`（也支持 PATCH） | `nickname`（1–24 字），可选 `avatarId`（当前账号的未绑定商品图片）；返回当前用户 |
 | 修改密码 | `POST /api/v1/me/password` | `newPassword`（6–64 位且非全空白）和 `currentPassword`；撤销其他会话 |
@@ -93,7 +95,7 @@ Agent 和业务 API 分别运行在 3000、8080 端口。先启动业务 API，�
 
 同一邮箱发码至少间隔 60 秒，每小时最多 5 次、24 小时最多 10 次；每 IP 每 15 分钟 20 次，全局每分钟 30 次、24 小时默认 200 次（`EMAIL_SEND_DAILY_LIMIT`）。计数窗口从首次请求开始，失败请求也计数。限流返回 429 `EMAIL_SEND_RATE_LIMITED` 及 `Retry-After`；不自动重发。邮箱验证码与限流行在启动、发码和每分钟维护时按到期时间清理，保留上限为各表 10000 行；备份和供应商投递记录不由此同步删除。配置和双方交接见 [阿里云邮件交接清单](../../docs/aliyun-email-handoff.md)。
 
-移除图形验证码后仍执行注册限流：每来源 IP 每 15 分钟最多尝试注册 20 次，全局上限 500 次，限流记录最多 10000 行；无效字段、重复邮箱和注册失败也计入尝试。限流记录在重启后保留，过期记录在后续相关请求时清理。只有回环来源的有效 `X-Real-IP` 才被视为本机可信反向代理提供的地址，`X-Forwarded-For` 不参与身份判断；Nginx 须覆盖 `X-Real-IP`，业务 API 需保持回环绑定。原图形验证码的渲染、摘要、来源绑定和限流基础实现及 v4 数据表暂时保留，但没有可用 HTTP 入口，注册不会使用它们；恢复前应重新评估方案与接口。
+移除图形验证码后仍执行注册限流：每来源 IP 每 15 分钟最多尝试注册 20 次，全局上限 500 次，限流记录最多 10000 行；无效字段、重复邮箱和注册失败也计入尝试。限流记录在重启后保留，过期记录在后续相关请求时清理。只有回环来源的有效 `X-Real-IP` 才被视为本机可信反向代理提供的地址，`X-Forwarded-For` 不参与身份判断；Nginx 须覆盖 `X-Real-IP`，业务 API 需保持回环绑定。图形验证码的生成与校验代码已移除。旧数据表用于数据库升级兼容，到期记录仍会清理。
 
 Agent 使用 `Authorization: Bearer <令牌 B>` 及 `x-user-id`、`x-school-id` 调用内部三个只读接口：`/internal/listings/search`、`/internal/listings/{listingId}`、`/internal/users/preferences`。这些请求仍校验用户所属学校。
 
@@ -105,7 +107,7 @@ npm test
 
 测试会在系统临时目录创建独立数据库和模拟 Agent，不调用 DeepSeek，也不读取本机 `.env`；保留临时数据，不递归删除目录。真实 DeepSeek 与模拟器联调需在两个服务启动后单独验证。
 
-本版统一使用数据库 schema v7，在 v6 邮箱验证码表基础上增加文件清理重试队列与时间索引。支持从 v1/v2/v3、商品管理分支的 v4 及注册分支的 v4 升级；按实际表结构补齐状态约束和缺少的注册表，保留已有协议记录及业务数据。v1/v2 先执行 v3 邮箱迁移并撤销此前签发的会话；v3/v4/v5 升级保留已有账号、会话、图片、登录及注册限流。旧手机号账号须由管理员确认归属后绑定邮箱才能登录，旧账号不补造注册协议记录。暂停验证码不删除兼容表或历史数据。更新前备份数据库与图片；旧 API 无法直接打开 v7 数据库，回滚须同时恢复升级前数据库。
+本版统一使用数据库 schema v7，在 v6 邮箱验证码表基础上增加文件清理重试队列与时间索引。支持从 v1/v2/v3、商品管理分支的 v4 及注册分支的 v4 升级；按实际表结构补齐状态约束和缺少的注册表，保留已有协议记录及业务数据。v1/v2 先执行 v3 邮箱迁移并撤销此前签发的会话；v3/v4/v5 升级保留已有账号、会话、图片、登录及注册限流。旧手机号账号须由管理员确认归属后绑定邮箱才能登录，旧账号不补造注册协议记录。旧图形验证码兼容表仍随数据库迁移保留。更新前备份数据库与图片；旧 API 无法直接打开 v7 数据库，回滚须同时恢复升级前数据库。
 
 停止业务 API 后，将整个 `.local-data` 目录复制到安全位置即可同时备份 SQLite 和图片。恢复时停止 API，用备份覆盖该目录再启动。若在 API 运行期间备份，请先使用 SQLite 的在线备份机制，避免只复制主数据库文件而遗漏 WAL 数据。
 

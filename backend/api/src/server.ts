@@ -1,14 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { createReadStream, existsSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+import { open } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { isIP } from 'node:net';
+import { pipeline } from 'node:stream/promises';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
 import { openDatabase } from './db.js';
 import { ApiError, bearer, equalToken, fail, readBytes, readJson, requestId, send, text } from './http.js';
 import { Store } from './store.js';
 import type { VerificationEmailSender } from './mailer.js';
+import { requireLegalVersions } from './registration.js';
 import { cleanupExpiredData, RETENTION_INTERVAL_MS } from './retention.js';
 
 export interface ApiApp { server: Server; db: DatabaseSync; close(): Promise<void> }
@@ -36,6 +39,26 @@ function imageType(bytes: Buffer): { mime: string; extension: string } | null {
   if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return { mime: 'image/png', extension: 'png' };
   if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return { mime: 'image/webp', extension: 'webp' };
   return null;
+}
+
+async function sendImage(res: ServerResponse, store: Store, image: NonNullable<ReturnType<Store['image']>>,
+  rid: string): Promise<void> {
+  const filename = join(store.config.uploadDir, `${image.id}.${image.extension}`);
+  const file = await open(filename, 'r').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+      throw new ApiError(404, 'NOT_FOUND', '图片文件不存在');
+    }
+    throw error;
+  });
+  try {
+    const stat = await file.stat();
+    if (!stat.isFile()) throw new ApiError(404, 'NOT_FOUND', '图片文件不存在');
+    res.writeHead(200, { 'Content-Type': image.mime, 'Content-Length': stat.size,
+      'Cache-Control': 'private, max-age=300', 'X-Request-Id': rid });
+    await pipeline(file.createReadStream(), res);
+  } finally {
+    await file.close();
+  }
 }
 
 function internalIdentity(req: IncomingMessage, store: Store) {
@@ -118,10 +141,12 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'POST' && path === '/api/v1/auth/password/sessions') {
     send(res, 201, await store.loginWithPassword(await readJson(req), loginClientIp(req)), rid); return;
   }
-  // Image CAPTCHA is deferred; keep this path explicitly unavailable before auth.
+  // Preserve the retired endpoint's public 404 response before auth.
   if (path === '/api/v1/auth/captchas') throw new ApiError(404, 'NOT_FOUND', '接口尚未开放');
   if (method === 'POST' && path === '/api/v1/auth/email-verifications') {
-    send(res, 202, await store.emailVerifications.issue(await readJson(req), loginClientIp(req)), rid); return;
+    const body = await readJson(req);
+    if (store.config.mode === 'production') requireLegalVersions(body);
+    send(res, 202, await store.emailVerifications.issue(body, loginClientIp(req)), rid); return;
   }
   if (method === 'POST' && path === '/api/v1/auth/registrations') {
     send(res, 201, await store.register(await readJson(req), loginClientIp(req)), rid); return;
@@ -139,10 +164,7 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   if (method === 'GET' && signedImageMatch?.[1] && store.validImageSignature(signedImageMatch[1], url.searchParams)) {
     const image = store.image(signedImageMatch[1]);
     if (!image || !(image.product_id ? store.findProduct(image.product_id) : store.isAvatar(image.id))) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
-    const filename = join(store.config.uploadDir, `${image.id}.${image.extension}`);
-    if (!existsSync(filename)) throw new ApiError(404, 'NOT_FOUND', '图片文件不存在');
-    res.writeHead(200, { 'Content-Type': image.mime, 'Content-Length': image.size_bytes, 'Cache-Control': 'private, max-age=300', 'X-Request-Id': rid });
-    createReadStream(filename).pipe(res); return;
+    await sendImage(res, store, image, rid); return;
   }
   const token = bearer(req);
   const user = store.authenticate(token);
@@ -200,10 +222,7 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
     if (!image) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
     if (image.product_id) store.publicProduct(image.product_id, user);
     else if (image.owner_id !== user.id && !store.isAvatar(image.id, user.school_id)) throw new ApiError(404, 'NOT_FOUND', '图片不存在');
-    const filename = join(store.config.uploadDir, `${image.id}.${image.extension}`);
-    if (!existsSync(filename)) throw new ApiError(404, 'NOT_FOUND', '图片文件不存在');
-    res.writeHead(200, { 'Content-Type': image.mime, 'Content-Length': image.size_bytes, 'Cache-Control': 'private, max-age=300', 'X-Request-Id': rid });
-    createReadStream(filename).pipe(res); return;
+    await sendImage(res, store, image, rid); return;
   }
   if (method === 'POST' && path === '/api/v1/transactions') {
     send(res, 201, store.createTransaction(user, await readJson(req), idempotencyKey(req)), rid); return;
@@ -255,7 +274,11 @@ export function createApiApp(config: Config, options: { emailSender?: Verificati
     const started = Date.now();
     res.on('finish', () => console.log(JSON.stringify({ event: 'http_request', requestId: rid,
       method: req.method, path: (req.url || '/').split('?')[0], status: res.statusCode, durationMs: Date.now() - started })));
-    route(req, res, store, rid).catch(error => fail(res, error, rid));
+    route(req, res, store, rid).catch(error => {
+      if (res.destroyed) return;
+      if (res.headersSent) res.destroy();
+      else fail(res, error, rid);
+    });
   });
   return { server, db, close: () => new Promise<void>((resolve, reject) => server.close(error => {
     clearInterval(cleanupTimer);

@@ -9,13 +9,13 @@ const { test } = require('node:test');
 const ts = require(require.resolve('typescript', { paths: [path.join(__dirname, '../backend/api')] }));
 const root = path.resolve(__dirname, '..');
 
-test('实际前端发码、纠正错码、验证码注册自动登录、退出和密码重登', async () => {
+test('实际前端走生产协议校验、发码、注册自动登录、退出和密码重登', async () => {
   const { createApiApp } = await import(pathToFileURL(path.join(root, 'backend/api/dist/src/server.js')));
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'campus-registration-flow-'));
   const codes = new Map();
-  const app = createApiApp({ mode: 'local', host: '127.0.0.1', port: 0,
+  const app = createApiApp({ mode: 'production', host: '127.0.0.1', port: 0,
     databasePath: path.join(directory, 'flow.sqlite'), uploadDir: path.join(directory, 'uploads'),
-    publicBaseUrl: 'http://127.0.0.1:0', sessionSecret: 'registration-flow-isolated-secret-32chars',
+    publicBaseUrl: 'https://api.example.com', sessionSecret: 'registration-flow-isolated-secret-32chars',
     agentBaseUrl: 'http://127.0.0.1:1', agentServiceToken: 'test-agent-service-token-a',
     internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_flow' },
     { emailSender: { async sendVerification(message) { codes.set(message.email, message.code); } } });
@@ -61,6 +61,8 @@ test('实际前端发码、纠正错码、验证码注册自动登录、退出�
     model.setRegistering(true);
     assert.equal(requests.length, 0, 'Switching form does not request any challenge');
     model.setEmail(' Flow.User+Test@Example.COM ');
+    assert.equal(await model.sendEmailCode(), false, '发码前须主动同意协议');
+    assert.equal(requests.length, 0);
     model.password = model.confirmPassword = 'FlowPass123'; model.acceptedTerms = true;
     assert.equal(await model.register(), false); assert.match(model.verificationError, /验证码/);
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 0);

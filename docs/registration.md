@@ -4,7 +4,7 @@
 
 ## 当前接口
 
-1. 匿名 `POST /api/v1/auth/email-verifications`，正文 `{"email":"本人邮箱","purpose":"register"}`。
+1. 匿名 `POST /api/v1/auth/email-verifications`，正文包含 `email`、`purpose: "register"`、`agreementVersion` 和 `privacyVersion`。生产 API 在发信前校验两个协议版本均为 `2026-11-06`。App 在用户同意协议后才发送该请求。
 2. 成功接受为 202，返回 `verificationId,expiresAt,expiresIn,resendAfter`，不返回验证码。
 3. 用户收到邮件后，匿名 `POST /api/v1/auth/registrations` 提交：
 
@@ -14,8 +14,8 @@
   "password": "用户设置的密码",
   "emailVerificationId": "发码接口返回的 ID",
   "emailCode": "用户收到的六位验证码",
-  "agreementVersion": "2026-10-23-draft-4",
-  "privacyVersion": "2026-10-23-draft-4"
+  "agreementVersion": "2026-11-06",
+  "privacyVersion": "2026-11-06"
 }
 ```
 
@@ -67,7 +67,7 @@ node scripts/sync-legal-docs.cjs --check
 
 ## 协议与部署边界
 
-正文版本为 `2026-10-23-draft-4`，仍保留运营主体、权益流程及实际供应商条款待补事项。历史接受记录保持原版本，不替旧用户追填新同意。Markdown 是正文源文件，App 从同步的 rawfile 离线读取：
+正文版本为 `2026-11-06`。新 App 与新版 API 使用相同的注册协议版本，历史接受记录对应原版本。Markdown 是正文源文件，App 从同步的 rawfile 离线读取：
 
 ```sh
 node scripts/sync-legal-docs.cjs

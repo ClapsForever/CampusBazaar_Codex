@@ -39,7 +39,8 @@ export function isValidPrice(text: string): boolean {
   if (!new RegExp('^\\d+(\\.\\d{1,2})?$').test(value)) {
     return false;
   }
-  return Number(value) > 0;
+  const price: number = Number(value);
+  return price > 0 && price <= 100000;
 }
 
 export function parsePrice(text: string): number {

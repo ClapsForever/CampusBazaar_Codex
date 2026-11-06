@@ -2,7 +2,7 @@
 
 > 2026-10-23 邮件注册后端采用 schema v6，备份工具已支持；真实阿里云邮件配置和客户端接入见 [交接清单](../../docs/aliyun-email-handoff.md)。本页 2026-10-20 部署结果属于历史记录，不代表邮件功能已部署。
 
-**2026-10-20 已完成实际迁移。** 当前入口为 `http://47.117.96.16:18080`，使用 `licx` 用户级服务、用户目录中的 Node/Nginx 和独立数据目录，适配 1.6 GB 内存的实例。[实际部署记录](../../docs/aliyun-migration-2026-10-20.md)及[对应服务模板](licx-ip-test/)优先于下面的系统级模板。腾讯云旧地址临时转发到新后端，旧 API/Agent 停止并取消自启。
+**生产入口为 `https://api.campus-bazzar.work`。** 当前实例使用 `licx` 用户级服务、用户目录中的 Node/Nginx 和独立数据目录。升级现有实例请参照[用户级生产模板](licx-ip-test/)和[发布说明](../../docs/legal/launch-checklist.md)。初次迁移情况见[历史记录](../../docs/aliyun-migration-2026-10-20.md)。
 
 以下是最初的迁移准备方案和通用工具用法；其中 `/srv`、`/etc`、`/var/lib` 及 80/443 端口属于系统级部署示例，实际 licx 实例使用的路径与端口见部署记录。
 
@@ -25,7 +25,7 @@
 - [ ] 维护时间、通知对象、可接受停机时长、迁移负责人和旧服务器保留时间。
 - [ ] 提供可用的 DeepSeek 配置与额度，核对目标地域到模型接口的连通性。保留原学校 ID，不能把旧数据的学校分组随意更换。
 
-当前程序支持邮箱密码自助注册，图形验证码已转待办；迁移必须包含当前源码及锁文件，不能只复制旧服务器已有的 dist。
+生产注册使用邮箱验证码，发码前校验当前协议版本。迁移使用当前源码和锁文件重新构建。
 
 ## 1. 在本机准备不含数据和密钥的源码包
 
@@ -65,7 +65,7 @@ node deploy/aliyun/prepare-config.mjs \
 - API 的 `SESSION_SECRET` 与 `AGENT_SCHOOL_ID` 从旧 API env 保留；因此不会仅因生成新环境而撤销旧会话或改变学校分组。旧会话仍受原过期时间、停用状态及 schema 升级规则限制。
 - API/Agent 两枚服务间令牌在新环境中成对生成，不与旧环境混用。
 - `MODEL_API_KEY`、模型供应商、名称、接口地址及会话 TTL 可从旧 Agent env 保留。没有提供旧 Agent env 时模型 Key 留空，启动前须在服务器私有配置文件中填写；不通过命令参数发送 Key。
-- 数据库和图片路径改为新机 `/var/lib/campusbazaar`；`PUBLIC_BASE_URL` 使用新入口，内部互访保留回环地址。`APP_MODE=local` 是现有 API 唯一支持值，不能擅改为 production。
+- 系统级模板的数据库和图片默认在 `/var/lib/campusbazaar`，已有实例沿用实际数据路径。配置 `APP_MODE=production`、HTTPS `PUBLIC_BASE_URL` 和 DirectMail；内部互访使用回环地址。
 - 没有传旧 API env 时会生成新会话密钥；保留业务数据仍可重新登录，但旧令牌和图片签名会失效。迁移前应明确选择并记录。
 
 把生成的两份 env 以 root 所有、600 权限安装到 `/etc/campusbazaar`，不要 `source` 不明来源的 env，不要把 env 发到聊天或提交 Git。Windows 上的 chmod 模式不能代替服务器文件权限核验。
@@ -87,7 +87,7 @@ sudo certbot certonly --webroot -w /var/www/letsencrypt -d YOUR_API_DOMAIN
 sudo certbot renew --dry-run
 ```
 
-HTTP-01 需要域名已解析到本机并能访问 80；需要切换前预发证书时，可选择自行确认的 DNS-01 方案。当前生成器不配置阿里云 DNS 凭据、不自动改 DNS。证书续期后应配置成功续期的 Nginx reload 钩子，并实际验证自动续期任务。仅受限测试时可以显式 `--allow-http-test --public-base-url http://YOUR_IP`，禁止在明文公网入口使用真实账号或敏感内容。
+HTTP-01 需要域名已解析到本机并能访问 80；需要切换前预发证书时，可选择自行确认的 DNS-01 方案。当前生成器不配置阿里云 DNS 凭据、不自动改 DNS。证书续期后应配置成功续期的 Nginx reload 钩子，并实际验证自动续期任务。生产配置生成器要求 HTTPS origin。
 
 ## 4. 旧机冻结写入，生成完整数据包
 
@@ -130,23 +130,21 @@ sudo chmod 700 /var/lib/campusbazaar
 
 ## 6. 验收后再切换 App／DNS
 
-在新入口完成以下脚本，默认仅访问健康、内部路径和空字段注册探针，不创建账号；空字段探针会占用一次注册限流额度：
+在新入口运行以下命令，验证 HTTPS 健康、两个协议页、匿名注册和验证码保护：
 
 ```bash
-node deploy/aliyun/smoke.mjs --base-url https://YOUR_API_DOMAIN
-# 明确选择才创建一条独立测试账号；账号会保留，工具不输出密码/令牌：
-node deploy/aliyun/smoke.mjs --base-url https://YOUR_API_DOMAIN --registration-test
+node deploy/aliyun/smoke.mjs --base-url https://YOUR_API_DOMAIN --legal-pages --registration-test
 ```
 
-脚本要求健康 200、外部 internal 路径 404、匿名空字段注册返回 400 INVALID_EMAIL；旧后端的 Bearer 401 或缺路由会明确失败。可选注册测试验证新账号、资料读取、退出和重登。它不能代替真实 AI、上传、交易和历史检查。
+注册探针只检查无验证码请求是否被拒绝，会占用注册限流额度。完成真实邮件收件、注册、登录和业务流程仍需使用审核账号在发布包中操作。
 
 - [ ] 迁移前后的账号、商品、图片、交易、消息、AI 历史等表数量核对。首次启动产生的新记录和正常迁移新增空表需单独解释。
 - [ ] 用原有账号登录，确认昵称头像、商品图片、聊天、交易状态和 AI 历史可读，密码不需重置。
-- [ ] 用两个测试账号验证新注册、图片上传、商品发布/搜索、预约、聊天和完成交易，确认协议版本为 `2026-10-23-draft-4`，必须通过邮箱验证码；需要配套客户端与邮件配置。
+- [ ] 用两个测试账号验证新注册、图片上传、商品发布/搜索、预约、聊天和完成交易，确认协议版本为 `2026-11-06`，发码和注册均使用该版本并通过邮箱验证码；需要配套客户端与邮件配置。
 - [ ] 验证真实 DeepSeek 新对话及服务重启后的历史回看，检查返回的图片地址为新域名。
 - [ ] 验证 HTTPS、证书续期、只监听回环的内部端口、日志轮转、磁盘告警和备份恢复。
 
-当前 App 把旧 IP 写在 `entry/src/main/ets/service/BackendRuntimeConfig.ets`，因此只改 DNS 不会迁移已安装的这版 App。正式切换时将 `BUSINESS_API_BASE_URL` 改为最终 HTTPS 域名，与 API 的 PUBLIC_BASE_URL 一致，重新构建、签名和安装。此后继续沿用稳定域名，后续换 IP 可通过 DNS 完成；旧的 IP 安装包仍需更新。
+App 的 `BUSINESS_API_BASE_URL` 与 API 的 `PUBLIC_BASE_URL` 应使用相同的生产 HTTPS origin。发布前使用正式签名包验证实际域名。
 
 演练可以用一次旧数据副本，最终切换必须重新冻结旧机写入并导出最终数据，不能让演练期间新旧两侧产生的账号和交易自动合并。最终切换期间旧 API 保持停止写入，直到确认流量和 App 已转向新入口，避免双写分叉。
 
@@ -154,7 +152,7 @@ node deploy/aliyun/smoke.mjs --base-url https://YOUR_API_DOMAIN --registration-t
 
 源程序、原始数据包和旧机保留到验收完成。新机尚未接收正式写入时，可以撤回入口并恢复旧机服务；先核对是否发生过新写入。新机已经接收账号、交易或消息后，不能直接启动旧数据继续服务，否则会丢失新增内容；先冻结新机，导出最新数据，核对 schema 与旧程序兼容性，再制定反向迁移。不存在自动无损合并或一键无损回滚。
 
-2026-10-20 已完成实际 ECS 的源码安装、Nginx 校验、用户级 systemd 启动、SQLite/图片迁移和真实模型验收，详见部署记录。当前沿用 IP HTTP 小组测试入口，未签发或迁移 HTTPS 证书。隐私政策已补充阿里云实际承载、腾讯云临时转发及迁移备份保留情况；具体地域、合同主体和保存期限仍须由部署负责人核实。
+2026-10-20 已完成实际 ECS 的源码安装、Nginx 校验、用户级 systemd 启动、SQLite/图片迁移和真实模型验收，详见部署记录。当时使用 IP HTTP 入口，此项属于迁移历史。隐私政策已补充阿里云实际承载、腾讯云临时转发及迁移备份保留情况；具体地域、合同主体和保存期限仍须由部署负责人核实。
 
 ## 本地验证工具
 

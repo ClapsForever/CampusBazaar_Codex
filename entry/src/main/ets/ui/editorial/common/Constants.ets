@@ -3,11 +3,10 @@ import { TradeStatusUI as BusinessTradeStatusUI } from '../../../common/Constant
 export {
   ROUTE_SELLER_HOME, ROUTE_PUBLISH_PAGE, ROUTE_PRODUCT_DETAIL, ROUTE_TRADE_LIST, ROUTE_TRADE_DETAIL,
   MAX_PRODUCT_PHOTOS, CHAT_REFRESH_DELAY_MS, OWN_PRODUCT_HINT, TRADE_EMPTY_CHAT_HINT, BUYER_PENDING_HINT,
-  LoadState
+  LoadState, PAGE_INDEX, PAGE_MAIN
 } from '../../../common/Constants';
-export { UI_MAIN_PAGE as PAGE_MAIN } from '../../UiVariant';
 
-// 同窗集 · Blue. These presentation tokens never change the original UI.
+// 同窗集 · Blue.
 export const COLOR_PRIMARY: string = '#2D55F7';
 export const COLOR_PRIMARY_STRONG: string = '#2345CE';
 export const COLOR_PRIMARY_SOFT: string = '#EAF0FF';
@@ -37,8 +36,6 @@ export const FONT_TITLE: string = '24fp';
 export const FONT_PRODUCT: string = '14fp';
 export const FONT_PRICE: string = '21fp';
 export const FONT_META: string = '12fp';
-// Retained only for the legacy font resource registration; UI uses the native sans.
-export const FONT_EDITORIAL: string = 'CampusEditorialSerif';
 export const STATUS_PENDING_TEXT_COLOR: string = COLOR_PRIMARY_STRONG;
 export const STATUS_PENDING_BG_COLOR: string = COLOR_PRIMARY_SOFT;
 export const STATUS_ACCEPTED_TEXT_COLOR: string = COLOR_SUCCESS;

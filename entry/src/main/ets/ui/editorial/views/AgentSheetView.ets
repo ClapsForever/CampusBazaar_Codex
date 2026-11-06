@@ -130,6 +130,7 @@ export struct AgentSheetView {
           .width('82%').padding(12).backgroundColor(COLOR_PRIMARY).borderRadius(UI_RADIUS);
       }
       .width('100%').justifyContent(FlexAlign.End);
+      Text('AI 生成，仅供参考').fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).width('100%');
       Text(turn.replyLead).fontSize('14fp').lineHeight('24fp').fontColor(COLOR_TEXT_PRIMARY)
         .width('100%').padding({ top: 12, bottom: 12 });
       if (turn.recommendations.length > 0) {

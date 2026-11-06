@@ -3,7 +3,7 @@ import { AuthViewModel } from '../../../viewmodel/AuthViewModel';
 import { PAGE_LEGAL } from '../common/LegalDocuments';
 import {
   UI_RADIUS, COLOR_ERROR, COLOR_PAGE_BG, COLOR_PRIMARY, COLOR_PRIMARY_SOFT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
-  COLOR_TEXT_TERTIARY, COLOR_DIVIDER, COLOR_INPUT_BG, FONT_EDITORIAL, PAGE_MAIN
+  COLOR_TEXT_TERTIARY, COLOR_DIVIDER, COLOR_INPUT_BG, PAGE_MAIN
 } from '../common/Constants';
 
 @Entry
@@ -11,12 +11,6 @@ import {
 struct Index {
   @Local vm: AuthViewModel = new AuthViewModel();
   private countdownTimer: number = -1;
-
-  aboutToAppear(): void {
-    this.getUIContext().getFont().registerFont({
-      familyName: FONT_EDITORIAL, familySrc: $rawfile('editorial/CampusEditorialSerif.otf')
-    });
-  }
 
   onPageShow(): void {
     // Use the page's UI context after it is attached to the UI instance.
@@ -138,10 +132,14 @@ struct Index {
         (this.vm.resendSeconds > 0 ? `${this.vm.resendSeconds}s后重发` : '获取验证码'))
         .type(ButtonType.Normal).width(126).height(48).fontSize('13fp')
         .fontColor(COLOR_PRIMARY).backgroundColor(COLOR_PRIMARY_SOFT).borderRadius(UI_RADIUS)
-        .enabled(!this.vm.loggingIn && !this.vm.sendingCode && this.vm.resendSeconds === 0)
+        .enabled(this.vm.acceptedTerms && !this.vm.loggingIn && !this.vm.sendingCode && this.vm.resendSeconds === 0)
         .onClick(async () => { await this.vm.sendEmailCode(); });
     }
     .width('100%');
+    if (!this.vm.acceptedTerms) {
+      Text('同意用户协议与隐私政策后即可获取验证码')
+        .fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY).width('100%');
+    }
     if (this.vm.verificationError !== '') {
       Text(this.vm.verificationError).fontSize('12fp').fontColor(COLOR_ERROR).width('100%');
     }

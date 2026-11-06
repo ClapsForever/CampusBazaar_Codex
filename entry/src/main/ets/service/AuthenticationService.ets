@@ -63,7 +63,10 @@ export class HttpAuthenticationService implements AuthenticationService {
   async sendRegistrationEmail(email: string): Promise<EmailVerificationResponse> {
     if (!isValidEmail(email)) throw new Error('请输入正确的邮箱地址');
     const response = await businessApiClient.request<EmailVerificationResponse>(http.RequestMethod.POST,
-      '/api/v1/auth/email-verifications', JSON.stringify({ email: email.trim().toLowerCase(), purpose: 'register' }), false);
+      '/api/v1/auth/email-verifications', JSON.stringify({
+        email: email.trim().toLowerCase(), purpose: 'register',
+        agreementVersion: LEGAL_VERSION, privacyVersion: LEGAL_VERSION
+      }), false);
     if (!response || typeof response.verificationId !== 'string' || !/^emailv_[a-f0-9]{32}$/.test(response.verificationId) ||
       !Number.isFinite(response.expiresAt) || response.expiresAt <= 0 ||
       !Number.isFinite(response.expiresIn) || response.expiresIn <= 0 ||

@@ -8,6 +8,7 @@ Type=simple
 WorkingDirectory=/home/licx/campusbazaar/current/backend/api
 Environment=NODE_ENV=production
 EnvironmentFile=/home/licx/campusbazaar/shared/env/api.env
+EnvironmentFile=-/home/licx/campusbazaar/shared/env/aliyun-mail.env
 ExecStart=/home/licx/campusbazaar/runtime/nodejs/bin/node --max-old-space-size=128 dist/src/main.js
 TimeoutStopSec=90
 MemoryMax=256M

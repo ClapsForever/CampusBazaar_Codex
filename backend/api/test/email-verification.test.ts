@@ -10,9 +10,10 @@ import { AGREEMENT_VERSION, PRIVACY_VERSION } from '../src/registration.js';
 import { createApiApp } from '../src/server.js';
 import { RecordingEmailSender } from './helpers/email.js';
 
-async function fixture(sender: VerificationEmailSender | null = new RecordingEmailSender(), dailyLimit = 200) {
+async function fixture(sender: VerificationEmailSender | null = new RecordingEmailSender(), dailyLimit = 200,
+  mode: Config['mode'] = 'local') {
   const directory = mkdtempSync(join(tmpdir(), 'campus-email-verification-'));
-  const config: Config = { mode: 'local', host: '127.0.0.1', port: 0,
+  const config: Config = { mode, host: '127.0.0.1', port: 0,
     databasePath: join(directory, 'db.sqlite'), uploadDir: join(directory, 'uploads'), publicBaseUrl: 'http://127.0.0.1:0',
     sessionSecret: 'isolated-email-verification-test-secret', agentBaseUrl: 'http://127.0.0.1:1',
     agentServiceToken: 'test-agent-service-token-a', internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_test',
@@ -37,6 +38,24 @@ async function fixture(sender: VerificationEmailSender | null = new RecordingEma
     async restart() { await app.close(); app = createApiApp(config, { emailSender: sender ?? undefined }); await start(); },
     async close() { await app.close(); } };
 }
+
+test('生产发码要求当前协议版本，旧版本和缺失版本均不发送邮件', async () => {
+  const sender = new RecordingEmailSender();
+  const f = await fixture(sender, 200, 'production');
+  try {
+    const path = '/api/v1/auth/email-verifications', request = { email: 'member@example.com', purpose: 'register' };
+    for (const versions of [{}, { agreementVersion: 'earlier-version', privacyVersion: PRIVACY_VERSION }]) {
+      const result = await f.call(path, { ...request, ...versions });
+      assert.equal(result.status, 400);
+      assert.equal(result.body.code, 'AGREEMENT_REQUIRED');
+    }
+    assert.equal(sender.messages.length, 0);
+    const issued = await f.call(path, { ...request, agreementVersion: AGREEMENT_VERSION, privacyVersion: PRIVACY_VERSION });
+    assert.equal(issued.status, 202);
+    assert.equal(sender.messages.length, 1);
+    assert.equal((await f.register(issued.body.verificationId, sender.codeFor(request.email))).status, 201);
+  } finally { await f.close(); }
+});
 
 test('未配置邮件服务时发码关闭，注册绝不回退到无验证码或固定验证码', async () => {
   // An explicit non-sending configuration; omit the injected test transport.

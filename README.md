@@ -1,14 +1,14 @@
 # 同窗集（CampusBazaar）
 
+公开发布使用 Release App Pack、生产 API 和 Agent。构建、签名、部署及验收见[上架准备](docs/legal/launch-checklist.md)。
+
 > 2026-11-04：正式域名已恢复访问，App 默认后端切回 `https://api.campus-bazzar.work`。北京时间 13:21 实测 HTTPS 健康检查返回 200，HTTP 正常跳转 HTTPS。重新构建、签名并安装后生效，无需启动本机 SSH 桥接；见[接入与验证说明](docs/ip-direct-testing.md)。
 
 > 2026-11-02：蓝色 UI 已在本地启用，业务 API 与 Agent 已更新至整合版本，数据库升级到 schema v7。一年数据保留自动清理已启用；切换前备份及验收见 [后端更新记录](docs/backend-rollout-2026-11-02.md)。
 
 > 2026-10-31 15:02：阿里云 Agent 已更新六级资料召回与无结果补查修复。服务器 191 项回归、线上模型 7 项隔离评测通过，并用用户原话实际检出“六级资料”。业务 API、数据和配置保留；App 请点击“新对话”开始，无需为此次后端更新重新安装。见 [部署与回退记录](docs/agent-rollout-2026-10-31.md)。
 
-> 2026-11-02：当前启用 UI 已统一为图标同源的蓝色，更新系统字体层级、首页与导航、商品卡片、搜索和 AI 推荐及全部业务页面。保留原 UI 开关与现有业务逻辑。见 [改版、备份与验证说明](docs/ui-blue-redesign-2026-11-02.md)及 [当前 UI 使用说明](entry/src/main/ets/ui/editorial/README.md)。
-
-> 2026-10-30：新增 A「校园生活刊」UI，新页面与组件独立放在 `entry/src/main/ets/ui/editorial/`，通过 `ui/UiVariant.ets` 切换新旧布局。新旧 UI、系统显示名称及随包协议已统一为“同窗集”，线上注册邮件名称也已更新。构建与回归通过，已完成部分页面的原生预览自查，模拟器／真机完整交互仍待验收。见 [新 UI、切换与模拟器部署说明](entry/src/main/ets/ui/editorial/README.md)、[预览记录](design/editorial-a/review/README.md)及[邮件名称更新记录](docs/mail-brand-rollout-2026-10-30.md)。
+> 当前构建使用蓝色 UI，页面源码位于 `entry/src/main/ets/ui/editorial/`。见 [构建说明](entry/src/main/ets/ui/editorial/README.md)和 [原生预览记录](docs/ui-blue-redesign-2026-11-02.md)。
 
 > 2026-10-28：阿里云 Agent 已单独更新到本仓库 `7dd371b` 中的需求理解与语义检索实现，16:59 完成切换。176 项回归通过，真实模型验证了相关商品返回及预算、校区追问，但发现部分候选漏查，不能视为完整召回率保证。App 中请使用“新对话”开始。部署位置、验收结果与回退方式见 [Agent 更新记录](docs/agent-rollout-2026-10-28.md)。
 
@@ -137,13 +137,13 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 2. 当前 `entry/src/main/ets/service/BackendRuntimeConfig.ets` 默认使用正式地址 `https://api.campus-bazzar.work`，模拟器和真机可直接连接共享后端，无需启动本机 SSH 桥接。已有账号密码继续使用，新注册须获取邮件验证码。若按本文启动自己的本机后端，把 `BUSINESS_API_BASE_URL` 改成 `http://电脑IPv4:8080`；配置真实邮件时还须使用可信 HTTPS 或回环开发环境。修改地址后须重新构建并安装 App，旧包仍使用构建时的地址。
 3. 选择 `entry` 运行配置，点击 **Run**。若提示签名，按 DevEco 的本机调试向导配置。
 
-启动页可切换登录/注册，注册时填写邮箱并获取验证码，收到邮件后输入六位数字、密码和确认密码，主动同意协议后提交；成功后自动登录。已有账号可继续密码登录；新环境开发可先使用 [Demo 账号导入](docs/demo-auth.md)。真实注册接入及双方验收见 [注册说明](docs/registration.md) 与 [阿里云邮件交接清单](docs/aliyun-email-handoff.md)。
+启动页可切换登录/注册，注册时阅读并同意协议，填写邮箱并获取验证码，收到邮件后输入六位数字、密码和确认密码，再提交注册；成功后自动登录。已有账号可继续密码登录；新环境开发可先使用 [管理员账号导入](docs/demo-auth.md)。真实注册接入及双方验收见 [注册说明](docs/registration.md) 与 [阿里云邮件交接清单](docs/aliyun-email-handoff.md)。
 
 ## 6. 验证完整流程
 
 用户 A 登录，通过底部“发布”发布带照片的商品，在“我的 → 我发布的”管理商品；退出后用户 B 登录，在首页浏览、搜索并打开该商品。进入首页“AI 找物”按预算找货，查看推荐卡片并追问；点击卡片进入详情。B 预约交易后，通过首页“消息”或“我的 → 我的交易”发送消息，再由 A 登录回复、接受并完成交易。停止并重启业务 API 后，商品、图片、交易与消息应仍在。
 
-发布和首页浏览统一使用六个类别：教材、数码、外设、日用、运动、其他。键盘、耳机、显示器等选“外设”，台灯和收纳等选“日用”，具体物品名称写在标题中。旧商品的小类仍可显示和搜索；AI 同时兼容旧小类与新大类，找键盘时按具体关键词筛选，不会返回所有外设。分类兼容需要同时更新业务 API 与 Agent。
+首页按全部、生活、学习、娱乐、其他浏览。发布和搜索筛选使用教材、数码、外设、日用、运动、其他六类。键盘、耳机、显示器等选“外设”，台灯和收纳等选“日用”，具体物品名称写在标题中。旧商品的小类仍可显示和搜索，AI 也兼容新旧分类。
 
 详细步骤和故障排查见[模拟器全链路测试](spec/campus-bazaar-backend/e2e-test.md)。两个服务可分别运行 `npm test`；自动化测试不会调用真实 DeepSeek。
 
@@ -153,8 +153,8 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 - AI 对话每轮成功回复后自动保存在业务 SQLite，按账号隔离；“新对话”旁的“历史记录”可按时间分页查看，退出登录、重启 App 或服务不会丢失已保存内容。历史详情供回看；Agent 的续聊上下文仍存于内存，重启或过期后需新建对话。更新前已经丢失的内存对话无法补回。
 - “我的 → 个人设置”支持相册头像、昵称及登录密码。修改密码需当前密码；演示密码为 6–64 位，以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
 - `.env`、DeepSeek Key、数据库、上传图片、`node_modules`、构建产物均已被 Git 忽略。只提交源码、两个 `package-lock.json`、`.env.example`、文档和测试。
-- 测试版不包含学校统一认证或邮件找回密码服务；图形验证码仍不启用，新注册必须通过邮箱验证码，邮箱验证不代表学生身份认证。
-- [用户协议草案](docs/legal/user-agreement.md)、[隐私政策草案](docs/legal/privacy-policy.md)和[社区与交易规则草案](docs/legal/community-rules.md)可从启动页及“我的”阅读。运营主体、联系方式、注销/删除流程及保存期限尚未确定，详见[发布前清单](docs/legal/launch-checklist.md)。三份正文作为离线文本随 App 打包；修改 Markdown 后运行 `node scripts/sync-legal-docs.cjs`，用 `node scripts/sync-legal-docs.cjs --check` 检查同步。协议版本变更须同时更新前端、后端版本常量与正文。
+- App 使用邮箱验证码注册。邮箱验证用于确认邮件接收能力。目前可通过联系邮箱申请账号核查。
+- [用户协议](docs/legal/user-agreement.md)、[隐私政策](docs/legal/privacy-policy.md)和[社区与交易规则](docs/legal/community-rules.md)可从启动页及“我的”阅读。修改 Markdown 后运行 `node scripts/sync-legal-docs.cjs` 生成离线文本和华为协议网页，用 `node scripts/sync-legal-docs.cjs --check` 检查同步。协议版本变更须同步 App、API 与正文。
 
 业务 API 接口和备份说明见 [backend/api/README.md](backend/api/README.md)；Agent 内部接口见 [backend/agent/docs/api.md](backend/agent/docs/api.md)。
 

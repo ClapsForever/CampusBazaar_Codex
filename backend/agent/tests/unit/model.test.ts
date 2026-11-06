@@ -11,6 +11,18 @@ vi.mock("@earendil-works/pi-ai", async (importOriginal) => {
 const config = loadConfig({ NODE_ENV: "test", SERVICE_AUTH_TOKEN: "test-token", MODEL_MODE: "real", MODEL_API_KEY: "fake-test-key", MOCK_BACKEND: "true" });
 beforeEach(() => streamSimple.mockReset());
 
+it("rejects unsafe production Agent configuration", () => {
+  const env = { NODE_ENV: "production", MODEL_MODE: "real", MOCK_BACKEND: "false", MODEL_API_KEY: "synthetic-key",
+    SERVICE_AUTH_TOKEN: "a".repeat(32), BUSINESS_BACKEND_TOKEN: "b".repeat(32),
+    BUSINESS_BACKEND_URL: "http://127.0.0.1:8080" };
+  expect(loadConfig(env).nodeEnv).toBe("production");
+  for (const overrides of [
+    { MOCK_BACKEND: "true" }, { MODEL_MODE: "mock" }, { MODEL_API_KEY: "" },
+    { MODEL_BASE_URL: "http://api.deepseek.com" }, { SERVICE_AUTH_TOKEN: "dev-agent-token" },
+    { BUSINESS_BACKEND_URL: "http://example.com:8080" }, { BUSINESS_BACKEND_TOKEN: env.SERVICE_AUTH_TOKEN },
+  ]) expect(() => loadConfig({ ...env, ...overrides })).toThrow();
+});
+
 describe("model calls cannot execute tools", () => {
   it("provides no tools or historic messages in either phase", async () => {
     streamSimple.mockResolvedValue({ result: async () => fauxAssistantMessage("回复", { stopReason: "stop" }) });

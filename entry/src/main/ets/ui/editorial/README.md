@@ -6,11 +6,11 @@
 - 商品组件：浏览流为竖向；搜索与 AI 推荐采用横向紧凑布局，使用同一份真实商品、成色、价格、校区及图片失败占位。
 - 导航：保留“首页、发布、我的”；发布是操作而非新的页签。二级页面继续使用系统 Navigation 返回，搜索和 AI 继续使用原生大弹层。
 - 登录、验证码注册、发布、详情、交易、聊天、个人设置、协议共用蓝色视觉常量。红色仅用于错误/破坏操作，绿色表示在售/交易进行状态，待确认采用蓝色。
-- 空状态和图片占位采用独立 tc_ SVG；design_ 资源继续服务原 UI。原 UI、ViewModel、服务、模型和协议正文保持不变。
+- 空状态和图片占位使用 `tc_` SVG。页面共用项目的 ViewModel、服务、模型和离线协议正文。
 
-## 切换与回退
+## 页面入口
 
-`entry/src/main/ets/ui/UiVariant.ets` 的 `USE_EDITORIAL_UI = true` 启用当前蓝色版；设为 false 并完整重新运行 App，即可启用保留的原 UI。两个版本共用 bundleName 和真实业务数据。切换不需要卸载、清库或部署后端。
+登录、首页和协议页在 `entry/src/main/resources/base/profile/main_pages.json` 注册，均位于当前目录的 `pages/`。
 
 如需回到改版前的“校园生活刊”，可在独立工作副本检出提交 `2465490`；修改前完整工作目录还保存在工程外层 `.project-backups`。详细备份与校验信息见 [改版记录](../../../../../../docs/ui-blue-redesign-2026-11-02.md)。
 
@@ -19,7 +19,6 @@
 在 DevEco Studio 打开包含 build-profile.json5 的工程根目录，选择 entry 与已有模拟器/设备运行。项目目标为 HarmonyOS 6.1.0 / API 23；本次本机使用 HarmonyOS 6.1.1 / API 24 SDK 构建。编译检查：
 
 ```sh
-node scripts/check-editorial-ui.cjs
 ARK_TYPESCRIPT=/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/ets/build-tools/ets-loader/node_modules/typescript node --test scripts/ui-regression.cjs
 ```
 
@@ -35,10 +34,10 @@ env JAVA_HOME=/Applications/DevEco-Studio.app/Contents/jbr/Contents/Home \
   -p buildMode=debug assembleHap --no-daemon
 ```
 
-输出为 `entry/build/default/outputs/default/entry-default-unsigned.hap`。未配置调试签名，unsigned HAP 需要在 DevEco 配置签名后才能直接部署。当前后端地址为本机演示桥接的 `http://127.0.0.1:18765`；需要启动模拟器及本机 `backend/api/.local-data/demo-tunnel/start-demo.ps1`。也可将 `BackendRuntimeConfig.ets` 改回 `https://api.campus-bazzar.work` 并重新构建。
+输出为 `entry/build/default/outputs/default/entry-default-unsigned.hap`。在 DevEco 配置调试签名后可安装到设备。默认后端为 `https://api.campus-bazzar.work`，本机联调时可通过 `BackendRuntimeConfig.ets` 指向自己的 API 并重新构建。
 
 ## 验证边界
 
-36 个原文件哈希及 15 组 UI 行为对照检查通过；32 项 ViewModel 回归通过；新旧 UI 同时编译通过。`.impeccable/review` 保存本轮原生 Previewer 截图，全部位于应用源码之外。旧 design/editorial-a/review 截图作为历史记录保留。
+`.impeccable/review` 保存当前蓝色版的原生 Previewer 截图，位于应用源码之外。
 
 静态预览不能代替真机交互。系统大字号、输入法、相机/相册、签名安装和完整联网交易仍需设备验收；不把预览夹具当作真实商品和账户。

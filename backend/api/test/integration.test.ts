@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, renameSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -92,6 +92,19 @@ test('本机业务闭环、越权、幂等、Agent 契约与重启持久化', as
     assert.equal(signedImage.status, 200);
     assert.equal((await signedImage.arrayBuffer()).byteLength, png.length);
     assert.equal((await fetch(published.body.images[0].replace('signature=', 'signature=0'))).status, 401);
+
+    const imageFile = join(config.uploadDir, `${upload.id}.png`);
+    renameSync(imageFile, `${imageFile}.saved`);
+    try {
+      assert.equal((await call('GET', `/api/v1/images/${upload.id}`, b)).status, 404);
+      mkdirSync(imageFile);
+      try {
+        const signedUrl = new URL(published.body.images[0]);
+        assert.equal((await call('GET', `/api/v1/images/${upload.id}`, b)).status, 404);
+        assert.equal((await call('GET', signedUrl.pathname + signedUrl.search)).status, 404);
+        assert.equal((await call('GET', '/health/ready')).status, 200);
+      } finally { renameSync(imageFile, `${imageFile}.directory`); }
+    } finally { renameSync(`${imageFile}.saved`, imageFile); }
 
     const internalHeaders = { authorization: `Bearer ${config.internalAgentToken}`, 'x-user-id': loginB.body.user.id, 'x-school-id': 'school_demo' };
     const search = await call('GET', '/internal/listings/search?keyword=高等数学&maxPriceCents=5000', undefined, undefined, internalHeaders);

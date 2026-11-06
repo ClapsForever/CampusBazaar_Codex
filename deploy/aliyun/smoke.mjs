@@ -2,9 +2,12 @@ import { randomBytes } from 'node:crypto';
 
 const args = process.argv.slice(2);
 const at = args.indexOf('--base-url');
-if (at < 0 || !args[at + 1]) throw new Error('Use --base-url https://api.example.com [--registration-test]');
+if (at < 0 || !args[at + 1]) throw new Error('Use --base-url https://api.example.com [--legal-pages] [--registration-test]');
 const base = new URL(args[at + 1]);
-if (!['https:', 'http:'].includes(base.protocol) || base.username || base.password || base.pathname !== '/' || base.search || base.hash) throw new Error('Use a plain HTTP(S) origin');
+if (base.username || base.password || base.pathname !== '/' || base.search || base.hash ||
+    (base.protocol !== 'https:' && !(base.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname)))) {
+  throw new Error('Use an HTTPS origin or a loopback development origin');
+}
 const origin = base.origin;
 const call = async (path, method = 'GET', body, token) => {
   const response = await fetch(origin + path, { method, redirect: 'manual', signal: AbortSignal.timeout(15000),
@@ -22,11 +25,20 @@ try {
   if (registration.status === 429) throw new Error('Registration probe is rate-limited; wait for the current limit window before retrying');
   if (registration.status !== 400 || registration.data?.code !== 'INVALID_EMAIL') throw new Error(`Anonymous registration route unavailable (HTTP ${registration.status}); deploy the matching API`);
   console.log('PASS: API ready, internal routes blocked, anonymous registration available.');
+  if (args.includes('--legal-pages')) {
+    for (const page of ['user-agreement', 'privacy-policy']) {
+      const response = await fetch(`${origin}/legal/${page}.html`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      if (!response.ok || !response.headers.get('content-type')?.startsWith('text/html') ||
+          !(await response.text()).includes('2026-11-06')) {
+        throw new Error(`Public legal page is unavailable or stale: ${page}`);
+      }
+    }
+    console.log('PASS: current user agreement and privacy policy are publicly readable.');
+  }
   if (args.includes('--registration-test')) {
-    if (base.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(base.hostname)) throw new Error('Real registration smoke test requires HTTPS or localhost');
     const suffix = randomBytes(8).toString('hex'), email = `migration-${suffix}@example.invalid`, password = randomBytes(24).toString('base64url');
     const rejected = await call('/api/v1/auth/registrations', 'POST', { email, password,
-      agreementVersion: '2026-10-23-draft-4', privacyVersion: '2026-10-23-draft-4' });
+      agreementVersion: '2026-11-06', privacyVersion: '2026-11-06' });
     if (rejected.status !== 400 || rejected.data?.code !== 'EMAIL_VERIFICATION_REQUIRED') {
       throw new Error('Registration must require an email verification challenge and code');
     }
