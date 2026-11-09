@@ -85,11 +85,12 @@ export class Store {
     return this.db.prepare('SELECT * FROM users WHERE id=?').get(id) as UserRow | undefined;
   }
 
-  assertActiveUser(id: string): void {
+  assertActiveUser(id: string): UserRow {
     const current = this.findUser(id);
     if (!current?.enabled || !current.email || !current.password_hash) {
       throw new ApiError(401, 'UNAUTHORIZED', '登录已失效，请重新登录');
     }
+    return current;
   }
 
   private issueSession(row: UserRow): { user: Record<string, unknown>; token: string; expiresAt: number } {
@@ -133,17 +134,19 @@ export class Store {
   }
 
   updateProfile(user: UserRow, body: Record<string, unknown>): Record<string, unknown> {
-    this.assertActiveUser(user.id);
-    const nickname = body.nickname === undefined ? user.nickname : text(body.nickname, '昵称', 1, 24);
-    const avatar = body.avatarId === undefined ? user.avatar : text(body.avatarId, '头像', 1, 100);
-    if (body.avatarId !== undefined) {
-      const image = this.image(avatar);
-      if (!image || image.owner_id !== user.id || image.product_id) {
-        throw new ApiError(403, 'IMAGE_FORBIDDEN', '请选择自己上传的头像');
+    return transaction(this.db, () => {
+      const current = this.assertActiveUser(user.id);
+      const nickname = body.nickname === undefined ? current.nickname : text(body.nickname, '昵称', 1, 24);
+      const avatar = body.avatarId === undefined ? current.avatar : text(body.avatarId, '头像', 1, 100);
+      if (body.avatarId !== undefined) {
+        const image = this.image(avatar);
+        if (!image || image.owner_id !== user.id || image.product_id) {
+          throw new ApiError(403, 'IMAGE_FORBIDDEN', '请选择自己上传的头像');
+        }
       }
-    }
-    this.db.prepare('UPDATE users SET nickname=?,avatar=? WHERE id=?').run(nickname, avatar, user.id);
-    return this.user(this.findUser(user.id)!, true);
+      this.db.prepare('UPDATE users SET nickname=?,avatar=? WHERE id=?').run(nickname, avatar, user.id);
+      return this.user(this.findUser(user.id)!, true);
+    });
   }
 
   async changePassword(user: UserRow, body: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
@@ -273,7 +276,6 @@ export class Store {
   }
 
   publish(user: UserRow, body: Record<string, unknown>): Record<string, unknown> {
-    this.assertActiveUser(user.id);
     const title = text(body.title, '商品名称', 1, 100);
     const description = text(body.description, '商品描述', 1, 3000);
     const priceCents = moneyToCents(body.price);
@@ -289,7 +291,8 @@ export class Store {
     const imageIds = rawImages as string[];
     const id = `listing_${randomUUID().replaceAll('-', '')}`;
     const now = Date.now();
-    transaction(this.db, () => {
+    return transaction(this.db, () => {
+      this.assertActiveUser(user.id);
       for (const imageId of imageIds) {
         const image = this.image(imageId);
         if (!image || image.owner_id !== user.id || image.product_id || this.isAvatar(imageId)) throw new ApiError(403, 'IMAGE_FORBIDDEN', '图片不属于当前用户或已被使用');
@@ -297,12 +300,13 @@ export class Store {
       this.db.prepare(`INSERT INTO products(id,seller_id,school_id,title,description,price_cents,category,condition,campus,version,status,published_at)
         VALUES(?,?,?,?,?,?,?,?,?,?,'ACTIVE',?)`).run(id, user.id, user.school_id, title, description, priceCents, category, condition, campus, version, now);
       for (const imageId of imageIds) this.db.prepare('UPDATE product_images SET product_id=? WHERE id=?').run(id, imageId);
+      return this.product(this.findProduct(id)!);
     });
-    return this.product(this.findProduct(id)!);
   }
 
   delistProduct(id: string, user: UserRow): Record<string, unknown> {
     return transaction(this.db, () => {
+      this.assertActiveUser(user.id);
       const row = this.findProduct(id);
       if (!row || row.school_id !== user.school_id) throw new ApiError(404, 'NOT_FOUND', '商品不存在');
       if (row.seller_id !== user.id) throw new ApiError(403, 'FORBIDDEN', '只能下架自己发布的商品');
@@ -372,9 +376,9 @@ export class Store {
   }
 
   createTransaction(user: UserRow, body: Record<string, unknown>, key?: string): Record<string, unknown> {
-    this.assertActiveUser(user.id);
     const productId = text(body.productId, '商品 ID', 1, 100);
     return transaction(this.db, () => {
+      this.assertActiveUser(user.id);
       const replay = this.replay('create_transaction', user.id, key, body);
       if (replay) return replay as Record<string, unknown>;
       const product = this.findProduct(productId);
@@ -396,6 +400,7 @@ export class Store {
   transition(id: string, user: UserRow, action: 'accept' | 'reject' | 'complete' | 'cancel'): Record<string, unknown> {
     const next = { accept: 'ACCEPTED', reject: 'REJECTED', complete: 'COMPLETED', cancel: 'CANCELLED' }[action];
     return transaction(this.db, () => {
+      this.assertActiveUser(user.id);
       const row = this.findTransaction(id, user);
       if (action === 'cancel') {
         if (row.status !== 'PENDING' && row.status !== 'ACCEPTED') {
@@ -430,9 +435,9 @@ export class Store {
   }
 
   sendMessage(id: string, user: UserRow, body: Record<string, unknown>, key?: string): Record<string, unknown> {
-    this.assertActiveUser(user.id);
     const content = text(body.content, '消息', 1, 2000);
     return transaction(this.db, () => {
+      this.assertActiveUser(user.id);
       const row = this.findTransaction(id, user);
       const replay = this.replay(`message:${id}`, user.id, key, body);
       if (replay) return replay as Record<string, unknown>;
@@ -474,8 +479,8 @@ export class Store {
   }
 
   saveAgentTurn(sessionId: string, user: UserRow, question: string, response: Record<string, unknown>): void {
-    this.assertActiveUser(user.id);
     transaction(this.db, () => {
+      this.assertActiveUser(user.id);
       this.rememberAgentSession(sessionId, user);
       const previous = this.db.prepare('SELECT question FROM agent_turns WHERE session_id=? AND request_id=?')
         .get(sessionId, response.requestId as string) as { question: string } | undefined;

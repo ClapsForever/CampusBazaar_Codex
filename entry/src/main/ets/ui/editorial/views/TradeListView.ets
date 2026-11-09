@@ -97,7 +97,8 @@ export struct TradeListView {
           .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
       }
       Column({ space: 7 }) {
-        Text(item.product.title).fontSize('15fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
+        Text(item.transaction.titleAtPurchase || item.product.title)
+          .fontSize('15fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
         Text(this.counterpartyLabel(item)).fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY);
         Text(item.latestMessage ? item.latestMessage.content : TradeStatusUI.text(item.transaction.status))
@@ -109,7 +110,10 @@ export struct TradeListView {
             .backgroundColor(TradeStatusUI.bgColor(item.transaction.status))
             .borderRadius(UI_RADIUS).padding({ left: 8, right: 8, top: 3, bottom: 3 });
         }
-        Text(formatPrice(item.product.price)).fontSize('18fp').fontWeight(FontWeight.Medium).fontColor(COLOR_PRIMARY);
+        if ((item.transaction.priceAtPurchase ?? item.product.price) > 0) {
+          Text(formatPrice(item.transaction.priceAtPurchase ?? item.product.price))
+            .fontSize('18fp').fontWeight(FontWeight.Medium).fontColor(COLOR_PRIMARY);
+        }
         Text(formatTime(item.transaction.createTime)).fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY);
       }
       .layoutWeight(1).alignItems(HorizontalAlign.Start);

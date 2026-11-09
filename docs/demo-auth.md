@@ -29,3 +29,18 @@ npm run accounts:import -- --reset .local-data/reset-account.json
 ```
 
 重置文件同样是数组，只列出要重置的邮箱与新密码。此操作只重置已有账号，保留 ID、业务数据及停用状态，撤销该账号全部会话并清除邮箱登录失败限制；没有对应邮箱则整批失败。源码更新时不要再次导入或重置同一组初始密码。
+
+## 邮件申请与账号注销
+
+由运营人员通过公开邮箱受理，按申请事项核验账号控制权。忘记密码时通过注册邮箱联系，并在核验后使用上面的重置工具。不要向申请人索取密码、验证码或无关证明。注销应在收到申请后 7 日内首次回复，并在 15 个工作日内完成处理。[华为账号注销说明](https://developer.huawei.com/consumer/cn/doc/app/faq-11/)
+
+注销前确认已核验的账号、适用的留存义务及处理范围。使用生产 API 实际配置的 `DATABASE_PATH`，将该账号的邮箱写入仅运营人员可读的 JSON 文件，内容为单个 JSON 字符串，如 `"account@example.com"`。先在测试账号上演练，再预览目标账号的影响范围。预览会回滚数据库变更。
+
+```bash
+npm run build
+npm run accounts:close -- .local-data/closure-email.json
+# 核对预览输出的 userId，确认后将下方 USER_ID 替换为该值。
+npm run accounts:close -- .local-data/closure-email.json --apply USER_ID
+```
+
+执行后旧会话即失效。工具清除账号登录和资料信息、本人发送的消息、AI 历史及名下商品公开内容，取消进行中的交易，并将图片加入后台清理队列。交易对方仍可查看已有交易快照和自己发送的消息。确认后台清理已处理相关图片，并按适用政策处理备份、供应商记录、交易快照中的个人信息和其他需保留的数据。记录处理结果并邮件告知申请人。

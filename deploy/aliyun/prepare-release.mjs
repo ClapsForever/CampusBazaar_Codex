@@ -16,7 +16,7 @@ function collect(relativeName) {
   if (info.isSymbolicLink()) throw new Error('Source bundle cannot include symbolic links');
   if (info.isDirectory()) {
     for (const name of readdirSync(file).sort()) {
-      if (['node_modules', 'dist', 'build', '.local-data', 'results'].includes(name) ||
+      if (['node_modules', 'dist', 'build', '.local-data', 'results', '.DS_Store'].includes(name) ||
         (name.startsWith('.env') && name !== '.env.example') || /\.(pem|key|p12|pfx)$/i.test(name)) continue;
       collect(`${relativeName}/${name}`);
     }
@@ -50,7 +50,9 @@ for (const name of files) {
 }
 const listing = join(output, 'source-files.txt'), archive = join(output, 'campusbazaar-source.tar.gz');
 writeFileSync(listing, files.join('\n') + '\n', { flag: 'wx', mode: 0o600 });
-const result = spawnSync('tar', ['-czf', archive, '-C', staging, '-T', listing], { encoding: 'utf8' });
+const result = spawnSync('tar', ['-czf', archive, '-C', staging, '-T', listing], {
+  encoding: 'utf8', env: { ...process.env, COPYFILE_DISABLE: '1' }
+});
 if (result.status !== 0) throw new Error('tar packaging failed; incomplete output retained for diagnosis');
 const sha256 = createHash('sha256').update(readFileSync(archive)).digest('hex');
 const metadata = { format: 1, createdAt: new Date().toISOString(), files: files.length, archive: 'campusbazaar-source.tar.gz', sha256,

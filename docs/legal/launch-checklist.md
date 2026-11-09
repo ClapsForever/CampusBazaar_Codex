@@ -18,5 +18,5 @@
 ## 提交前确认
 
 - 在开发者中心核对包名、版本码、发布签名、应用备案、分类及适用资质。匿名打开两份协议页后再填控制台链接。[华为提交指引](https://developer.huawei.com/consumer/cn/app/submit/)
-- 账号注销及隐私申请由周墨通过公开邮箱受理。上架前走通邮件申请、身份核验、实际注销及结果反馈。[华为账号注销说明](https://developer.huawei.com/consumer/cn/doc/app/faq-11/)
+- 账号注销及隐私申请由周墨通过公开邮箱受理。上架前用专用账号走通邮件申请、身份核验、管理员注销及结果反馈。[操作手册](../demo-auth.md) · [华为账号注销说明](https://developer.huawei.com/consumer/cn/doc/app/faq-11/)
 - 按实际部署核对备份清理和 DeepSeek 数据处理安排。当前业务清理以 365 天为到期标准；若适用《电子商务法》第三十一条，应在公开运行前核对商品、服务和交易信息的留存策略。[电子商务法](https://www.samr.gov.cn/wljys/gzzd/art/2023/art_3e75434c954b4cb9bd14867dacff26d1.html)

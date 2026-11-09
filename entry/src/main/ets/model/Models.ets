@@ -40,6 +40,8 @@ export interface Transaction {
   sellerId: string;
   createTime: number;
   status: TransactionStatus;
+  priceAtPurchase?: number;
+  titleAtPurchase?: string;
 }
 
 export interface Message {

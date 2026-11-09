@@ -64,7 +64,7 @@ struct Index {
           }
           .width('100%').padding(16).backgroundColor(Color.White).borderRadius(UI_RADIUS);
           Text(this.vm.registering ? '注册须验证邮箱，邮箱验证不代表学生身份认证。' :
-            '忘记密码请联系项目组。没有账号可点击下方「立即注册」。')
+            '忘记密码？请用注册邮箱向 wh1te6@163.com 申请重置。请勿提供密码或验证码。')
             .fontSize('12fp').fontColor(COLOR_TEXT_TERTIARY).width('100%');
         }
         .width('100%').padding({ left: 24, right: 24, bottom: 24 });

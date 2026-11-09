@@ -62,6 +62,20 @@ function authenticationWith(request) {
   return { service: new (load('service/AuthenticationService').HttpAuthenticationService)(), tokens };
 }
 
+test('邮件投递耗时不会延长客户端看到的验证码有效期', async () => {
+  let now = Date.now();
+  const response = deferred();
+  const model = validForm(modelWith({ sendRegistrationEmail: () => response.promise }, { Date: { now: () => now } }));
+  const sending = model.sendEmailCode();
+  now += 15_000;
+  response.resolve(issued());
+  assert.equal(await sending, true);
+  model.emailCode = '012345';
+  now += 285_000;
+  assert.equal(await model.register(), false);
+  assert.match(model.verificationError, /过期/);
+});
+
 test('注册校验邮箱、密码、验证码及主动同意，协议默认不勾选', async t => {
   assert.equal(modelWith().acceptedTerms, false);
   for (const [name, changes, errorField] of [

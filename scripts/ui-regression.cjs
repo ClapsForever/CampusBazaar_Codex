@@ -591,7 +591,7 @@ test('商品搜索把关键词、多选价格、大类与校区组合成一次�
   assert.equal((await service.searchProducts({ keyword: '', categories: [], campuses: [], priceRanges: [] })).length, 0);
 });
 
-test('自己的商品和已售出商品不预约，成功后不重复提交', async () => {
+test('自己的商品、已售出和已下架商品不预约，成功后不重复提交', async () => {
   let calls = 0;
   const load = harness({
     'service/AuthenticationService': { authService: { getCurrentUser: () => ({ id: 'buyer' }) } },
@@ -601,6 +601,8 @@ test('自己的商品和已售出商品不预约，成功后不重复提交', as
   model.detail = { product: { ...product, sellerId: 'buyer', status: 'ACTIVE' } };
   assert.equal(await model.purchase(), false);
   model.detail.product.sellerId = 'seller'; model.detail.product.status = 'SOLD';
+  assert.equal(await model.purchase(), false);
+  model.detail.product.status = 'DELISTED';
   assert.equal(await model.purchase(), false);
   model.detail.product.status = 'ACTIVE'; assert.equal(await model.purchase(), true);
   assert.equal(await model.purchase(), false); assert.equal(calls, 1);

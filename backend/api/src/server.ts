@@ -7,7 +7,7 @@ import { isIP } from 'node:net';
 import { pipeline } from 'node:stream/promises';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Config } from './config.js';
-import { openDatabase } from './db.js';
+import { openDatabase, transaction } from './db.js';
 import { ApiError, bearer, equalToken, fail, readBytes, readJson, requestId, send, text } from './http.js';
 import { Store } from './store.js';
 import type { VerificationEmailSender } from './mailer.js';
@@ -69,7 +69,8 @@ function internalIdentity(req: IncomingMessage, store: Store) {
   return store.internalUser(userId, schoolId);
 }
 
-async function proxyAgent(store: Store, user: ReturnType<Store['authenticate']>, body: Record<string, unknown>): Promise<{ status: number; body: unknown }> {
+async function proxyAgent(store: Store, token: string, body: Record<string, unknown>): Promise<{ status: number; body: unknown }> {
+  const user = store.authenticate(token);
   const agentRequestId = text(body.requestId, 'requestId', 1, 100);
   const message = text(body.message, 'message', 1, 2000);
   const sessionId = body.sessionId === null || body.sessionId === undefined ? null : text(body.sessionId, 'sessionId', 1, 150);
@@ -121,7 +122,7 @@ async function proxyAgent(store: Store, user: ReturnType<Store['authenticate']>,
   if (sessionId && sessionId !== value.sessionId) throw new ApiError(502, 'AGENT_BAD_RESPONSE', 'Agent 会话 ID 异常', true);
   // An existing conversation may have been deleted while the Agent was running.
   // Check again before storing the result so a late response cannot recreate it.
-  store.assertActiveUser(user.id);
+  store.authenticate(token);
   if (sessionId) store.agentSessionOwned(sessionId, user);
   store.saveAgentTurn(value.sessionId, user, message, value);
   return { status: 200, body: value };
@@ -173,7 +174,8 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   }
   if (method === 'GET' && path === '/api/v1/me') { send(res, 200, store.user(user, true), rid); return; }
   if ((method === 'PUT' || method === 'PATCH') && path === '/api/v1/me') {
-    send(res, 200, store.updateProfile(user, await readJson(req)), rid); return;
+    const body = await readJson(req);
+    send(res, 200, store.updateProfile(store.authenticate(token), body), rid); return;
   }
   if (method === 'POST' && path === '/api/v1/me/password') {
     send(res, 200, await store.changePassword(user, await readJson(req), token), rid); return;
@@ -191,14 +193,17 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   }
   if (method === 'GET' && path === '/api/v1/products') { send(res, 200, store.products(user, url.searchParams), rid); return; }
   if (method === 'GET' && path === '/api/v1/me/products') { send(res, 200, store.products(user, url.searchParams, true), rid); return; }
-  if (method === 'POST' && path === '/api/v1/products') { send(res, 201, store.publish(user, await readJson(req)), rid); return; }
+  if (method === 'POST' && path === '/api/v1/products') {
+    const body = await readJson(req);
+    send(res, 201, store.publish(store.authenticate(token), body), rid); return;
+  }
   const delistMatch = /^\/api\/v1\/products\/(listing_[a-z0-9_-]{1,64})\/delist$/.exec(path);
   if (method === 'POST' && delistMatch?.[1]) { send(res, 200, store.delistProduct(delistMatch[1], user), rid); return; }
   const productMatch = /^\/api\/v1\/products\/(listing_[a-z0-9_-]{1,64})$/.exec(path);
   if (method === 'GET' && productMatch?.[1]) { send(res, 200, store.publicProduct(productMatch[1], user), rid); return; }
   if (method === 'POST' && path === '/api/v1/uploads') {
     const bytes = await readBytes(req, 5_000_000);
-    store.assertActiveUser(user.id);
+    store.authenticate(token);
     const type = imageType(bytes);
     if (!type || bytes.length === 0 || req.headers['content-type'] !== type.mime) {
       throw new ApiError(400, 'INVALID_IMAGE', '只接受内容匹配的 JPEG、PNG 或 WebP 图片');
@@ -207,8 +212,11 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
     const filename = join(store.config.uploadDir, `${id}.${type.extension}`);
     writeFileSync(filename, bytes, { flag: 'wx' });
     try {
-      store.db.prepare('INSERT INTO product_images(id,owner_id,mime,extension,size_bytes,created_at) VALUES(?,?,?,?,?,?)')
-        .run(id, user.id, type.mime, type.extension, bytes.length, Date.now());
+      transaction(store.db, () => {
+        store.authenticate(token);
+        store.db.prepare('INSERT INTO product_images(id,owner_id,mime,extension,size_bytes,created_at) VALUES(?,?,?,?,?,?)')
+          .run(id, user.id, type.mime, type.extension, bytes.length, Date.now());
+      });
     } catch (error) {
       const { unlinkSync } = await import('node:fs');
       unlinkSync(filename);
@@ -225,7 +233,8 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
     await sendImage(res, store, image, rid); return;
   }
   if (method === 'POST' && path === '/api/v1/transactions') {
-    send(res, 201, store.createTransaction(user, await readJson(req), idempotencyKey(req)), rid); return;
+    const body = await readJson(req);
+    send(res, 201, store.createTransaction(store.authenticate(token), body, idempotencyKey(req)), rid); return;
   }
   if (method === 'GET' && path === '/api/v1/transactions') { send(res, 200, store.transactions(user, url.searchParams), rid); return; }
   const transactionMatch = /^\/api\/v1\/transactions\/(trade_[a-f0-9-]{36})$/.exec(path);
@@ -237,10 +246,11 @@ async function route(req: IncomingMessage, res: ServerResponse, store: Store, ri
   const messagesMatch = /^\/api\/v1\/transactions\/(trade_[a-f0-9-]{36})\/messages$/.exec(path);
   if (messagesMatch?.[1] && method === 'GET') { send(res, 200, store.messages(messagesMatch[1], user, url.searchParams), rid); return; }
   if (messagesMatch?.[1] && method === 'POST') {
-    send(res, 201, store.sendMessage(messagesMatch[1], user, await readJson(req), idempotencyKey(req)), rid); return;
+    const body = await readJson(req);
+    send(res, 201, store.sendMessage(messagesMatch[1], store.authenticate(token), body, idempotencyKey(req)), rid); return;
   }
   if (method === 'POST' && path === '/api/agent/chat') {
-    const outcome = await proxyAgent(store, user, await readJson(req));
+    const outcome = await proxyAgent(store, token, await readJson(req));
     send(res, outcome.status, outcome.body, rid); return;
   }
   throw new ApiError(404, 'NOT_FOUND', '接口不存在');

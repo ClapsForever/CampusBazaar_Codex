@@ -65,9 +65,12 @@ export struct TradeDetailView {
             .backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
         }
         Column({ space: 6 }) {
-          Text(this.vm.detail.product.title).fontSize('16fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
-          Text(formatPrice(this.vm.detail.product.price)).fontSize('17fp').fontWeight(FontWeight.Medium)
-            .fontColor(COLOR_PRICE);
+          Text(this.vm.detail.transaction.titleAtPurchase || this.vm.detail.product.title)
+            .fontSize('16fp').fontWeight(FontWeight.Medium).fontColor(COLOR_TEXT_PRIMARY);
+          if ((this.vm.detail.transaction.priceAtPurchase ?? this.vm.detail.product.price) > 0) {
+            Text(formatPrice(this.vm.detail.transaction.priceAtPurchase ?? this.vm.detail.product.price))
+              .fontSize('17fp').fontWeight(FontWeight.Medium).fontColor(COLOR_PRICE);
+          }
           Text(`${this.vm.detail.buyer.nickname} ↔ ${this.vm.detail.seller.nickname}`)
             .fontSize('12fp').fontColor(COLOR_TEXT_SECONDARY);
           Text(TradeStatusUI.text(this.vm.detail.transaction.status)).fontSize('12fp')

@@ -157,6 +157,7 @@ test('源码发布包按白名单生成，不带运行密钥、数据库或已�
   assert(files.includes('docs/legal/web/user-agreement.html')); assert(files.includes('docs/legal/web/privacy-policy.html'));
   assert(files.every(name => !/(^|\/)(node_modules|dist|\.local-data|results)\//.test(name)));
   assert(files.every(name => !/(^|\/)\.env$/.test(name)));
+  assert(files.every(name => !/(^|\/)\.DS_Store$/.test(name)));
   const metadata = JSON.parse(readFileSync(join(output, 'release.json')));
   assert.equal(metadata.sha256, createHash('sha256').update(readFileSync(join(output, metadata.archive))).digest('hex'));
   assert.equal(metadata.secretsIncluded, false); assert.equal(metadata.dataIncluded, false);

@@ -14,7 +14,7 @@
 
 > 2026-10-24：App 已接入邮箱发码、六位验证码、服务端冷却和验证码注册，默认 API 地址为 `https://api.campus-bazzar.work`。22:06 已备份并切换正式邮件 API、升级数据库至 v6；22:29 完成真实 163 邮箱收件、验证码注册、自动登录、退出与密码重登。旧数据和 Agent 保留，详见 [邮件注册上线记录](docs/email-registration-rollout-2026-10-24.md)。新包签名安装及真机验收尚待完成。接口见 [注册说明](docs/registration.md)。
 
-同窗集是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、邮箱验证码注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调；自助找回密码尚未接入。
+同窗集是鸿蒙校园二手商品应用。本仓库包含**全部项目源码**：HarmonyOS 前端、Node.js 业务 API 和基于开源 Pi Agent 的找货服务。支持邮箱密码登录、邮箱验证码注册、商品与照片、搜索、交易、聊天，以及接入 DeepSeek 的多轮找货。下面介绍 Windows 电脑与鸿蒙模拟器的本机联调。密码重置和账号注销通过[运营邮箱](docs/demo-auth.md)受理。
 
 2026-10-20 已将 licx 的后端及完整数据迁入阿里云 Ubuntu 24.04。当前入口为 `https://api.campus-bazzar.work`，健康检查为该地址的 `/health/ready`；组员接入见 [模拟器接入说明](docs/ip-direct-testing.md)。旧 IP HTTP 入口仍保留，新包使用 HTTPS 域名。
 
@@ -151,7 +151,7 @@ Invoke-RestMethod http://127.0.0.1:3000/health
 
 - 业务数据在 `backend/api/.local-data/`。停止 API 后备份整个目录，可同时保存 SQLite 和图片。队友首次启动会得到自己的空数据库。
 - AI 对话每轮成功回复后自动保存在业务 SQLite，按账号隔离；“新对话”旁的“历史记录”可按时间分页查看，退出登录、重启 App 或服务不会丢失已保存内容。历史详情供回看；Agent 的续聊上下文仍存于内存，重启或过期后需新建对话。更新前已经丢失的内存对话无法补回。
-- “我的 → 个人设置”支持相册头像、昵称及登录密码。修改密码需当前密码；演示密码为 6–64 位，以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
+- “我的 → 个人设置”支持相册头像、昵称及登录密码。修改密码需当前密码。密码为 6–64 位，以随机盐 scrypt 摘要保存，修改后撤销其他登录会话。详见[个人设置与历史记录说明](docs/profile-and-history.md)。
 - `.env`、DeepSeek Key、数据库、上传图片、`node_modules`、构建产物均已被 Git 忽略。只提交源码、两个 `package-lock.json`、`.env.example`、文档和测试。
 - App 使用邮箱验证码注册。邮箱验证用于确认邮件接收能力。目前可通过联系邮箱申请账号核查。
 - [用户协议](docs/legal/user-agreement.md)、[隐私政策](docs/legal/privacy-policy.md)和[社区与交易规则](docs/legal/community-rules.md)可从启动页及“我的”阅读。修改 Markdown 后运行 `node scripts/sync-legal-docs.cjs` 生成离线文本和华为协议网页，用 `node scripts/sync-legal-docs.cjs --check` 检查同步。协议版本变更须同步 App、API 与正文。

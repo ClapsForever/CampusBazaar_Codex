@@ -4,8 +4,7 @@ import { transaction } from './db.js';
 import { ApiError } from './http.js';
 import { hashPassword, validatePassword } from './password.js';
 
-// Demo identity policy: trim and lowercase the entire address, without changing
-// dots or plus tags. Email ownership remains unverified until mail is integrated.
+// Keep dots and plus tags while normalizing case. Ownership is checked separately during registration.
 export function normalizeEmail(value: unknown): string {
   if (typeof value !== 'string') throw new ApiError(400, 'INVALID_EMAIL', '请输入正确的邮箱地址');
   const email = value.trim().toLowerCase();

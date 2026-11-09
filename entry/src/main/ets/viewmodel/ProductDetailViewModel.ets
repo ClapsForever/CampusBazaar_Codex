@@ -55,6 +55,7 @@ export class ProductDetailViewModel {
       return false;
     }
     this.purchasing = true;
+    this.lastErrorMessage = '';
     try {
       await transactionService.createTransaction(this.detail.product.id, current.id);
       this.reserved = true;

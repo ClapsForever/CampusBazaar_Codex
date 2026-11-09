@@ -257,7 +257,7 @@ export struct HomeView {
           .fontSize('13fp').fontColor(COLOR_TEXT_SECONDARY).backgroundColor(Color.Transparent)
           .onClick(() => this.getUIContext().showAlertDialog({
             title: '注销账号与隐私申请',
-            message: '请发送邮件至 wh1te6@163.com，说明账号邮箱和申请事项。周墨将在收到邮件后 7 日内首次回复。请勿提供密码或验证码。',
+            message: '请向 wh1te6@163.com 发送邮件，注明「注销同窗集账号」或申请事项及账号邮箱。周墨将在 7 日内首次回复。请勿提供密码或验证码。',
             primaryButton: { value: '知道了', action: (): void => {} }
           }));
         Button('退出登录').type(ButtonType.Normal).width('100%').height(46).margin({ top: 12 })

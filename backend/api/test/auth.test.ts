@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
+import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import { normalizeEmail, provisionAccounts } from '../src/accounts.js';
+import { closeAccount } from '../src/account-closure.js';
 import { loadConfig, type Config } from '../src/config.js';
 import { openDatabase } from '../src/db.js';
 import { tokenHash } from '../src/http.js';
 import { hashPassword } from '../src/password.js';
 import { createApiApp } from '../src/server.js';
+import { Store } from '../src/store.js';
 
 function configFor(directory: string): Config {
   return { mode: 'local', host: '127.0.0.1', port: 0, databasePath: join(directory, 'db.sqlite'),
@@ -17,6 +20,86 @@ function configFor(directory: string): Config {
     sessionSecret: 'this-is-a-long-test-only-session-secret', agentBaseUrl: 'http://127.0.0.1:1',
     agentServiceToken: 'test-agent-service-token-a', internalAgentToken: 'test-business-backend-token-b', schoolId: 'school_demo' };
 }
+
+test('退出登录后，已收到请求头的旧令牌不能修改资料', async () => {
+  const config = configFor(mkdtempSync(join(tmpdir(), 'campus-logout-race-')));
+  const app = createApiApp(config);
+  await new Promise<void>(resolve => app.server.listen(0, '127.0.0.1', resolve));
+  try {
+    const store = new Store(app.db, config);
+    const account = { email: 'seller@example.com', password: 'Campus123' };
+    await provisionAccounts(app.db, config.schoolId, [account]);
+    const login = await store.loginWithPassword(account);
+    const address = app.server.address(); assert(address && typeof address !== 'string');
+    const base = `http://127.0.0.1:${address.port}`;
+    const started = new Promise<void>(resolve => app.server.once('request', () => resolve()));
+    const body = JSON.stringify({ nickname: 'stale write' });
+    const pending = request(`${base}/api/v1/me`, { method: 'PUT', headers: {
+      authorization: `Bearer ${login.token}`, 'content-type': 'application/json', 'content-length': Buffer.byteLength(body)
+    } });
+    const status = new Promise<number | undefined>((resolve, reject) => {
+      pending.once('error', reject);
+      pending.once('response', response => { response.resume(); resolve(response.statusCode); });
+    });
+    pending.flushHeaders();
+    try {
+      await started;
+      const logout = await fetch(`${base}/api/v1/auth/logout`, { method: 'POST', headers: { authorization: `Bearer ${login.token}` } });
+      assert.equal(logout.status, 200);
+      pending.end(body);
+      assert.equal(await status, 401);
+      assert.equal(store.findUser(String(login.user.id))?.nickname, 'seller');
+    } finally { pending.destroy(); }
+  } finally { await app.close(); }
+});
+
+test('注销预览回滚，核对 ID 后清除账号和本人内容并保留对方交易快照', async () => {
+  const config = configFor(mkdtempSync(join(tmpdir(), 'campus-account-closure-')));
+  const db = openDatabase(config);
+  try {
+    const sellerInput = { email: 'seller@example.com', password: 'Campus123' };
+    const buyerInput = { email: 'buyer@example.com', password: 'Campus123' };
+    const accounts = await provisionAccounts(db, config.schoolId, [sellerInput, buyerInput]);
+    const store = new Store(db, config);
+    const { token } = await store.loginWithPassword(sellerInput);
+    const seller = store.findUser(accounts[0]!.id)!;
+    const buyer = store.findUser(accounts[1]!.id)!;
+    const image = `img_${'a'.repeat(32)}`;
+    db.prepare('INSERT INTO product_images(id,owner_id,mime,extension,size_bytes,created_at) VALUES(?,?,?,?,?,?)')
+      .run(image, seller.id, 'image/png', 'png', 9, Date.now());
+    const listing = store.publish(seller, { title: '教材', description: '原描述', price: 18, imageIds: [image] });
+    const tradeId = String(store.createTransaction(buyer, { productId: listing.id }).id);
+    store.sendMessage(tradeId, seller, { content: '卖家信息' });
+    store.sendMessage(tradeId, buyer, { content: '买家信息' });
+    store.rememberAgentSession('session_seller', seller);
+
+    assert.equal(closeAccount(db, sellerInput.email).changes.imagesQueued, 1);
+    assert.throws(() => closeAccount(db, sellerInput.email, buyer.id), /does not match/);
+    assert.equal(store.authenticate(token).id, seller.id);
+    assert.equal(store.findTransaction(tradeId, buyer).status, 'PENDING');
+    assert.equal(db.prepare('SELECT count(*) AS n FROM retention_file_deletions').get()?.n, 0);
+
+    const report = closeAccount(db, sellerInput.email, seller.id);
+    assert.equal(report.dryRun, false);
+    assert.throws(() => store.authenticate(token), /失效/);
+    assert.equal(store.findUser(seller.id)?.email, null);
+    assert.equal(store.findUser(seller.id)?.nickname, '已注销用户');
+    assert.equal(store.findProduct(String(listing.id))?.description, '');
+    assert.equal(store.findTransaction(tradeId, buyer).status, 'CANCELLED');
+    assert.equal(store.findTransaction(tradeId, buyer).title_snapshot, '教材');
+    assert.deepEqual(store.messages(tradeId, buyer, new URLSearchParams()).items.map(item => (item as { content: string }).content), ['买家信息']);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM agent_sessions').get()?.n, 0);
+    assert.equal(db.prepare('SELECT filename FROM retention_file_deletions').get()?.filename, `${image}.png`);
+    assert.throws(() => store.updateProfile(seller, { nickname: '迟到的更新' }), /失效/);
+    assert.throws(() => store.saveAgentTurn('session_seller', seller, '迟到的问题', { requestId: 'req_stale' }), /失效/);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+    assert.equal(closeAccount(db, buyerInput.email, buyer.id).changes.userRedacted, 1);
+    const fresh = await provisionAccounts(db, config.schoolId, [sellerInput]);
+    assert.notEqual(fresh[0]!.id, seller.id);
+    assert.throws(() => closeAccount(db, sellerInput.email, seller.id), /does not match/);
+    assert.equal(closeAccount(db, sellerInput.email, fresh[0]!.id).changes.userRemoved, 1);
+  } finally { db.close(); }
+});
 
 test('配置不再依赖开发验证码，邮箱统一大小写但保留加号和点', () => {
   const config = loadConfig({ APP_MODE: 'local', DATABASE_PATH: '/tmp/demo.sqlite', UPLOAD_DIR: '/tmp/demo-uploads',

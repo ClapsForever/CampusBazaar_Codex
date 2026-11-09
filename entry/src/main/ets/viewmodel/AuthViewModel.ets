@@ -67,6 +67,7 @@ export class AuthViewModel {
     this.clearVerification();
     const revision: number = this.sendRevision;
     const email: string = this.email.trim().toLowerCase();
+    const requestedAt: number = Date.now();
     this.formError = '';
     this.sendingCode = true;
     try {
@@ -74,7 +75,7 @@ export class AuthViewModel {
       if (revision !== this.sendRevision || !this.registering || this.email.trim().toLowerCase() !== email) return false;
       this.verificationId = response.verificationId;
       this.verificationEmail = email;
-      this.verificationExpiresAt = Date.now() + response.expiresIn * 1000;
+      this.verificationExpiresAt = requestedAt + response.expiresIn * 1000;
       this.resendAt = Date.now() + response.resendAfter * 1000;
       this.refreshCooldown();
       this.verificationMessage = '验证码邮件已提交发送，请查看收件箱或垃圾邮件。';

@@ -113,8 +113,8 @@ export struct ProductDetailView {
                   .type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
                   .fontColor(COLOR_TEXT_SECONDARY).backgroundColor(COLOR_INPUT_BG).borderRadius(UI_RADIUS);
               }
-            } else if (this.vm.detail.product.status === 'SOLD') {
-              Button('已售出').type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
+            } else if (this.vm.detail.product.status !== 'ACTIVE') {
+              Button(this.statusText()).type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
                 .fontColor(Color.White).backgroundColor('#C9CDD4').borderRadius(UI_RADIUS);
             } else if (this.vm.reserved) {
               Button('已预约，等待交易确认').type(ButtonType.Normal).enabled(false).width('100%').height(48).fontSize('15fp')
