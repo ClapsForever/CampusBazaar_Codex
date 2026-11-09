@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cancellation, priceDelta, requestedPage } from "../../src/intent/constraints.js";
+import { cancellation, isMinimumPriceRefinement, priceDelta, requestedPage } from "../../src/intent/constraints.js";
 import { emptyPlan, mergeSearchFilters } from "../../src/agent/policy.js";
 
 describe("grounded money and constraint changes", () => {
@@ -17,6 +17,12 @@ describe("grounded money and constraint changes", () => {
     expect(priceDelta("再下调20块预算", { maxPriceCents: 10000 })).toEqual({ maxPriceCents: 8000 });
     expect(priceDelta("上限50元，最低30元", {})).toEqual({ maxPriceCents: 5000, minPriceCents: 3000 });
     expect(priceDelta("预算80到50元", {})).toEqual({ minPriceCents: 8000, maxPriceCents: 5000 });
+  });
+  it("keeps strict lower bounds and negated upper bounds distinct", () => {
+    expect(isMinimumPriceRefinement("只看高于30元的商品")).toBe(true);
+    expect(priceDelta("只看高于30元的商品", {})).toEqual({ minPriceCents: 3001 });
+    expect(priceDelta("不要超过30元", {})).toEqual({ minPriceCents: null, maxPriceCents: 3000 });
+    expect(priceDelta("不低于30元", {})).toEqual({ minPriceCents: 3000 });
   });
   it.each(["不看价格了", "多少钱都行", "把价格上限去掉"])("removes an explicit budget on %s", message => {
     const previous = { keyword: "键盘", maxPriceCents: 5000 };

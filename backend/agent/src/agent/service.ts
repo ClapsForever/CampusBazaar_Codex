@@ -12,7 +12,7 @@ import { PLAN_PROMPT, RETRIEVAL_REPAIR_PROMPT, SYSTEM_PROMPT } from "./prompts.j
 import { RetrievalRepairSchema, repairedQueryTerms } from "./retrieval.js";
 import { noResultsReply, normalizeReply } from "./reply.js";
 import { createAgentTools } from "../tools/index.js";
-import { priceDelta, relativePriceRequested, requestedPage } from "../intent/constraints.js";
+import { isMinimumPriceRefinement, priceDelta, relativePriceRequested, requestedPage } from "../intent/constraints.js";
 import { CLARIFICATION_REPLY, HELP_REPLY, REFUSAL_REPLY, UNSUPPORTED_REPLY, TurnPlanSchema, parseTurnPlan, emptyPlan, mergeSearchFilters, mockTurnPlan, scopeDecision, type TurnPlan } from "./policy.js";
 
 interface SearchDetails {
@@ -81,8 +81,11 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     plan = decoded;
     if (["search", "refine", "clarification"].includes(plan.action) && relativePriceRequested(message)
       && filters.maxPriceCents === undefined) return finish("当前没有预算上限，请明确新的最高金额，我再帮你筛选。", "clarification");
-    if (plan.action === "clarification" && (filters.keyword || filters.category)
-      && Object.keys(priceDelta(message, filters)).length > 0) plan = { ...emptyPlan("refine"), changes: priceDelta(message, filters) };
+    if ((filters.keyword || filters.category) && (plan.action === "clarification"
+      || (["search", "refine"].includes(plan.action) && isMinimumPriceRefinement(message)))) {
+      const changes = priceDelta(message, filters);
+      if (Object.keys(changes).length > 0) plan = { ...emptyPlan("refine"), changes };
+    }
   }
   options.log("business_intent", { requestId: options.requestId, action: plan.action });
   switch (plan.action) {
@@ -197,9 +200,18 @@ export async function runAgentTurn(message: string, options: ChatServiceOptions)
     : plan.action === "preference" ? "我已读取当前用户的兴趣偏好，只会把它作为辅助排序信号，不会改变学校权限范围。"
     : plan.action === "compare" ? "我已重新读取指定商品详情，可以从价格、成色、取货校区和描述进行比较；缺失信息会标为未知。"
     : "这是本次指定商品的详情，信息已经通过平台重新验证，未提供的版本或属性会标为未知。";
-  const reply = await requestModelText(config, SYSTEM_PROMPT, JSON.stringify({
-    action: plan.action, question: message, needs, filters, results: modelResults,
-  }), signal, mockReply);
+  let reply: string | undefined;
+  // Wording is optional once real listings are available. Keep the cards when
+  // the model cannot finish writing the accompanying text promptly.
+  const replySignal = currentSearch ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : signal;
+  try {
+    reply = await requestModelText(config, SYSTEM_PROMPT, JSON.stringify({
+      action: plan.action, question: message, needs, filters, results: modelResults,
+    }), replySignal, mockReply);
+  } catch (error) {
+    if (!currentSearch || !(error instanceof AppError) || error.code !== "AGENT_TIMEOUT") throw error;
+    options.log("search_reply_fallback", { requestId: options.requestId, code: error.code });
+  }
   const more = currentSearch?.result.hasMore ? "\n还有更多相关商品，可以说“继续”查看下一页。" : "";
   return finish(`${needSummary}${reply ?? mockReply}${more}`, status, recommendations);
 }

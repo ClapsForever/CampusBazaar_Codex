@@ -64,6 +64,11 @@ test('大类搜索包含新商品与历史小类，并继续执行学校和在�
   assert.deepEqual(search('', { category: '外设' }), ['listing_new_headphone', 'listing_new_keyboard', 'listing_old_keyboard']);
   assert.deepEqual(search('', { category: '日用' }), ['listing_new_daily', 'listing_old_daily']);
   assert.deepEqual(search('', { category: '教材' }), ['listing_chinese', 'listing_english', 'listing_math']);
+  add('listing_study', '考研笔记', '学习');
+  add('listing_sports', '篮球', '运动');
+  add('listing_entertainment', '羽毛球拍', '娱乐');
+  assert.deepEqual(search('', { category: '学习' }), ['listing_chinese', 'listing_english', 'listing_math', 'listing_study']);
+  assert.deepEqual(search('', { category: '娱乐' }), ['listing_entertainment', 'listing_sports']);
 });
 
 test('按具体小物件搜索新大类时不会混入同类其他物件，预算仍有效', t => {

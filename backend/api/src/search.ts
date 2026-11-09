@@ -13,20 +13,20 @@ export function keywordGroups(keyword: string): string[][] {
     .map(term => equivalents.find(aliases => aliases.includes(term)) ?? [term]);
 }
 
-// Keep these storage/display groups aligned with the App's MarketOptions.
+// Match current publishing labels as well as the narrower historical labels.
 const categoryGroups = [
-  { category: '教材', members: ['教材', '图书', '书籍'] },
+  { category: '教材', members: ['教材', '学习', '图书', '书籍'] },
   { category: '数码', members: ['数码', '手机', '电脑', '平板', '相机', '计算器'] },
   { category: '外设', members: ['外设', '键盘', '鼠标', '耳机', '显示器', '音箱', '充电器'] },
   { category: '日用', members: ['日用', '生活', '生活用品', '台灯', '收纳'] },
-  { category: '运动', members: ['运动', '出行', '自行车', '单车', '运动用品'] },
+  { category: '运动', members: ['运动', '娱乐', '出行', '自行车', '单车', '运动用品'] },
   { category: '其他', members: ['其他'] }
 ];
 
 export function categorySearchSpec(category: string): { exact: string[]; grouped?: { category: string; keywords: string[] } } {
   const group = categoryGroups.find(item => item.members.includes(category));
   if (!group) return { exact: [category] };
-  if (category === group.category || ['生活', '生活用品', '出行', '运动用品', '图书', '书籍'].includes(category)) {
+  if (category === group.category || ['学习', '娱乐', '生活', '生活用品', '出行', '运动用品', '图书', '书籍'].includes(category)) {
     return { exact: group.members };
   }
   const keywords = keywordGroups(category)[0] ?? [category];

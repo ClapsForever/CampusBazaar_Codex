@@ -22,6 +22,15 @@ function moneyText(message: string): string {
     .replace(/块钱?|人民币|\byuan\b|\brmb\b|\bcny\b/gu, "元");
 }
 
+const amount = "(\\d+(?:\\.\\d+)?)";
+const lowerOperator = "(至少|不低于|最低|下限|at least|(?<![不别])(?<!不要)(?:高于|大于|超过|over))";
+const lowerPrice = `${lowerOperator}\\s*${amount}\\s*元?`;
+
+export function isMinimumPriceRefinement(message: string): boolean {
+  return new RegExp(`^(?:请|帮我|找|筛选|只看|只要|换成|改成|\\s)*(?:价格|价钱|售价)?\\s*${lowerPrice}\\s*(?:的\\s*)?(?:商品)?[。.!！?？\\s]*$`, "u")
+    .test(moneyText(message));
+}
+
 // A negated cancellation must not relax a user constraint.
 function requested(message: string, pattern: RegExp): boolean {
   for (const match of message.matchAll(new RegExp(pattern.source, "giu"))) {
@@ -43,19 +52,20 @@ export function cancellation(message: string, field: "price" | "condition" | "ca
 export function priceDelta(message: string, previous: SearchFilters): { minPriceCents?: number | null; maxPriceCents?: number | null } {
   if (cancellation(message, "price")) return { minPriceCents: null, maxPriceCents: null };
   const text = moneyText(message);
-  const amount = "(\\d+(?:\\.\\d+)?)";
   const cents = (value: string | undefined) => Math.round(Number(value) * 100);
   const relative = text.match(new RegExp(`(?:再|还)?便宜\\s*${amount}\\s*元|(?:预算|价格).{0,3}(?:降低|减少|下调|降)\\s*${amount}\\s*元|(?:再|还)?(?:下调|降低|减少|少花)\\s*${amount}\\s*元`, "u"));
   if (relative) return previous.maxPriceCents !== undefined ? { maxPriceCents: Math.max(0, previous.maxPriceCents - cents(relative[1] ?? relative[2] ?? relative[3])) } : {};
   const range = text.match(new RegExp(`${amount}\\s*元?\\s*(?:到|至|[-~～])\\s*${amount}\\s*元`, "u"));
   if (range) return { minPriceCents: cents(range[1]), maxPriceCents: cents(range[2]) };
-  const lower = text.match(new RegExp(`(?:至少|不低于|最低|下限|at least|over)\\s*${amount}\\s*元?`, "u"));
-  const upper = text.match(new RegExp(`(?:不(?:要)?超过|别超过|最多|上限|低于|小于|under|below|at most)\\s*${amount}\\s*元?`, "u"))
+  const lower = text.match(new RegExp(lowerPrice, "u"));
+  // Search bounds are inclusive integer cents. A strict lower bound starts at the next cent.
+  const minimum = lower ? cents(lower[2]) + (/^(?:高于|大于|超过|over)$/u.test(lower[1]!) ? 1 : 0) : null;
+  const upper = text.match(new RegExp(`(?:不(?:要)?超过|别超过|不高于|不大于|最多|上限|(?<!不)低于|小于|under|below|at most)\\s*${amount}\\s*元?`, "u"))
     ?? text.match(new RegExp(`${amount}\\s*元?\\s*(?:以内|以下|封顶|预算)`, "u"))
     ?? text.match(new RegExp(`(?:预算|budget)(?:改成|调整为|提高到|降低到|仍然|还是|上限|是|为|就|只有|:|：|\\s){0,6}${amount}\\s*元?`, "u"));
   const update: { minPriceCents?: number | null; maxPriceCents?: number | null } = {};
-  if (upper) { update.maxPriceCents = cents(upper[1]); update.minPriceCents = lower ? cents(lower[1]) : null; }
-  else if (lower) update.minPriceCents = cents(lower[1]);
+  if (upper) { update.maxPriceCents = cents(upper[1]); update.minPriceCents = minimum; }
+  else if (minimum !== null) update.minPriceCents = minimum;
   return update;
 }
 
